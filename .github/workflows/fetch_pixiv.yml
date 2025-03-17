@@ -27,4 +27,11 @@ jobs:
       - name: Run Pixiv fetcher
         env:
           PIXIV_REFRESH_TOKEN: ${{ secrets.PIXIV_REFRESH_TOKEN }}
-        run: python src/fetch_pixiv.py ${{ github.event.inputs.artwork_id }} 
+        run: python src/fetch_pixiv.py ${{ github.event.inputs.artwork_id }}
+        
+      - name: Commit and push if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add artworks/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Add artwork ${{ github.event.inputs.artwork_id }}" && git push) 
