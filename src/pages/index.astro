@@ -1,0 +1,51 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+
+let pixivArtworks = [];
+try {
+  pixivArtworks = await getCollection('pixiv');
+} catch (error) {
+  console.error('Error fetching pixiv collection:', error);
+}
+
+const sortedArtworks = pixivArtworks.sort((a, b) => 
+  new Date(b.data.create_date).getTime() - new Date(a.data.create_date).getTime()
+);
+---
+
+<Layout title="Daily Pixiv">
+  <main class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">Daily Pixiv</h1>
+    
+    {sortedArtworks.length === 0 ? (
+      <div class="text-center py-12">
+        <p class="text-gray-600">暂无作品，请先运行 GitHub Action 获取作品。</p>
+      </div>
+    ) : (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {sortedArtworks.map(artwork => (
+          <article class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <img 
+              src={artwork.data.images[0]} 
+              alt={artwork.data.title}
+              class="w-full h-64 object-cover"
+            />
+            <div class="p-4">
+              <h2 class="text-xl font-semibold mb-2">{artwork.data.title}</h2>
+              <p class="text-gray-600 mb-2">作者：{artwork.data.author.name}</p>
+              <div class="flex flex-wrap gap-2">
+                {artwork.data.tags.map(tag => (
+                  <span class="bg-gray-100 px-2 py-1 rounded text-sm">{tag}</span>
+                ))}
+              </div>
+              <p class="text-sm text-gray-500 mt-2">
+                发布于：{new Date(artwork.data.create_date).toLocaleDateString()}
+              </p>
+            </div>
+          </article>
+        ))}
+      </div>
+    )}
+  </main>
+</Layout> 
