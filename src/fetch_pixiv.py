@@ -7,17 +7,16 @@ from pixivpy3 import AppPixivAPI
 from pathlib import Path
 
 def fetch_artwork(artwork_id):
-    # 获取 Pixiv 登录凭证
-    username = os.environ.get('PIXIV_USERNAME')
-    password = os.environ.get('PIXIV_PASSWORD')
+    # 获取 Pixiv REFRESH_TOKEN
+    refresh_token = os.environ.get('PIXIV_REFRESH_TOKEN')
     
-    if not username or not password:
-        print("Error: PIXIV_USERNAME and PIXIV_PASSWORD environment variables are required")
+    if not refresh_token:
+        print("Error: PIXIV_REFRESH_TOKEN environment variable is required")
         sys.exit(1)
     
     # 初始化 API 客户端
     api = AppPixivAPI()
-    api.login(username, password)
+    api.auth(refresh_token=refresh_token)
     
     try:
         # 获取作品详情

@@ -26,6 +26,5 @@ jobs:
           
       - name: Run Pixiv fetcher
         env:
-          PIXIV_USERNAME: ${{ secrets.PIXIV_USERNAME }}
-          PIXIV_PASSWORD: ${{ secrets.PIXIV_PASSWORD }}
+          PIXIV_REFRESH_TOKEN: ${{ secrets.PIXIV_REFRESH_TOKEN }}
         run: python src/fetch_pixiv.py ${{ github.event.inputs.artwork_id }} 

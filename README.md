@@ -11,11 +11,17 @@
 
 ## 使用方法
 
-1. 在你的 GitHub 仓库中设置以下 Secrets：
-   - `PIXIV_USERNAME`: 你的 Pixiv 用户名
-   - `PIXIV_PASSWORD`: 你的 Pixiv 密码
+1. 获取 Pixiv REFRESH_TOKEN：
+   - 登录 Pixiv 网页版
+   - 打开浏览器开发者工具（F12）
+   - 在 Network 标签页中找到任意 API 请求
+   - 在请求头中找到 `x-client-hash` 和 `x-client-time` 参数
+   - 使用这些参数构造 REFRESH_TOKEN
 
-2. 在 GitHub Actions 页面中：
+2. 在你的 GitHub 仓库中设置以下 Secret：
+   - `PIXIV_REFRESH_TOKEN`: 你的 Pixiv REFRESH_TOKEN
+
+3. 在 GitHub Actions 页面中：
    - 选择 "Fetch Pixiv Artwork" 工作流
    - 点击 "Run workflow"
    - 输入要获取的 Pixiv 作品 ID
@@ -38,4 +44,5 @@ artworks/
 
 - 请确保你有权限访问目标作品
 - 建议遵守 Pixiv 的使用条款和版权规定
-- 不要频繁触发工作流，以免对 Pixiv 服务器造成压力 
+- 不要频繁触发工作流，以免对 Pixiv 服务器造成压力
+- REFRESH_TOKEN 有效期较长，但也会过期，过期后需要重新获取 
