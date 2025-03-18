@@ -97,22 +97,26 @@ def download_image(url, directory, filename):
 def create_metadata(illust, artwork_id, image_paths):
     """创建作品元数据"""
     return {
-        "id": artwork_id,
+        "id": int(artwork_id),  # 确保 ID 是数字类型
         "title": illust.title,
+        "caption": illust.caption or "",  # 确保 caption 存在
         "author": {
             "id": illust.user.id,
             "name": illust.user.name,
-            "account": illust.user.account
+            "account": illust.user.account,
+            "profile_image_url": illust.user.profile_image_urls.medium  # 添加作者头像 URL
         },
         "description": illust.caption,
         "tags": [tag.name for tag in illust.tags],
         "create_date": illust.create_date,
         "width": illust.width,
         "height": illust.height,
+        "page_count": len(image_paths),  # 添加页数
         "total_view": illust.total_view,
         "total_bookmarks": illust.total_bookmarks,
         "is_bookmarked": illust.is_bookmarked,
         "total_comments": getattr(illust, 'total_comments', 0),
+        "is_muted": False,  # 添加是否静音标志
         "images": image_paths
     }
 
