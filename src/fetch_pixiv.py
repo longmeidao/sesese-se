@@ -49,15 +49,6 @@ def fetch_artwork(artwork_id):
         artwork_dir = f"artworks/{artwork_id}"
         os.makedirs(artwork_dir, exist_ok=True)
         
-        # 下载作者头像
-        author_profile_path = None
-        if artwork.illust.user.profile_image_urls.medium:
-            author_profile_path = download_file(
-                artwork.illust.user.profile_image_urls.medium,
-                artwork_dir,
-                "author_profile.jpg"
-            )
-        
         # 下载作品图片
         image_paths = []
         if artwork.illust.meta_pages:
@@ -89,8 +80,7 @@ def fetch_artwork(artwork_id):
             "author": {
                 "id": artwork.illust.user.id,
                 "name": artwork.illust.user.name,
-                "account": artwork.illust.user.account,
-                "profile_image": f"artworks/{artwork_id}/author_profile.jpg" if author_profile_path else None
+                "account": artwork.illust.user.account
             },
             "description": artwork.illust.caption,
             "tags": [tag.name for tag in artwork.illust.tags],
