@@ -5,11 +5,11 @@ Pixiv 作品获取脚本
 """
 
 import os
-import sys
 import json
-import requests
 import time
 import random
+import requests
+import sys
 from pixivpy3 import AppPixivAPI
 
 def download_file(url, output_dir, filename):
@@ -145,11 +145,13 @@ def fetch_artwork(api, artwork_id):
         return False
 
 if __name__ == "__main__":
-    # 获取环境变量中的作品ID
-    artwork_id = os.environ.get('ARTWORK_ID')
-    if not artwork_id:
-        print("Error: ARTWORK_ID 环境变量未设置")
+    # 获取命令行参数中的作品ID
+    if len(sys.argv) != 2:
+        print("用法: python fetch_pixiv.py <artwork_id>")
         sys.exit(1)
+        
+    artwork_id = sys.argv[1]
+    print(f"准备获取作品ID: {artwork_id}")
     
     # 使用 refresh_token 创建 API 实例
     api = AppPixivAPI()
