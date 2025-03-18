@@ -7,8 +7,8 @@ from pixivpy3 import AppPixivAPI
 from pathlib import Path
 import requests
 
-def download_profile_image(url, output_dir, filename):
-    """下载作者头像"""
+def download_file(url, output_dir, filename):
+    """下载文件的通用函数"""
     try:
         response = requests.get(url, headers={
             'Referer': 'https://www.pixiv.net/',
@@ -24,7 +24,7 @@ def download_profile_image(url, output_dir, filename):
             f.write(response.content)
         return True
     except Exception as e:
-        print(f"Error downloading profile image: {str(e)}")
+        print(f"Error downloading file: {str(e)}")
         return False
 
 def fetch_artwork(artwork_id):
@@ -56,7 +56,7 @@ def fetch_artwork(artwork_id):
         
         if user and user.user:
             profile_image_url = user.user.profile_image_urls.medium
-            profile_image_success = download_profile_image(
+            profile_image_success = download_file(
                 profile_image_url,
                 artwork_dir,
                 'author_profile.jpg'
@@ -82,23 +82,29 @@ def fetch_artwork(artwork_id):
             "height": artwork.illust.height,
             "total_view": artwork.illust.total_view,
             "total_bookmarks": artwork.illust.total_bookmarks,
-            "is_bookmarked": artwork.illust.is_bookmarked
+            "is_bookmarked": artwork.illust.is_bookmarked,
+            "images": []
         }
         
-        metadata_path = os.path.join(artwork_dir, 'metadata.json')
-        with open(metadata_path, 'w', encoding='utf-8') as f:
-            json.dump(metadata, f, ensure_ascii=False, indent=2)
-            
         # 下载图片
         if artwork.illust.meta_pages:
             # 多页作品
             for idx, page in enumerate(artwork.illust.meta_pages):
                 image_url = page.image_urls.original
-                api.download(image_url, path=artwork_dir, name=f"page_{idx+1}.jpg")
+                filename = f"page_{idx+1}.jpg"
+                if download_file(image_url, artwork_dir, filename):
+                    metadata["images"].append(os.path.join('artworks', str(artwork_id), filename).replace('\\', '/'))
         else:
             # 单页作品
             image_url = artwork.illust.meta_single_page.original_image_url
-            api.download(image_url, path=artwork_dir, name="page_1.jpg")
+            filename = "page_1.jpg"
+            if download_file(image_url, artwork_dir, filename):
+                metadata["images"].append(os.path.join('artworks', str(artwork_id), filename).replace('\\', '/'))
+        
+        # 保存元数据
+        metadata_path = os.path.join(artwork_dir, 'metadata.json')
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
             
         print(f"Successfully downloaded artwork {artwork_id}")
         
