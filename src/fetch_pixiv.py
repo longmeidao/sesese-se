@@ -43,18 +43,21 @@ def fetch_artwork(artwork_id):
             sys.exit(1)
             
         # 创建输出目录
-        output_dir = Path(f"artworks/{artwork_id}")
+        artwork_dir = f"artworks/{artwork_id}"
+        output_dir = Path(artwork_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
         # 获取用户详情以获取正确的头像 URL
         user = api.user_detail(artwork.illust.user.id)
+        profile_image_success = False
+        profile_image_relative_path = f"{artwork_dir}/author_profile.jpg"
+        
         if user and user.user:
             profile_image_url = user.user.profile_image_urls.medium
             profile_image_path = output_dir / "author_profile.jpg"
             profile_image_success = download_profile_image(profile_image_url, profile_image_path)
         else:
             print(f"Warning: Could not fetch user details for user {artwork.illust.user.id}")
-            profile_image_success = False
         
         # 保存元数据
         metadata = {
@@ -65,7 +68,7 @@ def fetch_artwork(artwork_id):
                 "id": artwork.illust.user.id,
                 "name": artwork.illust.user.name,
                 "account": artwork.illust.user.account,
-                "profile_image_url": str(profile_image_path.relative_to(Path.cwd())) if profile_image_success else "https://s.pximg.net/common/images/no_profile.png"
+                "profile_image_url": profile_image_relative_path if profile_image_success else "https://s.pximg.net/common/images/no_profile.png"
             },
             "tags": [tag.name for tag in artwork.illust.tags],
             "create_date": artwork.illust.create_date,
