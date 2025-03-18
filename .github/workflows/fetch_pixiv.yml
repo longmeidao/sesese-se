@@ -32,23 +32,14 @@ jobs:
           PIXIV_REFRESH_TOKEN: ${{ secrets.PIXIV_REFRESH_TOKEN }}
         run: python src/fetch_pixiv.py ${{ github.event.inputs.artwork_id }}
         
-      - name: Generate Markdown
+      - name: Generate Content Collection
         run: |
           # 创建内容目录
           mkdir -p src/content/pixiv
           
-          # 读取元数据
+          # 复制元数据
           ARTWORK_ID=${{ github.event.inputs.artwork_id }}
-          METADATA=$(cat artworks/$ARTWORK_ID/metadata.json)
-          
-          # 获取图片列表
-          IMAGES=$(ls artworks/$ARTWORK_ID/*.jpg | sed 's/^/"/;s/$/"/' | tr '\n' ',' | sed 's/,$//')
-          
-          # 更新元数据中的图片路径
-          UPDATED_METADATA=$(echo $METADATA | jq --arg images "[$IMAGES]" '.images = ($images | fromjson)')
-          
-          # 保存为 JSON 文件
-          echo $UPDATED_METADATA > src/content/pixiv/$ARTWORK_ID.json
+          cp artworks/$ARTWORK_ID/metadata.json src/content/pixiv/$ARTWORK_ID.json
         
       - name: Commit and push if changed
         run: |

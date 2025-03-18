@@ -2,120 +2,123 @@
 import os
 import sys
 import json
-from datetime import datetime
-from pixivpy3 import AppPixivAPI
-from pathlib import Path
 import requests
+from pixivpy3 import *
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 
 def download_file(url, output_dir, filename):
-    """下载文件的通用函数"""
+    """下载文件到指定目录"""
     try:
-        response = requests.get(url, headers={
-            'Referer': 'https://www.pixiv.net/',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        })
-        response.raise_for_status()
-        
         # 确保输出目录存在
         os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, filename)
         
+        # 构建输出路径（使用正斜杠）
+        output_path = f"{output_dir}/{filename}"
+        
+        # 下载文件
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+        
+        # 保存文件
         with open(output_path, 'wb') as f:
-            f.write(response.content)
-        return True
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        
+        return output_path
     except Exception as e:
-        print(f"Error downloading file: {str(e)}")
-        return False
+        print(f"下载文件失败: {e}")
+        return None
 
 def fetch_artwork(artwork_id):
-    # 获取 Pixiv REFRESH_TOKEN
-    refresh_token = os.environ.get('PIXIV_REFRESH_TOKEN')
-    
-    if not refresh_token:
-        print("Error: PIXIV_REFRESH_TOKEN environment variable is required")
-        sys.exit(1)
-    
-    # 初始化 API 客户端
-    api = AppPixivAPI()
-    api.auth(refresh_token=refresh_token)
-    
+    """获取作品信息并下载相关文件"""
     try:
+        # 初始化 Pixiv API
+        api = AppPixivAPI()
+        api.auth(refresh_token=os.getenv('PIXIV_REFRESH_TOKEN'))
+        
         # 获取作品详情
         artwork = api.illust_detail(artwork_id)
         if not artwork or not artwork.illust:
-            print(f"Error: Artwork {artwork_id} not found")
-            sys.exit(1)
-            
-        # 创建输出目录
-        artwork_dir = os.path.join('artworks', str(artwork_id))
+            print(f"未找到作品: {artwork_id}")
+            return
+        
+        # 创建作品目录（使用正斜杠）
+        artwork_dir = f"artworks/{artwork_id}"
         os.makedirs(artwork_dir, exist_ok=True)
         
-        # 获取用户详情以获取正确的头像 URL
-        user = api.user_detail(artwork.illust.user.id)
-        profile_image_success = False
-        
-        if user and user.user:
-            profile_image_url = user.user.profile_image_urls.medium
-            profile_image_success = download_file(
-                profile_image_url,
+        # 下载作者头像
+        author_profile_path = None
+        if artwork.illust.user.profile_image_urls.medium:
+            author_profile_path = download_file(
+                artwork.illust.user.profile_image_urls.medium,
                 artwork_dir,
-                'author_profile.jpg'
+                "author_profile.jpg"
             )
-        else:
-            print(f"Warning: Could not fetch user details for user {artwork.illust.user.id}")
         
-        # 保存元数据
+        # 下载作品图片
+        image_paths = []
+        if artwork.illust.meta_pages:
+            # 多图作品
+            for i, page in enumerate(artwork.illust.meta_pages):
+                image_url = page.image_urls.original
+                image_path = download_file(
+                    image_url,
+                    artwork_dir,
+                    f"image_{i+1}.jpg"
+                )
+                if image_path:
+                    image_paths.append(f"artworks/{artwork_id}/image_{i+1}.jpg")
+        else:
+            # 单图作品
+            image_url = artwork.illust.image_urls.original
+            image_path = download_file(
+                image_url,
+                artwork_dir,
+                "image_1.jpg"
+            )
+            if image_path:
+                image_paths.append(f"artworks/{artwork_id}/image_1.jpg")
+        
+        # 构建元数据
         metadata = {
-            "id": artwork.illust.id,
+            "id": artwork_id,
             "title": artwork.illust.title,
-            "caption": artwork.illust.caption,
             "author": {
                 "id": artwork.illust.user.id,
                 "name": artwork.illust.user.name,
                 "account": artwork.illust.user.account,
-                "profile_image_url": os.path.join('artworks', str(artwork_id), 'author_profile.jpg').replace('\\', '/') if profile_image_success else "https://s.pximg.net/common/images/no_profile.png"
+                "profile_image": f"artworks/{artwork_id}/author_profile.jpg" if author_profile_path else None
             },
+            "description": artwork.illust.caption,
             "tags": [tag.name for tag in artwork.illust.tags],
             "create_date": artwork.illust.create_date,
-            "page_count": artwork.illust.page_count,
             "width": artwork.illust.width,
             "height": artwork.illust.height,
             "total_view": artwork.illust.total_view,
             "total_bookmarks": artwork.illust.total_bookmarks,
             "is_bookmarked": artwork.illust.is_bookmarked,
-            "images": []
+            "total_comments": artwork.illust.total_comments,
+            "images": image_paths
         }
         
-        # 下载图片
-        if artwork.illust.meta_pages:
-            # 多页作品
-            for idx, page in enumerate(artwork.illust.meta_pages):
-                image_url = page.image_urls.original
-                filename = f"page_{idx+1}.jpg"
-                if download_file(image_url, artwork_dir, filename):
-                    metadata["images"].append(os.path.join('artworks', str(artwork_id), filename).replace('\\', '/'))
-        else:
-            # 单页作品
-            image_url = artwork.illust.meta_single_page.original_image_url
-            filename = "page_1.jpg"
-            if download_file(image_url, artwork_dir, filename):
-                metadata["images"].append(os.path.join('artworks', str(artwork_id), filename).replace('\\', '/'))
-        
         # 保存元数据
-        metadata_path = os.path.join(artwork_dir, 'metadata.json')
+        metadata_path = f"{artwork_dir}/metadata.json"
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
-            
-        print(f"Successfully downloaded artwork {artwork_id}")
+        
+        print(f"成功获取作品 {artwork_id}")
         
     except Exception as e:
-        print(f"Error: {str(e)}")
+        print(f"获取作品失败: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python fetch_pixiv.py <artwork_id>")
+        print("使用方法: python fetch_pixiv.py <artwork_id>")
         sys.exit(1)
-        
+    
     artwork_id = sys.argv[1]
     fetch_artwork(artwork_id) 
