@@ -1,0 +1,119 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  const pixivArtworks = await getCollection('pixiv');
+  return pixivArtworks.map((artwork, index) => ({
+    params: { index: index.toString() },
+    props: { artwork, total: pixivArtworks.length },
+  }));
+}
+
+const { artwork, total } = Astro.props;
+const currentIndex = parseInt(Astro.params.index || '0');
+
+// 判断是否有上一张和下一张图片
+const hasPrev = currentIndex > 0;
+const hasNext = currentIndex < total - 1;
+const prevIndex = hasPrev ? currentIndex - 1 : null;
+const nextIndex = hasNext ? currentIndex + 1 : null;
+---
+
+<Layout title={`${artwork.data.title} - Daily Pixiv`}>
+  <div class="min-h-screen bg-gray-100">
+    <div class="relative min-h-screen">
+      {/* 图片展示区域 */}
+      <div class="flex items-center justify-center min-h-screen bg-black">
+        <img 
+          src={artwork.data.images[0]} 
+          alt={artwork.data.title}
+          class="max-h-[90vh] max-w-[90vw] object-contain"
+          loading="lazy"
+        />
+      </div>
+
+      {/* 导航按钮 */}
+      <div class="fixed inset-0 flex items-center justify-between pointer-events-none">
+        {hasPrev && (
+          <a 
+            href={`/artwork/${prevIndex}`}
+            class="pointer-events-auto p-4 text-white hover:text-primary-400 transition-colors"
+            aria-label="上一张"
+          >
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </a>
+        )}
+        {!hasPrev && <div class="w-16" />} {/* 占位，保持布局平衡 */}
+        
+        {hasNext && (
+          <a 
+            href={`/artwork/${nextIndex}`}
+            class="pointer-events-auto p-4 text-white hover:text-primary-400 transition-colors"
+            aria-label="下一张"
+          >
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        )}
+        {!hasNext && <div class="w-16" />} {/* 占位，保持布局平衡 */}
+      </div>
+
+      {/* 作品信息 */}
+      <div class="fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4">
+        <div class="max-w-4xl mx-auto">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-xl font-semibold line-clamp-1">
+                {artwork.data.title}
+              </h2>
+              <div class="flex items-center mt-1">
+                <img 
+                  src={`https://www.pixiv.net/user-profile/${artwork.data.author.id}`}
+                  alt={artwork.data.author.name}
+                  class="h-6 w-6 rounded-full bg-gray-200"
+                  onerror="this.src='https://placehold.co/24x24'"
+                />
+                <div class="ml-2">
+                  <p class="text-sm font-medium">{artwork.data.author.name}</p>
+                  <p class="text-xs opacity-75">@{artwork.data.author.account}</p>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center space-x-4 text-sm">
+              <span class="flex items-center">
+                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                {artwork.data.total_view.toLocaleString()}
+              </span>
+              <span class="flex items-center">
+                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                {artwork.data.total_bookmarks.toLocaleString()}
+              </span>
+              <time datetime={artwork.data.create_date} class="text-xs opacity-75">
+                {new Date(artwork.data.create_date).toLocaleDateString()}
+              </time>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2 mt-2">
+            {artwork.data.tags.slice(0, 5).map(tag => (
+              <span class="px-2 py-1 bg-white bg-opacity-10 rounded-full text-xs">
+                {tag}
+              </span>
+            ))}
+            {artwork.data.tags.length > 5 && (
+              <span class="text-xs opacity-75">+{artwork.data.tags.length - 5}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout> 

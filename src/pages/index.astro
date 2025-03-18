@@ -1,8 +1,8 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, type CollectionEntry } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
 
-let pixivArtworks = [];
+let pixivArtworks: CollectionEntry<'pixiv'>[] = [];
 try {
   pixivArtworks = await getCollection('pixiv');
 } catch (error) {
@@ -12,40 +12,220 @@ try {
 const sortedArtworks = pixivArtworks.sort((a, b) => 
   new Date(b.data.create_date).getTime() - new Date(a.data.create_date).getTime()
 );
+
+// 获取当前图片索引
+const currentIndex = 0;
+const total = sortedArtworks.length;
+const hasPrev = currentIndex > 0;
+const hasNext = currentIndex < total - 1;
+const prevIndex = hasPrev ? currentIndex - 1 : null;
+const nextIndex = hasNext ? currentIndex + 1 : null;
 ---
 
 <Layout title="Daily Pixiv">
-  <main class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-8">Daily Pixiv</h1>
-    
+  <div class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
     {sortedArtworks.length === 0 ? (
-      <div class="text-center py-12">
-        <p class="text-gray-600">暂无作品，请先运行 GitHub Action 获取作品。</p>
+      <div class="flex items-center justify-center min-h-screen">
+        <div class="text-center">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <h3 class="mt-4 text-lg font-medium text-gray-900">暂无作品</h3>
+          <p class="mt-2 text-gray-500">
+            请先运行 GitHub Action 获取作品。获取后将自动显示在这里。
+          </p>
+        </div>
       </div>
     ) : (
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sortedArtworks.map(artwork => (
-          <article class="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div class="relative min-h-screen" id="artwork-container">
+        {/* 图片展示区域 */}
+        <div class="flex items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 to-black" id="artwork-viewer">
+          <div class="relative w-full h-full flex items-center justify-center">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none"></div>
             <img 
-              src={artwork.data.images[0]} 
-              alt={artwork.data.title}
-              class="w-full h-64 object-cover"
+              src={sortedArtworks[currentIndex].data.images[0]} 
+              alt={sortedArtworks[currentIndex].data.title}
+              class="max-h-[90vh] max-w-[90vw] object-contain relative"
+              loading="lazy"
             />
-            <div class="p-4">
-              <h2 class="text-xl font-semibold mb-2">{artwork.data.title}</h2>
-              <p class="text-gray-600 mb-2">作者：{artwork.data.author.name}</p>
-              <div class="flex flex-wrap gap-2">
-                {artwork.data.tags.map(tag => (
-                  <span class="bg-gray-100 px-2 py-1 rounded text-sm">{tag}</span>
-                ))}
+          </div>
+        </div>
+
+        {/* 导航按钮 */}
+        <div class="fixed inset-0 flex items-center justify-between pointer-events-none z-20">
+          {hasPrev && (
+            <a 
+              href={`/artwork/${prevIndex}`}
+              class="pointer-events-auto p-4 text-white/90 hover:text-white transition-colors"
+              aria-label="上一张"
+            >
+              <div class="group relative">
+                <div class="absolute inset-0 bg-black/20 rounded-full blur opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <svg class="w-8 h-8 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
               </div>
-              <p class="text-sm text-gray-500 mt-2">
-                发布于：{new Date(artwork.data.create_date).toLocaleDateString()}
-              </p>
+            </a>
+          )}
+          {!hasPrev && <div class="w-16" />}
+          
+          {hasNext && (
+            <a 
+              href={`/artwork/${nextIndex}`}
+              class="pointer-events-auto p-4 text-white/90 hover:text-white transition-colors"
+              aria-label="下一张"
+            >
+              <div class="group relative">
+                <div class="absolute inset-0 bg-black/20 rounded-full blur opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <svg class="w-8 h-8 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </a>
+          )}
+          {!hasNext && <div class="w-16" />}
+        </div>
+
+        {/* 作品信息 */}
+        <div id="artwork-info" class="artwork-info relative text-white/95 transition-all duration-300 z-30">
+          <div class="max-w-4xl mx-auto px-4 py-6 relative">
+            {/* 标题和作者信息 */}
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex-1 min-w-0">
+                <a 
+                  href={`https://www.pixiv.net/artworks/${sortedArtworks[currentIndex].data.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-block group"
+                >
+                  <h2 class="text-xl font-medium line-clamp-1 cursor-pointer hover:text-primary-400/95 transition-colors">
+                    {sortedArtworks[currentIndex].data.title}
+                    <span class="ml-2 text-sm text-white/60 group-hover:text-white/80 transition-colors">
+                      {new Date(sortedArtworks[currentIndex].data.create_date).toLocaleDateString()}
+                    </span>
+                  </h2>
+                </a>
+                <div class="flex items-center mt-2 text-sm">
+                  <a 
+                    href={`https://www.pixiv.net/users/${sortedArtworks[currentIndex].data.author.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="flex items-center hover:text-primary-400 transition-colors"
+                  >
+                    <img 
+                      src={sortedArtworks[currentIndex].data.author.profile_image_url}
+                      alt={sortedArtworks[currentIndex].data.author.name}
+                      class="h-5 w-5 rounded-full bg-gray-200"
+                    />
+                    <span class="ml-2 font-medium">
+                      {sortedArtworks[currentIndex].data.author.name}
+                    </span>
+                  </a>
+                  <span class="mx-2 opacity-40">·</span>
+                  <div class="flex items-center space-x-3 text-sm opacity-80">
+                    <span class="flex items-center" title="浏览数">
+                      <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      {sortedArtworks[currentIndex].data.total_view.toLocaleString()}
+                    </span>
+                    <span class="flex items-center" title="收藏数">
+                      <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      {sortedArtworks[currentIndex].data.total_bookmarks.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-          </article>
-        ))}
+
+            {/* 标签 */}
+            <div class="flex flex-wrap gap-2 mt-3">
+              {sortedArtworks[currentIndex].data.tags.slice(0, 5).map(tag => (
+                <a 
+                  href={`https://www.pixiv.net/tags/${encodeURIComponent(tag)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="px-2.5 py-0.5 bg-white/5 hover:bg-white/15 rounded-full text-xs cursor-pointer transition-all duration-200"
+                >
+                  #{tag}
+                </a>
+              ))}
+              {sortedArtworks[currentIndex].data.tags.length > 5 && (
+                <span class="px-2.5 py-0.5 bg-white/5 rounded-full text-xs text-white/60">
+                  +{sortedArtworks[currentIndex].data.tags.length - 5}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     )}
-  </main>
-</Layout> 
+  </div>
+</Layout>
+
+<style>
+  .artwork-info {
+    left: 0;
+    right: 0;
+  }
+  .artwork-info.fixed {
+    position: fixed;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+  }
+  .artwork-info.relative {
+    position: relative;
+    margin-top: -120px;
+    background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.95) 50%);
+  }
+  
+  .artwork-info.fixed::before {
+    display: none;
+  }
+</style>
+
+<script>
+  function updateArtworkInfoPosition() {
+    const artworkViewer = document.getElementById('artwork-viewer');
+    const artworkInfo = document.getElementById('artwork-info');
+    
+    if (!artworkViewer || !artworkInfo) return;
+
+    const viewerRect = artworkViewer.getBoundingClientRect();
+    const windowHeight = window.innerHeight;
+    
+    // 检查图片查看器是否在视口中，并且底部是否在视口内
+    const isInView = viewerRect.bottom > 0 && viewerRect.top < windowHeight;
+    const isBottomVisible = viewerRect.bottom > windowHeight;
+
+    if (isInView && isBottomVisible) {
+      artworkInfo.classList.add('fixed');
+      artworkInfo.classList.remove('relative');
+    } else {
+      artworkInfo.classList.remove('fixed');
+      artworkInfo.classList.add('relative');
+    }
+  }
+
+  // 初始化时运行一次
+  updateArtworkInfoPosition();
+
+  // 监听滚动事件，使用 requestAnimationFrame 优化性能
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        updateArtworkInfoPosition();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  // 监听窗口大小变化
+  window.addEventListener('resize', updateArtworkInfoPosition);
+</script> 
