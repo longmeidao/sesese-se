@@ -70,9 +70,13 @@ def fetch_artwork(api, artwork_id):
         content_dir = os.path.join('src', 'content')
         os.makedirs(content_dir, exist_ok=True)
         
-        # 创建图片保存目录
+        # 创建图片保存目录 - Astro Image 组件需要的路径
         images_dir = os.path.join(content_dir, 'images', 'pixiv', str(artwork_id))
         os.makedirs(images_dir, exist_ok=True)
+        
+        # 为图片集合创建索引文件目录
+        images_collection_dir = os.path.join(content_dir, 'images')
+        os.makedirs(images_collection_dir, exist_ok=True)
         
         # 创建原始作品数据目录 (备份用)
         artworks_dir = os.path.join('artworks', str(artwork_id))
@@ -90,8 +94,9 @@ def fetch_artwork(api, artwork_id):
         profile_path = download_file(profile_image_url, images_dir, avatar_filename)
         
         if profile_path:
-            # 更新元数据中的头像路径为相对于 src/content 的路径
-            rel_profile_path = os.path.join('images', 'pixiv', str(artwork_id), avatar_filename)
+            # 更新元数据中的头像路径为 Astro Image 组件可识别的格式
+            # 使用相对于 src/ 的绝对路径，以 / 开头
+            rel_profile_path = f"/src/content/images/pixiv/{artwork_id}/{avatar_filename}"
             metadata['author']['profile_image_url'] = rel_profile_path
         
         # 下载作品图片
@@ -106,8 +111,8 @@ def fetch_artwork(api, artwork_id):
                 image_path = download_file(image_url, images_dir, filename)
                 
                 if image_path:
-                    # 添加相对于 src/content 的路径到元数据
-                    rel_image_path = os.path.join('images', 'pixiv', str(artwork_id), filename)
+                    # 添加 Astro Image 组件可识别的路径到元数据
+                    rel_image_path = f"/src/content/images/pixiv/{artwork_id}/{filename}"
                     metadata['images'].append(rel_image_path)
         else:
             # 多图
@@ -121,8 +126,8 @@ def fetch_artwork(api, artwork_id):
                     image_path = download_file(image_url, images_dir, filename)
                     
                     if image_path:
-                        # 添加相对于 src/content 的路径到元数据
-                        rel_image_path = os.path.join('images', 'pixiv', str(artwork_id), filename)
+                        # 添加 Astro Image 组件可识别的路径到元数据
+                        rel_image_path = f"/src/content/images/pixiv/{artwork_id}/{filename}"
                         metadata['images'].append(rel_image_path)
                         
                     # 添加随机延迟，避免请求过快
@@ -132,6 +137,10 @@ def fetch_artwork(api, artwork_id):
         with open(os.path.join(artworks_dir, 'metadata.json'), 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
             
+        # 创建图片集合索引文件 (空的，仅用于标记目录)
+        with open(os.path.join(images_collection_dir, 'index.json'), 'w', encoding='utf-8') as f:
+            json.dump({}, f)
+            
         # 保存元数据到内容集合目录
         pixiv_content_dir = os.path.join(content_dir, 'pixiv')
         os.makedirs(pixiv_content_dir, exist_ok=True)
@@ -139,6 +148,8 @@ def fetch_artwork(api, artwork_id):
             json.dump(metadata, f, ensure_ascii=False, indent=2)
             
         print(f"✅ 成功获取并保存作品 {artwork_id}")
+        print(f"图片已保存到: {images_dir}")
+        print(f"元数据已保存到: {os.path.join(pixiv_content_dir, f'{artwork_id}.json')}")
         return True
     except Exception as e:
         print(f"获取作品时发生错误: {e}")

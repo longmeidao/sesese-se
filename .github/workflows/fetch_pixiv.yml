@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       artwork_id:
-        description: 'Pixiv artwork ID'
+        description: 'Pixiv作品ID'
         required: true
         type: string
 
@@ -31,6 +31,7 @@ jobs:
         run: |
           mkdir -p artworks
           mkdir -p src/content/pixiv
+          mkdir -p src/content/images/pixiv
           ls -la
           pwd
           
@@ -50,10 +51,21 @@ jobs:
           echo "Copying metadata from: artworks/$ARTWORK_ID/metadata.json"
           echo "Target path: src/content/pixiv/$ARTWORK_ID.json"
           cp artworks/$ARTWORK_ID/metadata.json src/content/pixiv/$ARTWORK_ID.json
+          
+          # 复制图片到 src/content/images/pixiv 目录
+          echo "Copying images to: src/content/images/pixiv/$ARTWORK_ID/"
+          mkdir -p src/content/images/pixiv/$ARTWORK_ID/
+          cp artworks/$ARTWORK_ID/*.jpg src/content/images/pixiv/$ARTWORK_ID/ 2>/dev/null || :
+          cp artworks/$ARTWORK_ID/*.png src/content/images/pixiv/$ARTWORK_ID/ 2>/dev/null || :
+          cp artworks/$ARTWORK_ID/*.gif src/content/images/pixiv/$ARTWORK_ID/ 2>/dev/null || :
+          
+          # 检查复制结果
+          echo "Images in content directory:"
+          ls -la src/content/images/pixiv/$ARTWORK_ID/
         
       - name: Commit and push if changed
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add artworks/ src/content/pixiv/
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Add artwork ${{ github.event.inputs.artwork_id }}" && git push) 
+          git add artworks/ src/content/pixiv/ src/content/images/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "添加 Pixiv 作品 ${{ github.event.inputs.artwork_id }} 及图片" && git push) 

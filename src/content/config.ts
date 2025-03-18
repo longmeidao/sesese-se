@@ -25,6 +25,12 @@ const pixivCollection = defineCollection({
   })
 });
 
+// 添加图片集合
+const imagesCollection = defineCollection({
+  type: 'data'
+});
+
 export const collections = {
-  'pixiv': pixivCollection
+  'pixiv': pixivCollection,
+  'images': imagesCollection
 }; 
