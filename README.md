@@ -1,3 +1,5 @@
+> 由 Cursor 生成，仅供参考。
+
 # Pixiv Artwork Fetcher
 
 这是一个 GitHub Action，用于自动获取 Pixiv 上的图片作品及其元数据信息。
