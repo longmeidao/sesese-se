@@ -7,7 +7,7 @@ from pixivpy3 import AppPixivAPI
 from pathlib import Path
 import requests
 
-def download_profile_image(url, output_path):
+def download_profile_image(url, output_dir, filename):
     """下载作者头像"""
     try:
         response = requests.get(url, headers={
@@ -16,7 +16,10 @@ def download_profile_image(url, output_path):
         })
         response.raise_for_status()
         
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        # 确保输出目录存在
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, filename)
+        
         with open(output_path, 'wb') as f:
             f.write(response.content)
         return True
@@ -43,13 +46,9 @@ def fetch_artwork(artwork_id):
             print(f"Error: Artwork {artwork_id} not found")
             sys.exit(1)
             
-        # 获取工作目录
-        work_dir = Path(os.getenv('GITHUB_WORKSPACE', os.getcwd()))
-        
         # 创建输出目录
-        artwork_dir = Path("artworks") / str(artwork_id)
-        output_dir = work_dir / artwork_dir
-        output_dir.mkdir(parents=True, exist_ok=True)
+        artwork_dir = os.path.join('artworks', str(artwork_id))
+        os.makedirs(artwork_dir, exist_ok=True)
         
         # 获取用户详情以获取正确的头像 URL
         user = api.user_detail(artwork.illust.user.id)
@@ -57,8 +56,11 @@ def fetch_artwork(artwork_id):
         
         if user and user.user:
             profile_image_url = user.user.profile_image_urls.medium
-            profile_image_path = output_dir / "author_profile.jpg"
-            profile_image_success = download_profile_image(profile_image_url, profile_image_path)
+            profile_image_success = download_profile_image(
+                profile_image_url,
+                artwork_dir,
+                'author_profile.jpg'
+            )
         else:
             print(f"Warning: Could not fetch user details for user {artwork.illust.user.id}")
         
@@ -71,7 +73,7 @@ def fetch_artwork(artwork_id):
                 "id": artwork.illust.user.id,
                 "name": artwork.illust.user.name,
                 "account": artwork.illust.user.account,
-                "profile_image_url": "artworks/" + str(artwork_id) + "/author_profile.jpg" if profile_image_success else "https://s.pximg.net/common/images/no_profile.png"
+                "profile_image_url": os.path.join('artworks', str(artwork_id), 'author_profile.jpg').replace('\\', '/') if profile_image_success else "https://s.pximg.net/common/images/no_profile.png"
             },
             "tags": [tag.name for tag in artwork.illust.tags],
             "create_date": artwork.illust.create_date,
@@ -83,7 +85,8 @@ def fetch_artwork(artwork_id):
             "is_bookmarked": artwork.illust.is_bookmarked
         }
         
-        with open(output_dir / "metadata.json", "w", encoding="utf-8") as f:
+        metadata_path = os.path.join(artwork_dir, 'metadata.json')
+        with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
             
         # 下载图片
@@ -91,11 +94,11 @@ def fetch_artwork(artwork_id):
             # 多页作品
             for idx, page in enumerate(artwork.illust.meta_pages):
                 image_url = page.image_urls.original
-                api.download(image_url, path=str(output_dir), name=f"page_{idx+1}.jpg")
+                api.download(image_url, path=artwork_dir, name=f"page_{idx+1}.jpg")
         else:
             # 单页作品
             image_url = artwork.illust.meta_single_page.original_image_url
-            api.download(image_url, path=str(output_dir), name="page_1.jpg")
+            api.download(image_url, path=artwork_dir, name="page_1.jpg")
             
         print(f"Successfully downloaded artwork {artwork_id}")
         
