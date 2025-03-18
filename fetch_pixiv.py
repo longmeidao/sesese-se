@@ -78,10 +78,6 @@ def fetch_artwork(api, artwork_id):
         images_collection_dir = os.path.join(content_dir, 'images')
         os.makedirs(images_collection_dir, exist_ok=True)
         
-        # 创建原始作品数据目录 (备份用)
-        artworks_dir = os.path.join('artworks', str(artwork_id))
-        os.makedirs(artworks_dir, exist_ok=True)
-        
         # 创建作品元数据
         metadata = create_metadata(artwork)
         
@@ -89,8 +85,7 @@ def fetch_artwork(api, artwork_id):
         profile_image_url = metadata['author']['profile_image_url']
         avatar_filename = f"author_profile.jpg"
         
-        # 同时保存到备份目录和内容目录
-        download_file(profile_image_url, artworks_dir, avatar_filename)
+        # 保存到内容目录
         profile_path = download_file(profile_image_url, images_dir, avatar_filename)
         
         if profile_path:
@@ -106,8 +101,7 @@ def fetch_artwork(api, artwork_id):
             if image_url:
                 filename = f"image_1.jpg"
                 
-                # 同时保存到备份目录和内容目录
-                download_file(image_url, artworks_dir, filename)
+                # 保存到内容目录
                 image_path = download_file(image_url, images_dir, filename)
                 
                 if image_path:
@@ -121,8 +115,7 @@ def fetch_artwork(api, artwork_id):
                 if image_url:
                     filename = f"image_{i+1}.jpg"
                     
-                    # 同时保存到备份目录和内容目录
-                    download_file(image_url, artworks_dir, filename)
+                    # 保存到内容目录
                     image_path = download_file(image_url, images_dir, filename)
                     
                     if image_path:
@@ -132,10 +125,6 @@ def fetch_artwork(api, artwork_id):
                         
                     # 添加随机延迟，避免请求过快
                     time.sleep(random.uniform(1, 2))
-        
-        # 保存元数据到备份目录
-        with open(os.path.join(artworks_dir, 'metadata.json'), 'w', encoding='utf-8') as f:
-            json.dump(metadata, f, ensure_ascii=False, indent=2)
             
         # 创建图片集合索引文件 (空的，仅用于标记目录)
         with open(os.path.join(images_collection_dir, 'index.json'), 'w', encoding='utf-8') as f:
