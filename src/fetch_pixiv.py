@@ -54,12 +54,11 @@ def fetch_artwork(artwork_id):
         # 获取用户详情以获取正确的头像 URL
         user = api.user_detail(artwork.illust.user.id)
         profile_image_success = False
-        profile_image_rel_path = artwork_dir / "author_profile.jpg"
-        profile_image_abs_path = work_dir / profile_image_rel_path
         
         if user and user.user:
             profile_image_url = user.user.profile_image_urls.medium
-            profile_image_success = download_profile_image(profile_image_url, profile_image_abs_path)
+            profile_image_path = output_dir / "author_profile.jpg"
+            profile_image_success = download_profile_image(profile_image_url, profile_image_path)
         else:
             print(f"Warning: Could not fetch user details for user {artwork.illust.user.id}")
         
@@ -72,7 +71,7 @@ def fetch_artwork(artwork_id):
                 "id": artwork.illust.user.id,
                 "name": artwork.illust.user.name,
                 "account": artwork.illust.user.account,
-                "profile_image_url": str(profile_image_rel_path).replace('\\', '/') if profile_image_success else "https://s.pximg.net/common/images/no_profile.png"
+                "profile_image_url": "artworks/" + str(artwork_id) + "/author_profile.jpg" if profile_image_success else "https://s.pximg.net/common/images/no_profile.png"
             },
             "tags": [tag.name for tag in artwork.illust.tags],
             "create_date": artwork.illust.create_date,
