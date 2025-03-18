@@ -46,11 +46,15 @@ def fetch_artwork(artwork_id):
         output_dir = Path(f"artworks/{artwork_id}")
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        # 下载作者头像
-        author_id = artwork.illust.user.id
-        profile_image_url = f"https://i.pximg.net/user-profile/img/{author_id}_170.jpg"
-        profile_image_path = output_dir / "author_profile.jpg"
-        profile_image_success = download_profile_image(profile_image_url, profile_image_path)
+        # 获取用户详情以获取正确的头像 URL
+        user = api.user_detail(artwork.illust.user.id)
+        if user and user.user:
+            profile_image_url = user.user.profile_image_urls.medium
+            profile_image_path = output_dir / "author_profile.jpg"
+            profile_image_success = download_profile_image(profile_image_url, profile_image_path)
+        else:
+            print(f"Warning: Could not fetch user details for user {artwork.illust.user.id}")
+            profile_image_success = False
         
         # 保存元数据
         metadata = {
@@ -61,7 +65,7 @@ def fetch_artwork(artwork_id):
                 "id": artwork.illust.user.id,
                 "name": artwork.illust.user.name,
                 "account": artwork.illust.user.account,
-                "profile_image_url": f"artworks/{artwork_id}/author_profile.jpg" if profile_image_success else "https://s.pximg.net/common/images/no_profile.png"
+                "profile_image_url": str(profile_image_path.relative_to(Path.cwd())) if profile_image_success else "https://s.pximg.net/common/images/no_profile.png"
             },
             "tags": [tag.name for tag in artwork.illust.tags],
             "create_date": artwork.illust.create_date,
@@ -70,10 +74,7 @@ def fetch_artwork(artwork_id):
             "height": artwork.illust.height,
             "total_view": artwork.illust.total_view,
             "total_bookmarks": artwork.illust.total_bookmarks,
-            "is_bookmarked": artwork.illust.is_bookmarked,
-            "is_muted": artwork.illust.is_muted,
-            "meta_pages": artwork.illust.meta_pages,
-            "meta_single_page": artwork.illust.meta_single_page
+            "is_bookmarked": artwork.illust.is_bookmarked
         }
         
         with open(output_dir / "metadata.json", "w", encoding="utf-8") as f:
