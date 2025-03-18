@@ -27,18 +27,28 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
+      - name: Check directories before fetching
+        run: |
+          mkdir -p artworks
+          mkdir -p src/content/pixiv
+          ls -la
+          pwd
+          
       - name: Run Pixiv fetcher
         env:
           PIXIV_REFRESH_TOKEN: ${{ secrets.PIXIV_REFRESH_TOKEN }}
-        run: python src/fetch_pixiv.py ${{ github.event.inputs.artwork_id }}
+        run: |
+          python fetch_pixiv.py ${{ github.event.inputs.artwork_id }}
+          echo "Fetching completed, checking directory structure:"
+          ls -la artworks
+          ls -la artworks/${{ github.event.inputs.artwork_id }}
         
       - name: Generate Content Collection
         run: |
-          # 创建内容目录
-          mkdir -p src/content/pixiv
-          
           # 复制元数据
           ARTWORK_ID=${{ github.event.inputs.artwork_id }}
+          echo "Copying metadata from: artworks/$ARTWORK_ID/metadata.json"
+          echo "Target path: src/content/pixiv/$ARTWORK_ID.json"
           cp artworks/$ARTWORK_ID/metadata.json src/content/pixiv/$ARTWORK_ID.json
         
       - name: Commit and push if changed
