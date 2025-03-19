@@ -50,5 +50,44 @@
     "is_bookmarked": false,
     "visible": true,
     "updated_at": null
+  },
+  "128255980": {
+    "id": 128255980,
+    "title": "Castorice",
+    "caption": "",
+    "create_date": "2025-03-16T01:13:11+09:00",
+    "tags": [
+      "崩壊:スターレイル",
+      "キャストリス",
+      "崩壊:スターレイル5000users入り",
+      "トレンカ",
+      "腋",
+      "足"
+    ],
+    "page_count": 1,
+    "author": {
+      "id": 6662895,
+      "name": "ATDAN-",
+      "account": "atdan86",
+      "profile_image_url": "/images/pixiv/author_6662895.jpg"
+    },
+    "total_bookmarks": 10109,
+    "total_view": 45704,
+    "images": [
+      "/images/pixiv/128255980_1.jpg"
+    ],
+    "is_muted": false,
+    "width": 1448,
+    "height": 2300,
+    "sanity_level": 4,
+    "x_restrict": 0,
+    "series": null,
+    "meta_single_page": {
+      "original_image_url": "https://i.pximg.net/img-original/img/2025/03/16/01/13/11/128255980_p0.png"
+    },
+    "meta_pages": [],
+    "is_bookmarked": false,
+    "visible": true,
+    "updated_at": null
   }
 }
