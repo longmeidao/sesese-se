@@ -18,13 +18,23 @@ const pixivCollection = defineCollection({
     total_view: z.number(),
     total_bookmarks: z.number(),
     is_muted: z.boolean(),
-    images: z.array(z.string())
+    images: z.array(z.string()),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    sanity_level: z.number().optional(),
+    x_restrict: z.number().optional(),
+    series: z.any().optional(),
+    meta_single_page: z.any().optional(),
+    meta_pages: z.any().optional(),
+    is_bookmarked: z.boolean().optional(),
+    visible: z.boolean().optional(),
+    updated_at: z.string().optional()
   })
 });
 
 // 添加图片集合
 const imagesCollection = defineCollection({
-  type: 'data'
+  type: 'content'
 });
 
 export const collections = {

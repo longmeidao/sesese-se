@@ -52,7 +52,17 @@ def create_metadata(artwork):
         "total_bookmarks": artwork.total_bookmarks,
         "total_view": artwork.total_view,
         "images": [],
-        "is_muted": False
+        "is_muted": artwork.is_muted if hasattr(artwork, 'is_muted') else False,
+        "width": artwork.width if hasattr(artwork, 'width') else 0,
+        "height": artwork.height if hasattr(artwork, 'height') else 0,
+        "sanity_level": artwork.sanity_level if hasattr(artwork, 'sanity_level') else 0,
+        "x_restrict": artwork.x_restrict if hasattr(artwork, 'x_restrict') else 0,
+        "series": artwork.series if hasattr(artwork, 'series') else None,
+        "meta_single_page": artwork.meta_single_page if hasattr(artwork, 'meta_single_page') else None,
+        "meta_pages": artwork.meta_pages if hasattr(artwork, 'meta_pages') else None,
+        "is_bookmarked": artwork.is_bookmarked if hasattr(artwork, 'is_bookmarked') else False,
+        "visible": artwork.visible if hasattr(artwork, 'visible') else True,
+        "updated_at": artwork.update_date if hasattr(artwork, 'update_date') else artwork.create_date
     }
 
 def fetch_artwork(api, artwork_id, exclude_images=None):
@@ -79,13 +89,22 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
         
         # 下载作者头像
         profile_image_url = metadata['author']['profile_image_url']
-        avatar_filename = f"{artwork_id}_author_profile.jpg"
+        user_id = metadata['author']['id']
+        avatar_filename = f"author_{user_id}.jpg"
+        avatar_path = os.path.join(images_dir, avatar_filename)
         
-        # 保存到内容目录
-        profile_path = download_file(profile_image_url, images_dir, avatar_filename)
-        
-        if profile_path:
-            # 更新元数据中的头像路径为 Astro Image 组件可识别的格式
+        # 检查头像是否已存在
+        if not os.path.exists(avatar_path):
+            print(f"下载作者头像: {user_id}")
+            profile_path = download_file(profile_image_url, images_dir, avatar_filename)
+            
+            if profile_path:
+                # 更新元数据中的头像路径为 Astro Image 组件可识别的格式
+                rel_profile_path = f"/images/pixiv/{avatar_filename}"
+                metadata['author']['profile_image_url'] = rel_profile_path
+        else:
+            print(f"作者头像已存在: {user_id}")
+            # 更新元数据中的头像路径
             rel_profile_path = f"/images/pixiv/{avatar_filename}"
             metadata['author']['profile_image_url'] = rel_profile_path
         

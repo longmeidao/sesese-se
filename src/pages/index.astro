@@ -5,18 +5,19 @@ import { Image } from 'astro:assets';
 
 let pixivArtworks: CollectionEntry<'pixiv'>[] = [];
 try {
-  pixivArtworks = await getCollection('pixiv');
+  // 获取所有作品
+  const artworks = await getCollection('pixiv');
+  // 将作品转换为数组并排序
+  pixivArtworks = Object.values(artworks).sort((a: CollectionEntry<'pixiv'>, b: CollectionEntry<'pixiv'>) => 
+    new Date(b.data.create_date).getTime() - new Date(a.data.create_date).getTime()
+  );
 } catch (error) {
   console.error('Error fetching pixiv collection:', error);
 }
 
-const sortedArtworks = pixivArtworks.sort((a, b) => 
-  new Date(b.data.create_date).getTime() - new Date(a.data.create_date).getTime()
-);
-
 // 获取当前图片索引
 const currentIndex = 0;
-const total = sortedArtworks.length;
+const total = pixivArtworks.length;
 const hasPrev = currentIndex > 0;
 const hasNext = currentIndex < total - 1;
 const prevIndex = hasPrev ? currentIndex - 1 : null;
@@ -25,7 +26,7 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
 
 <Layout title="Daily Pixiv">
   <div class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black">
-    {sortedArtworks.length === 0 ? (
+    {pixivArtworks.length === 0 ? (
       <div class="flex items-center justify-center min-h-screen">
         <div class="text-center">
           <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -42,9 +43,9 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
         class="relative min-h-screen" 
         id="artwork-container"
         data-artwork={JSON.stringify({
-          id: sortedArtworks[currentIndex].data.id,
-          images: sortedArtworks[currentIndex].data.images,
-          page_count: sortedArtworks[currentIndex].data.page_count
+          id: pixivArtworks[currentIndex].data.id,
+          images: pixivArtworks[currentIndex].data.images,
+          page_count: pixivArtworks[currentIndex].data.page_count
         })}
       >
         {/* 图片展示区域 */}
@@ -53,8 +54,8 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
             <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none"></div>
             <Image 
               id="artwork-image"
-              src={sortedArtworks[currentIndex].data.images[0]} 
-              alt={sortedArtworks[currentIndex].data.title}
+              src={pixivArtworks[currentIndex].data.images[0]} 
+              alt={pixivArtworks[currentIndex].data.title}
               class="max-h-[90vh] max-w-[90vw] object-contain relative"
               width={800}
               height={600}
@@ -87,7 +88,7 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
 
           {/* 多图切换按钮 */}
           <div class="absolute left-1/2 transform -translate-x-1/2 bottom-32 flex items-center gap-2 pointer-events-auto">
-            {sortedArtworks[currentIndex].data.page_count > 1 && (
+            {pixivArtworks[currentIndex].data.page_count > 1 && (
               <div class="bg-black/40 backdrop-blur rounded-full p-1 flex items-center gap-1">
                 <button
                   id="prev-image"
@@ -99,7 +100,7 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <span id="image-counter" class="text-white/90 text-sm px-2">1 / {sortedArtworks[currentIndex].data.page_count}</span>
+                <span id="image-counter" class="text-white/90 text-sm px-2">1 / {pixivArtworks[currentIndex].data.page_count}</span>
                 <button
                   id="next-image"
                   class="p-2 text-white/90 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
@@ -140,35 +141,35 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
             <div class="flex items-start justify-between gap-4">
               <div class="flex-1 min-w-0">
                 <a 
-                  href={`https://www.pixiv.net/artworks/${sortedArtworks[currentIndex].data.id}`}
+                  href={`https://www.pixiv.net/artworks/${pixivArtworks[currentIndex].data.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   class="inline-block group"
                 >
                   <h2 class="text-xl font-medium line-clamp-1 cursor-pointer hover:text-primary-400/95 transition-colors">
-                    {sortedArtworks[currentIndex].data.title}
+                    {pixivArtworks[currentIndex].data.title}
                     <span class="ml-2 text-sm text-white/60 group-hover:text-white/80 transition-colors">
-                      {new Date(sortedArtworks[currentIndex].data.create_date).toLocaleDateString()}
+                      {new Date(pixivArtworks[currentIndex].data.create_date).toLocaleDateString()}
                     </span>
                   </h2>
                 </a>
                 <div class="flex items-center mt-2 text-sm">
                   <a 
-                    href={`https://www.pixiv.net/users/${sortedArtworks[currentIndex].data.author.id}`}
+                    href={`https://www.pixiv.net/users/${pixivArtworks[currentIndex].data.author.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     class="flex items-center hover:text-primary-400 transition-colors"
                   >
                     <Image 
-                      src={sortedArtworks[currentIndex].data.author.profile_image_url}
-                      alt={sortedArtworks[currentIndex].data.author.name}
+                      src={pixivArtworks[currentIndex].data.author.profile_image_url}
+                      alt={pixivArtworks[currentIndex].data.author.name}
                       class="h-5 w-5 rounded-full bg-gray-200 dark:bg-gray-700"
                       width={40}
                       height={40}
                       format="webp"
                     />
                     <span class="ml-2 font-medium">
-                      {sortedArtworks[currentIndex].data.author.name}
+                      {pixivArtworks[currentIndex].data.author.name}
                     </span>
                   </a>
                   <span class="mx-2 opacity-40">·</span>
@@ -178,13 +179,13 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
-                      {sortedArtworks[currentIndex].data.total_view.toLocaleString()}
+                      {pixivArtworks[currentIndex].data.total_view.toLocaleString()}
                     </span>
                     <span class="flex items-center" title="收藏数">
                       <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
-                      {sortedArtworks[currentIndex].data.total_bookmarks.toLocaleString()}
+                      {pixivArtworks[currentIndex].data.total_bookmarks.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -193,7 +194,7 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
 
             {/* 标签 */}
             <div class="flex flex-wrap gap-2 mt-3">
-              {sortedArtworks[currentIndex].data.tags.slice(0, 5).map(tag => (
+              {pixivArtworks[currentIndex].data.tags.slice(0, 5).map((tag: string) => (
                 <a 
                   href={`https://www.pixiv.net/tags/${encodeURIComponent(tag)}`}
                   target="_blank"
@@ -203,9 +204,9 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
                   #{tag}
                 </a>
               ))}
-              {sortedArtworks[currentIndex].data.tags.length > 5 && (
+              {pixivArtworks[currentIndex].data.tags.length > 5 && (
                 <span class="px-2.5 py-0.5 bg-white/5 rounded-full text-xs text-white/60">
-                  +{sortedArtworks[currentIndex].data.tags.length - 5}
+                  +{pixivArtworks[currentIndex].data.tags.length - 5}
                 </span>
               )}
             </div>
