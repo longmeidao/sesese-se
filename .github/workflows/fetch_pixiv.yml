@@ -4,9 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       artwork_id:
-        description: 'Pixiv作品ID'
+        description: 'Pixiv artwork ID'
         required: true
         type: string
+        default: ''
+      exclude_images:
+        description: '要排除的图片索引（用逗号分隔，从0开始），例如：0,2,3 表示排除第1、3、4张图片'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -25,47 +31,43 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install pixivpy3==3.7.0
+          pip install python-dotenv==1.0.1
+          pip install requests==2.31.0
+          pip install beautifulsoup4==4.12.3
+          pip install Pillow==10.2.0
           
-      - name: Check directories before fetching
+      - name: Check directory structure
         run: |
-          mkdir -p artworks
-          mkdir -p src/content/pixiv
-          mkdir -p src/content/images/pixiv
+          echo "Current directory structure:"
           ls -la
-          pwd
+          echo "Creating directories if they don't exist..."
+          mkdir -p src/content/images/pixiv
+          mkdir -p src/content/pixiv
           
-      - name: Run Pixiv fetcher
+      - name: Run fetch script
+        run: python fetch_pixiv.py ${{ github.event.inputs.artwork_id }} "${{ github.event.inputs.exclude_images }}"
         env:
           PIXIV_REFRESH_TOKEN: ${{ secrets.PIXIV_REFRESH_TOKEN }}
-        run: |
-          python fetch_pixiv.py ${{ github.event.inputs.artwork_id }}
-          echo "Fetching completed, checking directory structure:"
-          ls -la artworks
-          ls -la artworks/${{ github.event.inputs.artwork_id }}
-        
-      - name: Generate Content Collection
-        run: |
-          # 复制元数据
-          ARTWORK_ID=${{ github.event.inputs.artwork_id }}
-          echo "Copying metadata from: artworks/$ARTWORK_ID/metadata.json"
-          echo "Target path: src/content/pixiv/$ARTWORK_ID.json"
-          cp artworks/$ARTWORK_ID/metadata.json src/content/pixiv/$ARTWORK_ID.json
           
-          # 复制图片到 src/content/images/pixiv 目录
-          echo "Copying images to: src/content/images/pixiv/$ARTWORK_ID/"
-          mkdir -p src/content/images/pixiv/$ARTWORK_ID/
-          cp artworks/$ARTWORK_ID/*.jpg src/content/images/pixiv/$ARTWORK_ID/ 2>/dev/null || :
-          cp artworks/$ARTWORK_ID/*.png src/content/images/pixiv/$ARTWORK_ID/ 2>/dev/null || :
-          cp artworks/$ARTWORK_ID/*.gif src/content/images/pixiv/$ARTWORK_ID/ 2>/dev/null || :
+      - name: Check downloaded files
+        run: |
+          echo "Checking downloaded files:"
+          ls -la src/content/images/pixiv
+          ls -la src/content/pixiv
+          echo "Checking artworks.json:"
+          cat src/content/pixiv/artworks.json
           
-          # 检查复制结果
-          echo "Images in content directory:"
-          ls -la src/content/images/pixiv/$ARTWORK_ID/
-        
-      - name: Commit and push if changed
+      - name: Commit changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add artworks/ src/content/pixiv/ src/content/images/
-          git diff --quiet && git diff --staged --quiet || (git commit -m "添加 Pixiv 作品 ${{ github.event.inputs.artwork_id }} 及图片" && git push) 
+          git add src/content/images/pixiv src/content/pixiv
+          git status
+          git commit -m "chore: update pixiv artwork ${{ github.event.inputs.artwork_id }}" || exit 0
+          
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }} 
