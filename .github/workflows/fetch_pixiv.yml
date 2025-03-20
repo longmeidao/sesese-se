@@ -55,8 +55,12 @@ jobs:
           echo "Checking downloaded files:"
           ls -la src/content/images/pixiv
           ls -la src/content/pixiv
-          echo "Checking artworks.json:"
-          cat src/content/pixiv/artworks.json
+          echo "Checking artwork metadata:"
+          if [ -d "src/content/pixiv/${{ github.event.inputs.artwork_id }}" ]; then
+            cat src/content/pixiv/${{ github.event.inputs.artwork_id }}/index.json
+          else
+            echo "No artwork directory found"
+          fi
           
       - name: Commit changes
         run: |
