@@ -71,12 +71,8 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
         os.makedirs(content_dir, exist_ok=True)
         
         # 创建图片保存目录 - Astro Image 组件需要的路径
-        images_dir = os.path.join(content_dir, 'images', 'pixiv', str(artwork_id))
+        images_dir = os.path.join(content_dir, 'images', 'pixiv')
         os.makedirs(images_dir, exist_ok=True)
-        
-        # 为图片集合创建索引文件目录
-        images_collection_dir = os.path.join(content_dir, 'images')
-        os.makedirs(images_collection_dir, exist_ok=True)
         
         # 创建作品元数据
         metadata = create_metadata(artwork)
@@ -90,9 +86,7 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
         
         if profile_path:
             # 更新元数据中的头像路径为 Astro Image 组件可识别的格式
-            # 使用相对于 src/ 的绝对路径，以 / 开头
-            rel_profile_path = f"/src/content/images/pixiv/{artwork_id}/{avatar_filename}"
-            metadata['author']['profile_image_url'] = rel_profile_path
+            metadata['author']['profile_image_url'] = f"/src/content/images/pixiv/{avatar_filename}"
         
         # 下载作品图片
         if artwork.page_count == 1:
@@ -106,8 +100,7 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
                 
                 if image_path:
                     # 添加 Astro Image 组件可识别的路径到元数据
-                    rel_image_path = f"/src/content/images/pixiv/{artwork_id}/{filename}"
-                    metadata['images'].append(rel_image_path)
+                    metadata['images'].append(f"/src/content/images/pixiv/{filename}")
         else:
             # 多图
             for i, image in enumerate(artwork.meta_pages):
@@ -124,15 +117,10 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
                     
                     if image_path:
                         # 添加 Astro Image 组件可识别的路径到元数据
-                        rel_image_path = f"/src/content/images/pixiv/{artwork_id}/{filename}"
-                        metadata['images'].append(rel_image_path)
+                        metadata['images'].append(f"/src/content/images/pixiv/{filename}")
                         
                     # 添加随机延迟，避免请求过快
                     time.sleep(random.uniform(1, 2))
-            
-        # 创建图片集合索引文件 (空的，仅用于标记目录)
-        with open(os.path.join(images_collection_dir, 'index.json'), 'w', encoding='utf-8') as f:
-            json.dump({}, f)
             
         # 保存元数据到内容集合目录
         pixiv_content_dir = os.path.join(content_dir, 'pixiv')
