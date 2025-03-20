@@ -3,59 +3,40 @@ import { getCollection } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 
-// 获取作品 ID
-const { id } = Astro.params;
+// 导出 getStaticPaths 函数
+export async function getStaticPaths() {
+  const pixivCollection = await getCollection('pixiv');
+  const artworks = Object.values(pixivCollection[0]?.data || {});
 
-// 获取所有作品
-const pixivCollection = await getCollection('pixiv');
-let artworks: Record<string | number, any> = {};
-
-// 确保 pixivCollection 不为空且包含数据
-if (pixivCollection && pixivCollection.length > 0 && pixivCollection[0]?.data) {
-  artworks = pixivCollection[0].data;
-} else {
-  // 如果没有数据，重定向到首页
-  return Astro.redirect('/');
+  // 为每个作品生成一个路径
+  return artworks.map(artwork => ({
+    params: { id: artwork.id.toString() },
+    props: { artwork },
+  }));
 }
 
-// 将作品转换为数组并排序
-const sortedArtworks = Object.values(artworks).sort((a, b) => 
-  new Date(b.create_date).getTime() - new Date(a.create_date).getTime()
-);
-
-// 找到当前作品
-const currentIndex = sortedArtworks.findIndex(artwork => artwork.id.toString() === id);
-const currentArtwork = currentIndex !== -1 ? sortedArtworks[currentIndex] : null;
-
-// 如果找不到作品，重定向到首页
-if (!currentArtwork) {
-  return Astro.redirect('/');
-}
-
-// 计算导航索引
-const total = sortedArtworks.length;
-const hasPrev = currentIndex > 0;
-const hasNext = currentIndex < total - 1;
-const prevIndex = hasPrev ? currentIndex - 1 : null;
-const nextIndex = hasNext ? currentIndex + 1 : null;
+// 获取传入的 props
+const { artwork } = Astro.props;
 
 // 确保所有必要的属性都存在
-const artworkData = {
-  id: currentArtwork.id,
-  title: currentArtwork.title,
-  create_date: currentArtwork.create_date,
-  images: currentArtwork.images,
-  page_count: currentArtwork.page_count,
-  total_view: currentArtwork.total_view,
-  total_bookmarks: currentArtwork.total_bookmarks,
-  tags: currentArtwork.tags,
+const artworkData = artwork ? {
+  id: artwork.id,
+  title: artwork.title,
+  create_date: artwork.create_date,
+  images: artwork.images,
+  page_count: artwork.page_count,
+  total_view: artwork.total_view,
+  total_bookmarks: artwork.total_bookmarks,
+  tags: artwork.tags,
   author: {
-    id: currentArtwork.author.id,
-    name: currentArtwork.author.name,
-    account: currentArtwork.author.account,
-    profile_image_url: currentArtwork.author.profile_image_url
+    id: artwork.author.id,
+    name: artwork.author.name,
+    account: artwork.author.account,
+    profile_image_url: artwork.author.profile_image_url
   }
-};
+} : null;
+
+
 
 // 确保图片数组存在
 const artworkImages = artworkData.images || [];
@@ -74,9 +55,22 @@ try {
 } catch (error) {
   console.error('Error importing images:', error);
 }
+
+// 获取所有作品用于导航
+const pixivCollection = await getCollection('pixiv');
+const sortedArtworks = Object.values(pixivCollection[0]?.data || {}).sort((a, b) => 
+  new Date(b.create_date).getTime() - new Date(a.create_date).getTime()
+);
+
+// 找到当前作品的索引
+const currentIndex = sortedArtworks.findIndex(a => a.id === artworkData.id);
+const hasPrev = currentIndex > 0;
+const hasNext = currentIndex < sortedArtworks.length - 1;
+const prevIndex = hasPrev ? currentIndex - 1 : null;
+const nextIndex = hasNext ? currentIndex + 1 : null;
 ---
 
-<Layout title={`${artworkData.title} - Daily Pixiv`}>
+<Layout title={artworkData.title}>
   <div class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black">
     <div 
       class="relative min-h-screen" 
