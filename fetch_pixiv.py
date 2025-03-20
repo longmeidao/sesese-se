@@ -55,7 +55,7 @@ def create_metadata(artwork):
         "is_muted": False
     }
 
-def fetch_artwork(api, artwork_id):
+def fetch_artwork(api, artwork_id, exclude_images=None):
     """获取Pixiv作品详情并下载图片"""
     try:
         # 获取作品详情
@@ -83,7 +83,7 @@ def fetch_artwork(api, artwork_id):
         
         # 下载作者头像
         profile_image_url = metadata['author']['profile_image_url']
-        avatar_filename = f"author_profile.jpg"
+        avatar_filename = f"author_{artwork.user.id}.jpg"
         
         # 保存到内容目录
         profile_path = download_file(profile_image_url, images_dir, avatar_filename)
@@ -99,7 +99,7 @@ def fetch_artwork(api, artwork_id):
             # 单图
             image_url = artwork.meta_single_page.get('original_image_url')
             if image_url:
-                filename = f"image_1.jpg"
+                filename = f"{artwork_id}_1.jpg"
                 
                 # 保存到内容目录
                 image_path = download_file(image_url, images_dir, filename)
@@ -111,9 +111,13 @@ def fetch_artwork(api, artwork_id):
         else:
             # 多图
             for i, image in enumerate(artwork.meta_pages):
+                # 检查是否在排除列表中
+                if exclude_images and str(i) in exclude_images:
+                    continue
+                    
                 image_url = image.image_urls.get('original')
                 if image_url:
-                    filename = f"image_{i+1}.jpg"
+                    filename = f"{artwork_id}_{i+1}.jpg"
                     
                     # 保存到内容目录
                     image_path = download_file(image_url, images_dir, filename)
@@ -151,13 +155,17 @@ def fetch_artwork(api, artwork_id):
         return False
 
 if __name__ == "__main__":
-    # 获取命令行参数中的作品ID
-    if len(sys.argv) != 2:
-        print("用法: python fetch_pixiv.py <artwork_id>")
+    # 获取命令行参数中的作品ID和排除图片索引
+    if len(sys.argv) < 2:
+        print("用法: python fetch_pixiv.py <artwork_id> [exclude_images]")
         sys.exit(1)
         
     artwork_id = sys.argv[1]
+    exclude_images = sys.argv[2].split(',') if len(sys.argv) > 2 and sys.argv[2] else None
+    
     print(f"准备获取作品ID: {artwork_id}")
+    if exclude_images:
+        print(f"排除的图片索引: {exclude_images}")
     
     # 使用 refresh_token 创建 API 实例
     api = AppPixivAPI()
@@ -168,10 +176,10 @@ if __name__ == "__main__":
         
     try:
         api.auth(refresh_token=refresh_token)
-        if fetch_artwork(api, artwork_id):
+        if fetch_artwork(api, artwork_id, exclude_images):
             sys.exit(0)
         else:
             sys.exit(1)
     except Exception as e:
-        print(f"认证或获取作品时发生错误: {e}")
+        print(f"发生错误: {e}")
         sys.exit(1) 
