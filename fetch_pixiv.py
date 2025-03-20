@@ -126,17 +126,14 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
         pixiv_content_dir = os.path.join(content_dir, 'pixiv')
         os.makedirs(pixiv_content_dir, exist_ok=True)
         
-        # 为每个作品创建单独的 JSON 文件
-        artwork_dir = os.path.join(pixiv_content_dir, str(artwork_id))
-        os.makedirs(artwork_dir, exist_ok=True)
-        
-        # 保存为 index.json，这是 Astro 内容集合的要求
-        with open(os.path.join(artwork_dir, 'index.json'), 'w', encoding='utf-8') as f:
+        # 直接保存为 {id}.json
+        json_path = os.path.join(pixiv_content_dir, f"{artwork_id}.json")
+        with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
             
         print(f"✅ 成功获取并保存作品 {artwork_id}")
         print(f"图片已保存到: {images_dir}")
-        print(f"元数据已保存到: {os.path.join(artwork_dir, 'index.json')}")
+        print(f"元数据已保存到: {json_path}")
         return True
     except Exception as e:
         print(f"获取作品时发生错误: {e}")

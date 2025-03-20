@@ -44,7 +44,6 @@ jobs:
           echo "Creating directories if they don't exist..."
           mkdir -p src/content/images/pixiv
           mkdir -p src/content/pixiv
-          mkdir -p src/content/pixiv/${{ github.event.inputs.artwork_id }}
           
       - name: Run fetch script
         run: python fetch_pixiv.py ${{ github.event.inputs.artwork_id }} "${{ github.event.inputs.exclude_images }}"
@@ -57,10 +56,10 @@ jobs:
           ls -la src/content/images/pixiv
           ls -la src/content/pixiv
           echo "Checking artwork metadata:"
-          if [ -f "src/content/pixiv/${{ github.event.inputs.artwork_id }}/index.json" ]; then
-            cat src/content/pixiv/${{ github.event.inputs.artwork_id }}/index.json
+          if [ -f "src/content/pixiv/${{ github.event.inputs.artwork_id }}.json" ]; then
+            cat src/content/pixiv/${{ github.event.inputs.artwork_id }}.json
           else
-            echo "Creating empty index.json..."
+            echo "Creating empty metadata file..."
             echo '{
               "id": '${{ github.event.inputs.artwork_id }}',
               "title": "Loading...",
@@ -78,8 +77,8 @@ jobs:
                 "profile_image_url": ""
               },
               "images": []
-            }' > src/content/pixiv/${{ github.event.inputs.artwork_id }}/index.json
-            echo "Created empty index.json"
+            }' > src/content/pixiv/${{ github.event.inputs.artwork_id }}.json
+            echo "Created empty metadata file"
           fi
           
       - name: Commit changes
