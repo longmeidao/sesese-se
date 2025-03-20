@@ -2,11 +2,24 @@
 import { getCollection } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
 import { Image } from 'astro:assets';
+import type { PixivArtwork } from '../../types/pixiv';
 
 // 导出 getStaticPaths 函数
 export async function getStaticPaths() {
   const pixivCollection = await getCollection('pixiv');
-  const artworks = Object.values(pixivCollection[0]?.data || {});
+  const artworks: PixivArtwork[] = [];
+
+  // 遍历所有作品目录
+  for (const artworkDir of pixivCollection) {
+    const artworkId = parseInt(artworkDir.id);
+    const artworkData = artworkDir.data as unknown as PixivArtwork;
+    if (artworkData && artworkData.id) {  // 确保 artworkData 和 id 都存在
+      artworks.push({
+        ...artworkData,
+        id: artworkId
+      });
+    }
+  }
 
   // 为每个作品生成一个路径
   return artworks.map(artwork => ({
@@ -36,10 +49,8 @@ const artworkData = artwork ? {
   }
 } : null;
 
-
-
 // 确保图片数组存在
-const artworkImages = artworkData.images || [];
+const artworkImages = artworkData?.images || [];
 const firstImage = artworkImages[0] || '';
 
 // 导入图片
@@ -49,7 +60,7 @@ try {
   if (firstImage) {
     artworkImage = await import(`../../content/images/pixiv/${firstImage.split('/').pop()}`);
   }
-  if (artworkData.author.profile_image_url) {
+  if (artworkData?.author.profile_image_url) {
     authorImage = await import(`../../content/images/pixiv/${artworkData.author.profile_image_url.split('/').pop()}`);
   }
 } catch (error) {
@@ -58,27 +69,42 @@ try {
 
 // 获取所有作品用于导航
 const pixivCollection = await getCollection('pixiv');
-const sortedArtworks = Object.values(pixivCollection[0]?.data || {}).sort((a, b) => 
+const sortedArtworks: PixivArtwork[] = [];
+
+// 遍历所有作品目录
+for (const artworkDir of pixivCollection) {
+  const artworkId = parseInt(artworkDir.id);
+  const artworkData = artworkDir.data as unknown as PixivArtwork;
+  if (artworkData) {
+    sortedArtworks.push({
+      ...artworkData,
+      id: artworkId
+    });
+  }
+}
+
+// 按创建日期排序
+sortedArtworks.sort((a, b) => 
   new Date(b.create_date).getTime() - new Date(a.create_date).getTime()
 );
 
 // 找到当前作品的索引
-const currentIndex = sortedArtworks.findIndex(a => a.id === artworkData.id);
+const currentIndex = artworkData ? sortedArtworks.findIndex(a => a.id === artworkData.id) : -1;
 const hasPrev = currentIndex > 0;
 const hasNext = currentIndex < sortedArtworks.length - 1;
 const prevIndex = hasPrev ? currentIndex - 1 : null;
 const nextIndex = hasNext ? currentIndex + 1 : null;
 ---
 
-<Layout title={artworkData.title}>
+<Layout title={artworkData?.title || '作品详情'}>
   <div class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black">
     <div 
       class="relative min-h-screen" 
       id="artwork-container"
       data-artwork={JSON.stringify({
-        id: artworkData.id,
+        id: artworkData?.id,
         images: artworkImages,
-        page_count: artworkData.page_count
+        page_count: artworkData?.page_count
       })}
     >
       {/* 图片展示区域 */}
@@ -89,7 +115,7 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
             <Image 
               id="artwork-image"
               src={artworkImage.default} 
-              alt={artworkData.title}
+              alt={artworkData?.title || '作品图片'}
               class="max-h-[90vh] max-w-[90vw] object-contain relative"
               width={800}
               height={600}
@@ -107,15 +133,12 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
           {hasPrev && prevIndex !== null && (
             <a 
               href={`/artwork/${sortedArtworks[prevIndex].id}`}
-              class="pointer-events-auto p-4 text-white/90 hover:text-white transition-colors"
+              class="pointer-events-auto p-4 text-white/90 hover:text-white transition-all"
               aria-label="上一个作品"
             >
-              <div class="group relative">
-                <div class="absolute inset-0 bg-black/20 rounded-full blur opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <svg class="w-8 h-8 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-              </div>
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
             </a>
           )}
           {!hasPrev && <div class="w-16" />}
@@ -123,7 +146,7 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
 
         {/* 多图切换按钮 */}
         <div class="absolute left-1/2 transform -translate-x-1/2 bottom-32 flex items-center gap-2 pointer-events-auto">
-          {artworkData.page_count > 1 && (
+          {artworkData?.page_count && artworkData.page_count > 1 && (
             <div class="bg-black/40 backdrop-blur rounded-full p-1 flex items-center gap-1">
               <button
                 id="prev-image"
@@ -176,21 +199,21 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1 min-w-0">
               <a 
-                href={`https://www.pixiv.net/artworks/${artworkData.id}`}
+                href={`https://www.pixiv.net/artworks/${artworkData?.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 class="inline-block group"
               >
                 <h2 class="text-xl font-medium line-clamp-1 cursor-pointer hover:text-primary-400/95 transition-colors">
-                  {artworkData.title}
+                  {artworkData?.title}
                   <span class="ml-2 text-sm text-white/60 group-hover:text-white/80 transition-colors">
-                    {new Date(artworkData.create_date).toLocaleDateString()}
+                    {artworkData?.create_date ? new Date(artworkData.create_date).toLocaleDateString() : ''}
                   </span>
                 </h2>
               </a>
               <div class="flex items-center mt-2 text-sm">
                 <a 
-                  href={`https://www.pixiv.net/users/${artworkData.author.id}`}
+                  href={`https://www.pixiv.net/users/${artworkData?.author?.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   class="flex items-center hover:text-primary-400 transition-colors"
@@ -198,7 +221,7 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
                   {authorImage && (
                     <Image 
                       src={authorImage.default}
-                      alt={artworkData.author.name}
+                      alt={artworkData?.author?.name || '作者头像'}
                       class="h-5 w-5 rounded-full bg-gray-200 dark:bg-gray-700"
                       width={40}
                       height={40}
@@ -206,7 +229,7 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
                     />
                   )}
                   <span class="ml-2 font-medium">
-                    {artworkData.author.name}
+                    {artworkData?.author?.name}
                   </span>
                 </a>
                 <span class="mx-2 opacity-40">·</span>
@@ -216,13 +239,13 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    {artworkData.total_view.toLocaleString()}
+                    {artworkData?.total_view?.toLocaleString() || '0'}
                   </span>
                   <span class="flex items-center" title="收藏数">
                     <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                     </svg>
-                    {artworkData.total_bookmarks.toLocaleString()}
+                    {artworkData?.total_bookmarks?.toLocaleString() || '0'}
                   </span>
                 </div>
               </div>
@@ -230,23 +253,15 @@ const nextIndex = hasNext ? currentIndex + 1 : null;
           </div>
 
           {/* 标签 */}
-          <div class="flex flex-wrap gap-2 mt-3">
-            {artworkData.tags.slice(0, 5).map((tag: string) => (
-              <a 
-                href={`https://www.pixiv.net/tags/${encodeURIComponent(tag)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="px-2.5 py-0.5 bg-white/5 hover:bg-white/15 rounded-full text-xs cursor-pointer transition-all duration-200"
-              >
-                #{tag}
-              </a>
-            ))}
-            {artworkData.tags.length > 5 && (
-              <span class="px-2.5 py-0.5 bg-white/5 rounded-full text-xs text-white/60">
-                +{artworkData.tags.length - 5}
-              </span>
-            )}
-          </div>
+          {artworkData?.tags && artworkData.tags.length > 0 && (
+            <div class="flex flex-wrap gap-2 mt-4">
+              {artworkData.tags.map((tag: string) => (
+                <span class="px-2 py-1 text-sm bg-white/10 rounded-full text-white/80 hover:text-white transition-colors">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
