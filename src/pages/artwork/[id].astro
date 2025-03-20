@@ -1,0 +1,403 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import { Image } from 'astro:assets';
+
+// 获取作品 ID
+const { id } = Astro.params;
+
+// 获取所有作品
+const pixivCollection = await getCollection('pixiv');
+let artworks: Record<string | number, any> = {};
+
+// 确保 pixivCollection 不为空且包含数据
+if (pixivCollection && pixivCollection.length > 0 && pixivCollection[0]?.data) {
+  artworks = pixivCollection[0].data;
+} else {
+  // 如果没有数据，重定向到首页
+  return Astro.redirect('/');
+}
+
+// 将作品转换为数组并排序
+const sortedArtworks = Object.values(artworks).sort((a, b) => 
+  new Date(b.create_date).getTime() - new Date(a.create_date).getTime()
+);
+
+// 找到当前作品
+const currentIndex = sortedArtworks.findIndex(artwork => artwork.id.toString() === id);
+const currentArtwork = currentIndex !== -1 ? sortedArtworks[currentIndex] : null;
+
+// 如果找不到作品，重定向到首页
+if (!currentArtwork) {
+  return Astro.redirect('/');
+}
+
+// 计算导航索引
+const total = sortedArtworks.length;
+const hasPrev = currentIndex > 0;
+const hasNext = currentIndex < total - 1;
+const prevIndex = hasPrev ? currentIndex - 1 : null;
+const nextIndex = hasNext ? currentIndex + 1 : null;
+
+// 确保所有必要的属性都存在
+const artworkData = {
+  id: currentArtwork.id,
+  title: currentArtwork.title,
+  create_date: currentArtwork.create_date,
+  images: currentArtwork.images,
+  page_count: currentArtwork.page_count,
+  total_view: currentArtwork.total_view,
+  total_bookmarks: currentArtwork.total_bookmarks,
+  tags: currentArtwork.tags,
+  author: {
+    id: currentArtwork.author.id,
+    name: currentArtwork.author.name,
+    account: currentArtwork.author.account,
+    profile_image_url: currentArtwork.author.profile_image_url
+  }
+};
+
+// 确保图片数组存在
+const artworkImages = artworkData.images || [];
+const firstImage = artworkImages[0] || '';
+
+// 导入图片
+let artworkImage;
+let authorImage;
+try {
+  if (firstImage) {
+    artworkImage = await import(`../../content/images/pixiv/${firstImage.split('/').pop()}`);
+  }
+  if (artworkData.author.profile_image_url) {
+    authorImage = await import(`../../content/images/pixiv/${artworkData.author.profile_image_url.split('/').pop()}`);
+  }
+} catch (error) {
+  console.error('Error importing images:', error);
+}
+---
+
+<Layout title={`${artworkData.title} - Daily Pixiv`}>
+  <div class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black">
+    <div 
+      class="relative min-h-screen" 
+      id="artwork-container"
+      data-artwork={JSON.stringify({
+        id: artworkData.id,
+        images: artworkImages,
+        page_count: artworkData.page_count
+      })}
+    >
+      {/* 图片展示区域 */}
+      <div class="flex items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 to-black" id="artwork-viewer">
+        <div class="relative w-full h-full flex items-center justify-center">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none"></div>
+          {artworkImage && (
+            <Image 
+              id="artwork-image"
+              src={artworkImage.default} 
+              alt={artworkData.title}
+              class="max-h-[90vh] max-w-[90vw] object-contain relative"
+              width={800}
+              height={600}
+              format="webp"
+              quality={90}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* 导航按钮 */}
+      <div class="fixed inset-0 flex items-center justify-between pointer-events-none z-20">
+        {/* 作品切换按钮 */}
+        <div class="flex items-center">
+          {hasPrev && prevIndex !== null && (
+            <a 
+              href={`/artwork/${sortedArtworks[prevIndex].id}`}
+              class="pointer-events-auto p-4 text-white/90 hover:text-white transition-colors"
+              aria-label="上一个作品"
+            >
+              <div class="group relative">
+                <div class="absolute inset-0 bg-black/20 rounded-full blur opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <svg class="w-8 h-8 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+              </div>
+            </a>
+          )}
+          {!hasPrev && <div class="w-16" />}
+        </div>
+
+        {/* 多图切换按钮 */}
+        <div class="absolute left-1/2 transform -translate-x-1/2 bottom-32 flex items-center gap-2 pointer-events-auto">
+          {artworkData.page_count > 1 && (
+            <div class="bg-black/40 backdrop-blur rounded-full p-1 flex items-center gap-1">
+              <button
+                id="prev-image"
+                class="p-2 text-white/90 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                aria-label="上一张图片"
+                disabled
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <span id="image-counter" class="text-white/90 text-sm px-2">1 / {artworkData.page_count}</span>
+              <button
+                id="next-image"
+                class="p-2 text-white/90 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                aria-label="下一张图片"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 作品切换按钮 */}
+        <div class="flex items-center">
+          {hasNext && nextIndex !== null && (
+            <a 
+              href={`/artwork/${sortedArtworks[nextIndex].id}`}
+              class="pointer-events-auto p-4 text-white/90 hover:text-white transition-colors"
+              aria-label="下一个作品"
+            >
+              <div class="group relative">
+                <div class="absolute inset-0 bg-black/20 rounded-full blur opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <svg class="w-8 h-8 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </a>
+          )}
+          {!hasNext && <div class="w-16" />}
+        </div>
+      </div>
+
+      {/* 作品信息 */}
+      <div id="artwork-info" class="artwork-info relative text-white/95 transition-all duration-300 z-30">
+        <div class="max-w-4xl mx-auto px-4 py-6 relative">
+          {/* 标题和作者信息 */}
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1 min-w-0">
+              <a 
+                href={`https://www.pixiv.net/artworks/${artworkData.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-block group"
+              >
+                <h2 class="text-xl font-medium line-clamp-1 cursor-pointer hover:text-primary-400/95 transition-colors">
+                  {artworkData.title}
+                  <span class="ml-2 text-sm text-white/60 group-hover:text-white/80 transition-colors">
+                    {new Date(artworkData.create_date).toLocaleDateString()}
+                  </span>
+                </h2>
+              </a>
+              <div class="flex items-center mt-2 text-sm">
+                <a 
+                  href={`https://www.pixiv.net/users/${artworkData.author.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center hover:text-primary-400 transition-colors"
+                >
+                  {authorImage && (
+                    <Image 
+                      src={authorImage.default}
+                      alt={artworkData.author.name}
+                      class="h-5 w-5 rounded-full bg-gray-200 dark:bg-gray-700"
+                      width={40}
+                      height={40}
+                      format="webp"
+                    />
+                  )}
+                  <span class="ml-2 font-medium">
+                    {artworkData.author.name}
+                  </span>
+                </a>
+                <span class="mx-2 opacity-40">·</span>
+                <div class="flex items-center space-x-3 text-sm opacity-80">
+                  <span class="flex items-center" title="浏览数">
+                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    {artworkData.total_view.toLocaleString()}
+                  </span>
+                  <span class="flex items-center" title="收藏数">
+                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    {artworkData.total_bookmarks.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 标签 */}
+          <div class="flex flex-wrap gap-2 mt-3">
+            {artworkData.tags.slice(0, 5).map((tag: string) => (
+              <a 
+                href={`https://www.pixiv.net/tags/${encodeURIComponent(tag)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="px-2.5 py-0.5 bg-white/5 hover:bg-white/15 rounded-full text-xs cursor-pointer transition-all duration-200"
+              >
+                #{tag}
+              </a>
+            ))}
+            {artworkData.tags.length > 5 && (
+              <span class="px-2.5 py-0.5 bg-white/5 rounded-full text-xs text-white/60">
+                +{artworkData.tags.length - 5}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    {/* 主题切换按钮 */}
+    <button 
+      id="theme-toggle" 
+      class="fixed top-4 right-4 z-50 p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+      aria-label="切换主题"
+    >
+      <svg id="sun-icon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+      <svg id="moon-icon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+      </svg>
+    </button>
+  </div>
+</Layout>
+
+<style>
+  .artwork-info {
+    left: 0;
+    right: 0;
+  }
+  .artwork-info.fixed {
+    position: fixed;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+  }
+  .artwork-info.relative {
+    position: relative;
+    margin-top: -120px;
+    background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.75) 50%);
+  }
+  
+  .artwork-info.fixed::before {
+    display: none;
+  }
+</style>
+
+<script>
+  let currentImageIndex = 0;
+  const artwork = document.querySelector('#artwork-container') as HTMLDivElement;
+  const artworkImage = document.querySelector('#artwork-image') as HTMLImageElement;
+  const prevImageBtn = document.querySelector('#prev-image') as HTMLButtonElement;
+  const nextImageBtn = document.querySelector('#next-image') as HTMLButtonElement;
+  const imageCounter = document.querySelector('#image-counter');
+  const artworkData = artwork ? JSON.parse(artwork.dataset.artwork || '{}') : {};
+  const totalImages = artworkData.images?.length || 1;
+
+  function updateImageButtons() {
+    if (prevImageBtn && nextImageBtn && imageCounter) {
+      prevImageBtn.disabled = currentImageIndex === 0;
+      nextImageBtn.disabled = currentImageIndex === totalImages - 1;
+      imageCounter.textContent = `${currentImageIndex + 1} / ${totalImages}`;
+    }
+  }
+
+  function updateImage() {
+    if (artworkImage && artworkData.images) {
+      artworkImage.src = artworkData.images[currentImageIndex];
+    }
+  }
+
+  // 绑定按钮事件
+  prevImageBtn?.addEventListener('click', () => {
+    if (currentImageIndex > 0) {
+      currentImageIndex--;
+      updateImage();
+      updateImageButtons();
+    }
+  });
+
+  nextImageBtn?.addEventListener('click', () => {
+    if (currentImageIndex < totalImages - 1) {
+      currentImageIndex++;
+      updateImage();
+      updateImageButtons();
+    }
+  });
+
+  // 初始化按钮状态
+  updateImageButtons();
+
+  function updateArtworkInfoPosition() {
+    const artworkViewer = document.getElementById('artwork-viewer');
+    const artworkInfo = document.getElementById('artwork-info');
+    
+    if (!artworkViewer || !artworkInfo) return;
+
+    const viewerRect = artworkViewer.getBoundingClientRect();
+    const windowHeight = window.innerHeight;
+    
+    // 检查图片查看器是否在视口中，并且底部是否在视口内
+    const isInView = viewerRect.bottom > 0 && viewerRect.top < windowHeight;
+    const isBottomVisible = viewerRect.bottom > windowHeight;
+
+    if (isInView && isBottomVisible) {
+      artworkInfo.classList.add('fixed');
+      artworkInfo.classList.remove('relative');
+    } else {
+      artworkInfo.classList.remove('fixed');
+      artworkInfo.classList.add('relative');
+    }
+  }
+
+  // 初始化时运行一次
+  updateArtworkInfoPosition();
+
+  // 监听滚动事件，使用 requestAnimationFrame 优化性能
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        updateArtworkInfoPosition();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  // 监听窗口大小变化
+  window.addEventListener('resize', updateArtworkInfoPosition);
+
+  // 添加键盘快捷键支持
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' && !prevImageBtn?.disabled) {
+      prevImageBtn?.click();
+    } else if (e.key === 'ArrowRight' && !nextImageBtn?.disabled) {
+      nextImageBtn?.click();
+    }
+  });
+
+  // 主题切换按钮
+  const themeToggle = document.getElementById('theme-toggle');
+  themeToggle?.addEventListener('click', () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    if (isDark) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  });
+</script> 

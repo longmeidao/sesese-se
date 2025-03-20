@@ -2,7 +2,7 @@ import { defineCollection, z } from 'astro:content';
 
 const pixivCollection = defineCollection({
   type: 'data',
-  schema: z.object({
+  schema: z.record(z.object({
     id: z.number(),
     title: z.string(),
     caption: z.string(),
@@ -28,8 +28,8 @@ const pixivCollection = defineCollection({
     meta_pages: z.any().optional(),
     is_bookmarked: z.boolean().optional(),
     visible: z.boolean().optional(),
-    updated_at: z.string().optional()
-  })
+    updated_at: z.string().nullable().optional()
+  }))
 });
 
 // 添加图片集合
