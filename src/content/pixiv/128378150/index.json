@@ -20,12 +20,12 @@
     "id": 73117898,
     "name": "FymriE",
     "account": "fymrie",
-    "profile_image_url": "/src/content/images/pixiv/128378150/author_73117898.jpg"
+    "profile_image_url": "/src/content/images/pixiv/author_73117898.jpg"
   },
-  "total_bookmarks": 4335,
-  "total_view": 9226,
+  "total_bookmarks": 4336,
+  "total_view": 9234,
   "images": [
-    "/src/content/images/pixiv/128378150/128378150_1.jpg"
+    "/src/content/images/pixiv/128378150_1.jpg"
   ],
   "is_muted": false
 }
