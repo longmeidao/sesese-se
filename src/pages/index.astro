@@ -28,18 +28,6 @@ artworks.sort((a, b) =>
 // 获取最新的作品
 const latestArtwork = artworks[0];
 
-// 导入图片
-let artworkImage;
-try {
-  const imageFileName = `${latestArtwork?.id}_1.jpg`;
-  if (imageFileName) {
-    // @ts-ignore
-    artworkImage = await import(/* @vite-ignore */ `../content/images/pixiv/${imageFileName}`);
-  }
-} catch (error) {
-  console.error('Error importing images:', error);
-}
-
 // 计算导航状态
 const hasNext = artworks.length > 1;
 const nextIndex = hasNext ? 1 : null;
@@ -48,27 +36,6 @@ const nextIndex = hasNext ? 1 : null;
 const currentIndex = latestArtwork ? artworks.findIndex(a => a.id === latestArtwork.id) : -1;
 const hasPrev = currentIndex > 0;
 const prevIndex = hasPrev ? currentIndex - 1 : null;
-
-// 确保图片数组存在
-const artworkImages = latestArtwork?.images || [];
-const firstImage = artworkImages[0] || '';
-
-// 导入图片
-let authorImage;
-try {
-  if (firstImage) {
-    artworkImage = firstImage;
-  }
-  if (latestArtwork?.author.profile_image_url) {
-    const profileImageFileName = `author_${latestArtwork.author.id}.jpg`;
-    if (profileImageFileName) {
-      // @ts-ignore
-      authorImage = await import(/* @vite-ignore */ `../content/images/pixiv/${profileImageFileName}`);
-    }
-  }
-} catch (error) {
-  console.error('Error handling image:', error);
-}
 
 // 确保所有必要的属性都存在
 const artworkData = latestArtwork ? {
@@ -87,6 +54,17 @@ const artworkData = latestArtwork ? {
     profile_image_url: latestArtwork.author.profile_image_url
   }
 } : null;
+
+// 导入图片
+let artworkImage;
+try {
+  if (artworkData?.images && artworkData.images.length > 0) {
+    // @ts-ignore
+    artworkImage = await import(/* @vite-ignore */ artworkData.images[0]);
+  }
+} catch (error) {
+  console.error('Error importing images:', error);
+}
 
 // 导出 getStaticPaths 函数
 export async function getStaticPaths() {
@@ -194,10 +172,10 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
           )}
           <div id="artwork-box">
             <div id="artwork-frame">
-        {artworkImage ? (
+        {artworkData.images.length > 0 ? (
           <Image 
             id="artwork-image"
-            src={artworkImage}
+            src={artworkData.images[currentIndex]} 
             alt={artworkData.title}
             width={800}
             height={600}

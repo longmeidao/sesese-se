@@ -85,8 +85,8 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
         profile_path = download_file(profile_image_url, images_dir, avatar_filename)
         
         if profile_path:
-            # 更新元数据中的头像路径为 Astro Image 组件可识别的格式
-            metadata['author']['profile_image_url'] = f"/src/content/images/pixiv/{avatar_filename}"
+            # 更新元数据中的头像路径为相对路径
+            metadata['author']['profile_image_url'] = f"../images/pixiv/{avatar_filename}"
         
         # 下载作品图片
         if artwork.page_count == 1:
@@ -99,8 +99,8 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
                 image_path = download_file(image_url, images_dir, filename)
                 
                 if image_path:
-                    # 添加 Astro Image 组件可识别的路径到元数据
-                    metadata['images'].append(f"/src/content/images/pixiv/{filename}")
+                    # 添加相对路径到元数据
+                    metadata['images'].append(f"../images/pixiv/{filename}")
         else:
             # 多图
             for i, image in enumerate(artwork.meta_pages):
@@ -116,8 +116,8 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
                     image_path = download_file(image_url, images_dir, filename)
                     
                     if image_path:
-                        # 添加 Astro Image 组件可识别的路径到元数据
-                        metadata['images'].append(f"/src/content/images/pixiv/{filename}")
+                        # 添加相对路径到元数据
+                        metadata['images'].append(f"../images/pixiv/{filename}")
                         
                     # 添加随机延迟，避免请求过快
                     time.sleep(random.uniform(1, 2))

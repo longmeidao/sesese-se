@@ -50,19 +50,6 @@ const artworkData = artwork ? {
   }
 } : null;
 
-// 确保图片数组存在
-const artworkImages = artworkData?.images || [];
-
-// 导入图片
-let artworkImage;
-try {
-  if (artworkData?.images && artworkData.images.length > 0) {
-    artworkImage = artworkData.images[0];
-  }
-} catch (error) {
-  console.error('Error handling image:', error);
-}
-
 // 计算导航状态
 const hasPrev = currentIndex > 0;
 const hasNext = currentIndex < sortedArtworks.length - 1;
@@ -70,6 +57,17 @@ const prevIndex = hasPrev ? currentIndex - 1 : null;
 const nextIndex = hasNext ? currentIndex + 1 : null;
 
 const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}` : tsconfig.site?.title;
+
+// 导入图片
+let artworkImage;
+try {
+  if (artworkData?.images && artworkData.images.length > 0) {
+    // @ts-ignore
+    artworkImage = await import(/* @vite-ignore */ artworkData.images[0]);
+  }
+} catch (error) {
+  console.error('Error importing images:', error);
+}
 ---
 
 <Layout title={pageTitle}>
@@ -88,7 +86,7 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
 
   <div id="artwork-container" data-artwork={JSON.stringify({
     id: artworkData?.id,
-    images: artworkImages,
+    images: artworkData?.images,
     page_count: artworkData?.page_count
   })}>
     {/* 作品切换按钮 */}
@@ -106,10 +104,10 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
     <div id="artwork-viewer">
       <div id="artwork-box">
         <div id="artwork-frame">
-          {artworkImage ? (
+          {artworkData?.images && artworkData.images.length > 0 ? (
             <Image 
               id="artwork-image"
-              src={artworkImage}
+              src={artworkData.images[currentIndex]} 
               alt={artworkData?.title || '作品图片'}
               width={800}
               height={600}
