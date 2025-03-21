@@ -56,13 +56,11 @@ const artworkImages = artworkData?.images || [];
 // 导入图片
 let artworkImage;
 try {
-  const imageFileName = `${artworkData?.id}_1.jpg`;
-  if (imageFileName) {
-    // @ts-ignore
-    artworkImage = await import(/* @vite-ignore */ `../../content/images/pixiv/${imageFileName}`);
+  if (artworkData?.images && artworkData.images.length > 0) {
+    artworkImage = artworkData.images[0];
   }
 } catch (error) {
-  console.error('Error importing images:', error);
+  console.error('Error handling image:', error);
 }
 
 // 计算导航状态
@@ -111,7 +109,7 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
           {artworkImage ? (
             <Image 
               id="artwork-image"
-              src={artworkImage.default} 
+              src={artworkImage}
               alt={artworkData?.title || '作品图片'}
               width={800}
               height={600}

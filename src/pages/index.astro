@@ -57,11 +57,7 @@ const firstImage = artworkImages[0] || '';
 let authorImage;
 try {
   if (firstImage) {
-    const imageFileName = `${latestArtwork?.id}_1.jpg`;
-    if (imageFileName) {
-      // @ts-ignore
-      artworkImage = await import(/* @vite-ignore */ `../content/images/pixiv/${imageFileName}`);
-    }
+    artworkImage = firstImage;
   }
   if (latestArtwork?.author.profile_image_url) {
     const profileImageFileName = `author_${latestArtwork.author.id}.jpg`;
@@ -71,7 +67,7 @@ try {
     }
   }
 } catch (error) {
-  console.error('Error importing images:', error);
+  console.error('Error handling image:', error);
 }
 
 // 确保所有必要的属性都存在
@@ -201,7 +197,7 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
         {artworkImage ? (
           <Image 
             id="artwork-image"
-            src={artworkImage.default} 
+            src={artworkImage}
             alt={artworkData.title}
             width={800}
             height={600}
