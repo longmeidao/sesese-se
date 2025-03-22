@@ -349,17 +349,14 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
   }
 
   async function updateImage() {
-    if (artworkImage && artworkData.images && artworkData.images[currentImageIndex]) {
+    if (artworkImage && artworkData.id) {
       try {
         // 移除已加载的类
         artworkImage.classList.remove('loaded');
         
-        // 使用 Astro 的图片处理路径
-        const imageId = artworkData.id;
         const imageIndex = currentImageIndex + 1;
-        const imagePath = `/_image?href=/src/content/images/pixiv/${imageId}_${imageIndex}.jpg`;
-        
-        // 更新图片路径
+        // 使用与第一张图片相同的路径格式
+        const imagePath = `/_image?href=/src/content/images/pixiv/${artworkData.id}_${imageIndex}.jpg&w=800&h=600&f=webp`;
         artworkImage.src = imagePath;
         
         // 打印调试信息

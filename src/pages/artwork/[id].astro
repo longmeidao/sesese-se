@@ -355,11 +355,13 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
         artworkImage.classList.remove('loaded');
         
         const imageIndex = currentImageIndex + 1;
-        const imagePath = await import(`../../content/images/pixiv/${artworkData.id}_${imageIndex}.jpg`);
-        artworkImage.src = imagePath.default.src;
+        // 使用与第一张图片相同的路径格式
+        const imagePath = `/_image?href=/src/content/images/pixiv/${artworkData.id}_${imageIndex}.jpg&w=800&h=600&f=webp`;
+        artworkImage.src = imagePath;
         
+        // 打印调试信息
         console.log('Current Image Index:', currentImageIndex);
-        console.log('New Image Path:', imagePath.default.src);
+        console.log('New Image Path:', imagePath);
       } catch (error) {
         console.error('Error updating image:', error);
       }
