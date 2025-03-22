@@ -28,18 +28,6 @@ artworks.sort((a, b) =>
 // 获取最新的作品
 const latestArtwork = artworks[0];
 
-// 导入图片
-let artworkImage;
-try {
-  const imageFileName = `${latestArtwork?.id}_1.jpg`;
-  if (imageFileName) {
-    // @ts-ignore
-    artworkImage = await import(/* @vite-ignore */ `../content/images/pixiv/${imageFileName}`);
-  }
-} catch (error) {
-  console.error('Error importing images:', error);
-}
-
 // 计算导航状态
 const hasNext = artworks.length > 1;
 const nextIndex = hasNext ? 1 : null;
@@ -48,31 +36,6 @@ const nextIndex = hasNext ? 1 : null;
 const currentIndex = latestArtwork ? artworks.findIndex(a => a.id === latestArtwork.id) : -1;
 const hasPrev = currentIndex > 0;
 const prevIndex = hasPrev ? currentIndex - 1 : null;
-
-// 确保图片数组存在
-const artworkImages = latestArtwork?.images || [];
-const firstImage = artworkImages[0] || '';
-
-// 导入图片
-let authorImage;
-try {
-  if (firstImage) {
-    const imageFileName = `${latestArtwork?.id}_1.jpg`;
-    if (imageFileName) {
-      // @ts-ignore
-      artworkImage = await import(/* @vite-ignore */ `../content/images/pixiv/${imageFileName}`);
-    }
-  }
-  if (latestArtwork?.author.profile_image_url) {
-    const profileImageFileName = `author_${latestArtwork.author.id}.jpg`;
-    if (profileImageFileName) {
-      // @ts-ignore
-      authorImage = await import(/* @vite-ignore */ `../content/images/pixiv/${profileImageFileName}`);
-    }
-  }
-} catch (error) {
-  console.error('Error importing images:', error);
-}
 
 // 确保所有必要的属性都存在
 const artworkData = latestArtwork ? {
@@ -92,49 +55,6 @@ const artworkData = latestArtwork ? {
   }
 } : null;
 
-// 导出 getStaticPaths 函数
-export async function getStaticPaths() {
-  const pixivCollection = await getCollection('pixiv');
-  const artworks: PixivArtwork[] = [];
-
-  // 遍历所有作品目录
-  for (const artworkDir of pixivCollection) {
-    const artworkId = parseInt(artworkDir.id);
-    const artworkData = artworkDir.data as unknown as PixivArtwork;
-    if (artworkData && artworkData.id) {
-      artworks.push({
-        ...artworkData,
-        id: artworkId
-      });
-    }
-  }
-
-  // 按创建日期排序
-  const sortedArtworks = artworks.sort((a, b) => 
-    new Date(b.create_date).getTime() - new Date(a.create_date).getTime()
-  );
-
-  // 生成所有可能的路径
-  const paths = [];
-  for (let i = 0; i < sortedArtworks.length; i++) {
-    paths.push({
-      params: { index: i.toString() },
-      props: { artwork: sortedArtworks[i] },
-    });
-  }
-
-  // 添加默认路径（不带 index 参数）
-  paths.push({
-    params: {},
-    props: { artwork: sortedArtworks[0] },
-  });
-
-  return paths;
-}
-
-// 获取传入的 props
-const { artwork } = Astro.props;
-
 const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
 ---
 
@@ -142,13 +62,10 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
   {/* Logo */}
   <a href="/" class="site-logo">
     <Image 
-      src=/se.png
+      src="/se.png"
       alt="Site Logo"
       width={40}
       height={40}
-      loading="eager"
-      decoding="sync"
-      fetchpriority="high"
     />
   </a>
 
@@ -167,126 +84,90 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
       page_count: artworkData.page_count
     })}>
       {/* 作品切换按钮 */}
-          <div class="artwork-nav-left">
-                {hasPrev && prevIndex !== null && (
-            <a class="artwork-nav-button" href={`/artwork/${artworks[prevIndex].id}`} aria-label="上一个作品">
-              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </a>
-          )}
-          </div>
-      {/* 图片展示区域 */}
-      <div id="artwork-viewer">
-          <div id="artwork-box">
-            <div id="artwork-frame">
-        {artworkData ? (
-          <img 
-            id="artwork-image"
-            src={`/_image?href=/src/content/images/pixiv/${artworkData.id}_1.jpg`}
-            alt={artworkData.title}
-            width={800}
-            height={600}
-            loading="eager"
-            decoding="sync"
-            fetchpriority="high"
-          />
-        ) : (
-          <div>
+      <div class="artwork-nav-left">
+        {hasPrev && prevIndex !== null && (
+          <a class="artwork-nav-button" href={`/artwork/${artworks[prevIndex].id}`} aria-label="上一个作品">
             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p>图片加载失败</p>
-            <p>请稍后重试</p>
-          </div>
-        )}
-              {/* 作品信息 */}
-      <div id="artwork-info">
-        <a href={`https://www.pixiv.net/artworks/${artworkData.id}`} target="_blank" rel="noopener noreferrer">
-          <h2>
-            {artworkData.title}
-          </h2>
-        </a>
-        <div class="artwork-author">
-          <a href={`https://www.pixiv.net/users/${artworkData.author.id}`} target="_blank" rel="noopener noreferrer">
-            <!-- {authorImage && (
-              <Image 
-                src={authorImage.default}
-                alt={artworkData.author.name}
-                width={40}
-                height={40}
-                format="webp"
-                loading="eager"
-                decoding="sync"
-                fetchpriority="high"
-                priority
-              />
-            )} -->
-            <span>{artworkData.author.name}</span>
-          </a>
-          <!-- <span>·</span>
-          <div>
-            <span title="浏览数">
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              {artworkData.total_view.toLocaleString()}
-            </span>
-            <span title="收藏数">
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              {artworkData.total_bookmarks.toLocaleString()}
-            </span>
-          </div> -->
-        </div>
-        <div class="artwork-tags">
-          {artworkData.tags.slice(0, 5).map((tag: string) => (
-            <a 
-              href={`https://www.pixiv.net/tags/${encodeURIComponent(tag)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              #{tag}
-            </a>
-          ))}
-          {artworkData.tags.length > 5 && (
-            <span>+{artworkData.tags.length - 5}</span>
-          )}
-        </div>
-      </div>
-        </div>
-      </div>
-            {/* 多图切换按钮 */}
-            {artworkData?.page_count && artworkData?.page_count > 1 && artworkData?.images?.length > 1 && artworkData?.images?.length === artworkData?.page_count && (
-        <div class="artwork-images-nav">
-          <button id="prev-image" aria-label="上一张图片" disabled>
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
-          </button>
-          <span id="image-counter">1 / {artworkData?.images?.length}</span>
-          <button id="next-image" aria-label="下一张图片">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      )}
-
+          </a>
+        )}
       </div>
-          {/* 作品切换按钮 */}
-          <div class="artwork-nav-right">
-            {hasNext && nextIndex !== null && (
-            <a class="artwork-nav-button" href={`/artwork/${artworks[nextIndex].id}`} aria-label="下一个作品">
-              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {/* 图片展示区域 */}
+      <div id="artwork-viewer">
+        <div id="artwork-box">
+          <div id="artwork-frame">
+            {artworkData ? (
+              <Image 
+                src={import(`../content/images/pixiv/${artworkData.id}_1.jpg`)}
+                alt={artworkData.title}
+                width={800}
+                height={600}
+                id="artwork-image"
+              />
+            ) : (
+              <div>
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p>图片加载失败</p>
+                <p>请稍后重试</p>
+              </div>
+            )}
+            {/* 作品信息 */}
+            <div id="artwork-info">
+              <a href={`https://www.pixiv.net/artworks/${artworkData.id}`} target="_blank" rel="noopener noreferrer">
+                <h2>{artworkData.title}</h2>
+              </a>
+              <div class="artwork-author">
+                <a href={`https://www.pixiv.net/users/${artworkData.author.id}`} target="_blank" rel="noopener noreferrer">
+                  <span>{artworkData.author.name}</span>
+                </a>
+              </div>
+              <div class="artwork-tags">
+                {artworkData.tags.slice(0, 5).map((tag: string) => (
+                  <a 
+                    href={`https://www.pixiv.net/tags/${encodeURIComponent(tag)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    #{tag}
+                  </a>
+                ))}
+                {artworkData.tags.length > 5 && (
+                  <span>+{artworkData.tags.length - 5}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* 多图切换按钮 */}
+        {artworkData?.page_count && artworkData?.page_count > 1 && artworkData?.images?.length > 1 && artworkData?.images?.length === artworkData?.page_count && (
+          <div class="artwork-images-nav">
+            <button id="prev-image" aria-label="上一张图片" disabled>
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <span id="image-counter">1 / {artworkData?.images?.length}</span>
+            <button id="next-image" aria-label="下一张图片">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
-            </a>
-          )}
+            </button>
           </div>
-
+        )}
+      </div>
+      {/* 作品切换按钮 */}
+      <div class="artwork-nav-right">
+        {hasNext && nextIndex !== null && (
+          <a class="artwork-nav-button" href={`/artwork/${artworks[nextIndex].id}`} aria-label="下一个作品">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        )}
+      </div>
     </div>
   )}
 
