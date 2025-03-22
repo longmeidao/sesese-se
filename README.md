@@ -43,9 +43,18 @@ npm run build
 
 ## 配置
 
-1. 在 `src/content/images/pixiv` 目录下创建作品目录，目录名为作品ID
-2. 将图片文件命名为 `作品ID_页码.jpg` 格式
-3. 在 `src/content/config.ts` 中配置作品信息
+1. 获取 Pixiv REFRESH_TOKEN：
+   - 参考 [pixivpy](https://github.com/upbit/pixivpy)
+
+2. 在你的 GitHub 仓库中设置以下 Secret：
+   - `PIXIV_REFRESH_TOKEN`: 你的 Pixiv REFRESH_TOKEN
+
+3. 添加图片：
+   - 在 GitHub Actions 页面中选择 "Fetch Pixiv Artwork" 工作流
+   - 点击 "Run workflow"
+   - 输入要获取的 Pixiv 作品 ID
+   - 点击 "Run workflow" 开始执行
+   - 工作流会自动下载图片并更新网站内容
 
 ## 部署
 
