@@ -322,6 +322,10 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
   const artworkData = artwork ? JSON.parse(artwork.dataset.artwork || '{}') : {};
   const totalImages = artworkData.images?.length || 1;
 
+  // 获取初始图片路径作为模板
+  const initialImagePath = artworkImage?.src || '';
+  const pathTemplate = initialImagePath.replace(/_1\.jpg/, '_$index.jpg');
+
   // 添加鼠标跟随光效
   if (artwork) {
     artwork.addEventListener('mousemove', (e) => {
@@ -355,8 +359,8 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
         artworkImage.classList.remove('loaded');
         
         const imageIndex = currentImageIndex + 1;
-        // 使用与第一张图片相同的路径格式
-        const imagePath = `/_image?href=/src/content/images/pixiv/${artworkData.id}_${imageIndex}.jpg&w=800&h=600&f=webp`;
+        // 使用初始图片路径模板
+        const imagePath = pathTemplate.replace('$index', imageIndex.toString());
         artworkImage.src = imagePath;
         
         // 打印调试信息
