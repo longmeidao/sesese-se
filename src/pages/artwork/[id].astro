@@ -200,12 +200,13 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
       )}
     </div>
   </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      import('../../components/ArtworkManager').then(({ ArtworkManager }) => {
+        new ArtworkManager();
+      });
+    });
+  </script> 
 </Layout>
 
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    import('../../components/ArtworkManager').then(({ ArtworkManager }) => {
-      new ArtworkManager();
-    });
-  });
-</script> 
