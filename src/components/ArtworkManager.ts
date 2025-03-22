@@ -14,6 +14,7 @@ export class ArtworkManager {
   private imageCounter: HTMLElement | null = null;
   private artworkData: ArtworkData = { id: 0, page_count: 1 };
   private totalImages: number = 1;
+  private initialFirstImage: string | null = null;  // 存储初始第一张图片的路径
 
   constructor() {
     // 确保在客户端环境中执行
@@ -26,6 +27,18 @@ export class ArtworkManager {
     this.imageCounter = document.querySelector('#image-counter');
     this.artworkData = this.artwork ? JSON.parse(this.artwork.dataset.artwork || '{}') : { id: 0, page_count: 1 };
     this.totalImages = this.artworkData.page_count || 1;
+
+    // 保存初始第一张图片的路径
+    const firstImage = document.querySelector('#artwork-image') as HTMLImageElement;
+    if (firstImage) {
+      this.initialFirstImage = firstImage.src;
+      console.log('Initial first image path saved:', this.initialFirstImage);
+    }
+
+    console.log('ArtworkManager initialized:', {
+      artworkData: this.artworkData,
+      totalImages: this.totalImages
+    });
 
     // 只有在需要多页切换功能时才检查相关元素
     if (this.totalImages > 1) {
@@ -62,36 +75,52 @@ export class ArtworkManager {
     if (this.artworkFrame && this.artworkData.id) {
       try {
         const imageIndex = this.currentImageIndex + 1;
+        console.log('Updating image:', {
+          currentIndex: this.currentImageIndex,
+          imageIndex,
+          totalImages: this.totalImages
+        });
 
         // 获取主图片容器
         const mainContainer = document.querySelector('#main-image-container');
         if (!mainContainer) {
+          console.error('Main image container not found');
           throw new Error('无法找到主图片容器');
         }
 
         // 获取目标图片
         let targetImage: HTMLImageElement | null = null;
+        let targetSrc: string | null = null;
         
-        if (imageIndex === 1) {
-          // 对于第一张图片，直接使用当前显示的图片路径
-          const currentImage = mainContainer.querySelector('#artwork-image') as HTMLImageElement;
-          if (currentImage) {
-            // 从当前图片路径中提取基础路径并替换图片序号为 1
-            const firstImageSrc = currentImage.src.replace(/_\d+\.jpg/, '_1.jpg');
-            
-            // 创建临时图片元素来存储路径
-            targetImage = document.createElement('img');
-            targetImage.src = firstImageSrc;
-          } else {
-            // 如果找不到当前图片，尝试在预加载区域查找
-            targetImage = document.querySelector('#preloaded-images img[src*="_1.jpg"]') as HTMLImageElement;
-          }
+        if (imageIndex === 1 && this.initialFirstImage) {
+          // 如果是切换回第一张图片，使用保存的初始路径
+          console.log('Using initial first image:', this.initialFirstImage);
+          targetSrc = this.initialFirstImage;
         } else {
-          // 对于其他图片，在预加载区域查找
-          targetImage = document.querySelector(`#preloaded-images img[src*="_${imageIndex}.jpg"]`) as HTMLImageElement;
+          // 从预加载区域查找目标图片
+          const preloadedImages = document.querySelectorAll('#preloaded-images img') as NodeListOf<HTMLImageElement>;
+          console.log('Preloaded images count:', preloadedImages.length);
+
+          // 遍历所有预加载的图片
+          for (const img of preloadedImages) {
+            const imgIndex = img.dataset.index;
+            console.log('Checking preloaded image:', {
+              index: imgIndex,
+              src: img.src
+            });
+            
+            if (imgIndex === imageIndex.toString()) {
+              targetSrc = img.src;
+              break;
+            }
+          }
         }
 
-        if (!targetImage) {
+        if (!targetSrc) {
+          console.error('Target image not found:', {
+            imageIndex,
+            artworkId: this.artworkData.id
+          });
           throw new Error(`无法找到图片 ${imageIndex}`);
         }
 
@@ -106,9 +135,15 @@ export class ArtworkManager {
         img.style.width = '100%';
         img.style.height = '100%';
         img.style.objectFit = 'contain';
-        img.src = targetImage.src;
+        img.src = targetSrc;
         img.dataset.index = imageIndex.toString();
         
+        console.log('New image element created:', {
+          id: img.id,
+          src: img.src,
+          index: img.dataset.index
+        });
+
         // 清空并更新主图片容器
         mainContainer.innerHTML = '';
         mainContainer.appendChild(img);
@@ -116,6 +151,7 @@ export class ArtworkManager {
         // 更新按钮状态
         this.updateImageButtons();
       } catch (error) {
+        console.error('Error updating image:', error);
         // 发生错误时重置为第一张图片
         this.currentImageIndex = 0;
         this.updateImageButtons();
