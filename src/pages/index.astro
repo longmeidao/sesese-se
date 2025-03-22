@@ -66,6 +66,8 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
       alt="Site Logo"
       width={40}
       height={40}
+      loading="eager"
+      decoding="sync"
     />
   </a>
 
@@ -98,13 +100,19 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
         <div id="artwork-box">
           <div id="artwork-frame">
             {artworkData ? (
-              <Image 
-                src={import(`../content/images/pixiv/${artworkData.id}_1.jpg`)}
-                alt={artworkData.title}
-                width={800}
-                height={600}
-                id="artwork-image"
-              />
+              <div class="artwork-image-container">
+                <div class="artwork-image-loading"></div>
+                <Image 
+                  src={import(`../content/images/pixiv/${artworkData.id}_1.jpg`)}
+                  alt={artworkData.title}
+                  width={800}
+                  height={600}
+                  id="artwork-image"
+                  loading="eager"
+                  decoding="sync"
+                  class="artwork-image"
+                />
+              </div>
             ) : (
               <div>
                 <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,6 +264,52 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
     height: 100%;
     object-fit: cover;
   }
+
+  .artwork-image-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #f5f5f5;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .artwork-image-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.5) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    animation: loading 1.5s infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .artwork-image {
+    position: relative;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .artwork-image.loaded {
+    opacity: 1;
+  }
+
+  @keyframes loading {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
 </style>
 
 <script>
@@ -287,9 +341,19 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
     }
   }
 
+  // 添加图片加载完成事件
+  if (artworkImage) {
+    artworkImage.addEventListener('load', () => {
+      artworkImage.classList.add('loaded');
+    });
+  }
+
   async function updateImage() {
     if (artworkImage && artworkData.images && artworkData.images[currentImageIndex]) {
       try {
+        // 移除已加载的类
+        artworkImage.classList.remove('loaded');
+        
         // 使用 Astro 的图片处理路径
         const imageId = artworkData.id;
         const imageIndex = currentImageIndex + 1;
