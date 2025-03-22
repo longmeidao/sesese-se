@@ -4,7 +4,8 @@ import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import type { PixivArtwork } from '../types/pixiv';
 import tsconfig from '../../tsconfig.json';
-import  SpeedInsights  from "@vercel/speed-insights/astro"
+import SpeedInsights from "@vercel/speed-insights/astro"
+import '../styles/artwork.css';
 
 // 获取所有作品并按创建日期排序
 const pixivCollection = await getCollection('pixiv');
@@ -112,6 +113,7 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
                     id="artwork-image"
                     loading="eager"
                     decoding="sync"
+                    data-index="1"
                   />
                 </div>
                 {/* 预加载其他图片 */}
@@ -199,257 +201,11 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
     </div>
   )}
 
-<style>
-  .artwork-nav-left,
-  .artwork-nav-right {
-    position: fixed;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    opacity: 0;
-    transition: all 0.3s ease;
-    pointer-events: auto;
-  }
-  
-  .artwork-nav-left {
-    left: 0;
-    padding-left: 20px;
-  }
-  
-  .artwork-nav-right {
-    right: 0;
-    padding-right: 20px;
-  }
-  
-  .artwork-nav-button {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 50%;
-    color: white;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    pointer-events: auto;
-  }
-  
-  .artwork-nav-button:hover {
-    background: rgba(0, 0, 0, 0.7);
-  }
-
-  .artwork-nav-left.show {
-    opacity: 1;
-    background: linear-gradient(var(--direction, to right), rgba(0, 0, 0, 0.15), transparent);
-  }
-  .artwork-nav-right.show {
-    opacity: 1;
-    background: linear-gradient(var(--direction, to left), rgba(0, 0, 0, 0.15), transparent);
-  }
-
-  .artwork-nav-left.show .artwork-nav-button,
-  .artwork-nav-right.show .artwork-nav-button {
-    background: white;
-    color: black;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .artwork-nav-left.show .artwork-nav-button:hover,
-  .artwork-nav-right.show .artwork-nav-button:hover {
-    background: #f5f5f5;
-  }
-
-  .site-logo {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 20;
-    display: block;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
-  }
-
-  .site-logo:hover {
-    transform: scale(1.1);
-  }
-
-  .site-logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .artwork-image-wrapper {
-    width: 100%;
-    height: 100%;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  #artwork-image {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
-
-  #preloaded-images {
-    display: none !important;
-    height: 0 !important;
-    overflow: hidden !important;
-    position: absolute !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-  }
-</style>
+</Layout>
 
 <script>
-  let currentImageIndex = 0;
-  const artwork = document.querySelector('#artwork-container') as HTMLDivElement;
-  const artworkFrame = document.querySelector('#artwork-frame') as HTMLDivElement;
-  const prevImageBtn = document.querySelector('#prev-image') as HTMLButtonElement;
-  const nextImageBtn = document.querySelector('#next-image') as HTMLButtonElement;
-  const imageCounter = document.querySelector('#image-counter');
-  const artworkData = artwork ? JSON.parse(artwork.dataset.artwork || '{}') : {};
-  const totalImages = artworkData.page_count || 1;
-
-  function updateImageButtons() {
-    if (prevImageBtn && nextImageBtn && imageCounter) {
-      prevImageBtn.disabled = currentImageIndex === 0;
-      nextImageBtn.disabled = currentImageIndex === totalImages - 1;
-      imageCounter.textContent = `${currentImageIndex + 1} / ${totalImages}`;
-    }
-  }
-
-  async function updateImage() {
-    if (artworkFrame && artworkData.id) {
-      try {
-        const imageIndex = currentImageIndex + 1;
-        console.log('切换到图片索引:', imageIndex);
-
-        // 获取主图片容器
-        const mainContainer = document.querySelector('#main-image-container');
-        if (!mainContainer) {
-          throw new Error('无法找到主图片容器');
-        }
-
-        // 获取预加载的目标图片
-        const targetImage = document.querySelector(
-          imageIndex === 1 ? '#artwork-image' : `#artwork-image-${imageIndex}`
-        ) as HTMLImageElement;
-
-        if (!targetImage) {
-          throw new Error(`无法找到图片 ${imageIndex}`);
-        }
-
-        // 使用预加载图片的优化后路径
-        const optimizedSrc = targetImage.src;
-        console.log('使用优化后的图片路径:', optimizedSrc);
-
-        // 创建新的图片元素
-        const img = document.createElement('img');
-        img.id = 'artwork-image';
-        img.alt = artworkData.title || `图片 ${imageIndex}`;
-        img.width = 800;
-        img.height = 600;
-        img.loading = 'eager';
-        img.decoding = 'sync';
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'contain';
-        img.src = optimizedSrc;
-        
-        // 清空并更新主图片容器
-        mainContainer.innerHTML = '';
-        mainContainer.appendChild(img);
-
-        // 更新按钮状态
-        updateImageButtons();
-      } catch (error) {
-        console.error('更新图片时出错:', error);
-        // 发生错误时重置为第一张图片
-        currentImageIndex = 0;
-        updateImageButtons();
-      }
-    }
-  }
-
-  // 绑定按钮事件
-  prevImageBtn?.addEventListener('click', () => {
-    if (currentImageIndex > 0) {
-      currentImageIndex--;
-      updateImage();
-      updateImageButtons();
-    }
-  });
-
-  nextImageBtn?.addEventListener('click', () => {
-    if (currentImageIndex < totalImages - 1) {
-      currentImageIndex++;
-      updateImage();
-      updateImageButtons();
-    }
-  });
-
-  // 初始化按钮状态
-  updateImageButtons();
-
-  // 添加键盘快捷键支持
-  document.addEventListener('keydown', (e) => {
-    // 获取导航链接
-    const prevArtworkLink = document.querySelector('.artwork-nav-left a') as HTMLAnchorElement;
-    const nextArtworkLink = document.querySelector('.artwork-nav-right a') as HTMLAnchorElement;
-
-    if (e.key === 'ArrowLeft') {
-      // 如果是多页作品且不在第一页，切换到上一页
-      if (totalImages > 1 && currentImageIndex > 0) {
-        prevImageBtn?.click();
-      }
-      // 如果是单页作品或在第一页，且存在上一个作品，跳转到上一个作品
-      else if (prevArtworkLink) {
-        prevArtworkLink.click();
-      }
-    } else if (e.key === 'ArrowRight') {
-      // 如果是多页作品且不在最后一页，切换到下一页
-      if (totalImages > 1 && currentImageIndex < totalImages - 1) {
-        nextImageBtn?.click();
-      }
-      // 如果是单页作品或在最后一页，且存在下一个作品，跳转到下一个作品
-      else if (nextArtworkLink) {
-        nextArtworkLink.click();
-      }
-    }
-  });
-
-  // 添加边缘检测和导航按钮控制
-  function setupEdgeDetection() {
-    const navLeft = document.querySelector('.artwork-nav-left');
-    const navRight = document.querySelector('.artwork-nav-right');
-    
-    document.addEventListener('mousemove', (e) => {
-      const x = e.clientX;
-      const windowWidth = window.innerWidth;
-      
-      if (x < 100) {
-        navLeft?.classList.add('show');
-      } else {
-        navLeft?.classList.remove('show');
-      }
-      
-      if (x > windowWidth - 100) {
-        navRight?.classList.add('show');
-      } else {
-        navRight?.classList.remove('show');
-      }
-    });
-  }
-
-  // 初始化边缘检测
-  setupEdgeDetection();
-</script> 
-
-</Layout>
+  import { ArtworkManager } from '../scripts/artwork';
+  
+  // 初始化作品管理器
+  new ArtworkManager();
+</script>
