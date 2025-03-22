@@ -4,6 +4,7 @@ import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
 import type { PixivArtwork } from '../types/pixiv';
 import tsconfig from '../../tsconfig.json';
+import  SpeedInsights  from "@vercel/speed-insights/astro"
 
 // 获取所有作品并按创建日期排序
 const pixivCollection = await getCollection('pixiv');
@@ -101,15 +102,36 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
           <div id="artwork-frame">
             {artworkData ? (
               <div class="artwork-image-wrapper">
-                <Image 
-                  src={import(`../content/images/pixiv/${artworkData.id}_1.jpg`)}
-                  alt={artworkData.title}
-                  width={800}
-                  height={600}
-                  id="artwork-image"
-                  loading="eager"
-                  decoding="sync"
-                />
+                {/* 显示第一张图片 */}
+                <div id="main-image-container">
+                  <Image 
+                    src={import(`../content/images/pixiv/${artworkData.id}_1.jpg`)}
+                    alt={artworkData.title}
+                    width={800}
+                    height={600}
+                    id="artwork-image"
+                    loading="eager"
+                    decoding="sync"
+                  />
+                </div>
+                {/* 预加载其他图片 */}
+                <div id="preloaded-images" style="display: none; height: 0; overflow: hidden; position: absolute;">
+                  {artworkData.page_count > 1 && Array.from({ length: artworkData.page_count - 1 }).map((_, index) => {
+                    const imageIndex = index + 2;
+                    return (
+                      <Image 
+                        src={import(`../content/images/pixiv/${artworkData.id}_${imageIndex}.jpg`)}
+                        alt={`${artworkData.title} - ${imageIndex}`}
+                        width={800}
+                        height={600}
+                        id={`artwork-image-${imageIndex}`}
+                        loading="eager"
+                        decoding="sync"
+                        data-index={imageIndex}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             ) : (
               <div>
@@ -224,7 +246,6 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
   .artwork-nav-right.show {
     opacity: 1;
     background: linear-gradient(var(--direction, to left), rgba(0, 0, 0, 0.15), transparent);
-
   }
 
   .artwork-nav-left.show .artwork-nav-button,
@@ -275,6 +296,15 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
     height: 100%;
     object-fit: contain;
   }
+
+  #preloaded-images {
+    display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
 </style>
 
 <script>
@@ -285,7 +315,7 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
   const nextImageBtn = document.querySelector('#next-image') as HTMLButtonElement;
   const imageCounter = document.querySelector('#image-counter');
   const artworkData = artwork ? JSON.parse(artwork.dataset.artwork || '{}') : {};
-  const totalImages = artworkData.images?.length || 1;
+  const totalImages = artworkData.page_count || 1;
 
   function updateImageButtons() {
     if (prevImageBtn && nextImageBtn && imageCounter) {
@@ -299,20 +329,22 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
     if (artworkFrame && artworkData.id) {
       try {
         const imageIndex = currentImageIndex + 1;
-        // 创建新的 Image 组件
-        const imageWrapper = document.createElement('div');
-        imageWrapper.className = 'artwork-image-wrapper';
-        
-        // 获取当前显示的第一张图片的 src
-        const firstImage = document.querySelector('#artwork-image') as HTMLImageElement;
-        const firstImageSrc = firstImage?.src || '';
-        
-        // 使用正则表达式替换图片序号
-        const newImageSrc = firstImageSrc.replace(/(_\d+)\.jpg/, `_${imageIndex}.jpg`);
-        
+        console.log('切换到图片索引:', imageIndex);
+
+        // 获取主图片容器
+        const mainContainer = document.querySelector('#main-image-container');
+        if (!mainContainer) {
+          throw new Error('无法找到主图片容器');
+        }
+
+        // 构建新的图片路径
+        const newImagePath = `/src/content/images/pixiv/${artworkData.id}_${imageIndex}.jpg`;
+        console.log('新图片路径:', newImagePath);
+
+        // 创建新的图片元素
         const img = document.createElement('img');
         img.id = 'artwork-image';
-        img.alt = artworkData.title;
+        img.alt = artworkData.title || `图片 ${imageIndex}`;
         img.width = 800;
         img.height = 600;
         img.loading = 'eager';
@@ -320,16 +352,21 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
         img.style.width = '100%';
         img.style.height = '100%';
         img.style.objectFit = 'contain';
-        img.src = newImageSrc;
+
+        // 使用 Astro 的图片处理路径
+        img.src = `/_image?href=${encodeURIComponent(newImagePath)}&w=800&h=600&f=webp`;
         
-        // 替换现有图片
-        imageWrapper.appendChild(img);
-        const oldWrapper = artworkFrame.querySelector('.artwork-image-wrapper');
-        if (oldWrapper) {
-          artworkFrame.replaceChild(imageWrapper, oldWrapper);
-        }
+        // 清空并更新主图片容器
+        mainContainer.innerHTML = '';
+        mainContainer.appendChild(img);
+
+        // 更新按钮状态
+        updateImageButtons();
       } catch (error) {
-        console.error('Error updating image:', error);
+        console.error('更新图片时出错:', error);
+        // 发生错误时重置为第一张图片
+        currentImageIndex = 0;
+        updateImageButtons();
       }
     }
   }
