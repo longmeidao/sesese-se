@@ -61,6 +61,7 @@ export class ArtworkManager {
     this.bindEvents();
     this.updateImageButtons();
     this.setupEdgeDetection();
+    this.setupMouseTracking();
   }
 
   private updateImageButtons() {
@@ -208,22 +209,45 @@ export class ArtworkManager {
   private setupEdgeDetection() {
     const navLeft = document.querySelector('.artwork-nav-left');
     const navRight = document.querySelector('.artwork-nav-right');
+    const prevButton = navLeft?.querySelector('.artwork-nav-button') as HTMLElement;
+    const nextButton = navRight?.querySelector('.artwork-nav-button') as HTMLElement;
     
     document.addEventListener('mousemove', (e) => {
       const x = e.clientX;
       const windowWidth = window.innerWidth;
       
       if (x < 100) {
-        navLeft?.classList.add('show');
+        if (prevButton) {
+          navLeft?.classList.add('show');
+          prevButton.style.cursor = 'pointer';
+        }
       } else {
         navLeft?.classList.remove('show');
+        if (prevButton) {
+          prevButton.style.cursor = 'default';
+        }
       }
       
       if (x > windowWidth - 100) {
-        navRight?.classList.add('show');
+        if (nextButton) {
+          navRight?.classList.add('show');
+          nextButton.style.cursor = 'pointer';
+        }
       } else {
         navRight?.classList.remove('show');
+        if (nextButton) {
+          nextButton.style.cursor = 'default';
+        }
       }
+    });
+  }
+
+  private setupMouseTracking() {
+    document.addEventListener('mousemove', (e) => {
+      const x = (e.clientX / window.innerWidth) * 100;
+      const y = (e.clientY / window.innerHeight) * 100;
+      document.documentElement.style.setProperty('--mouse-x', `${x}%`);
+      document.documentElement.style.setProperty('--mouse-y', `${y}%`);
     });
   }
 } 

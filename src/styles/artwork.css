@@ -9,6 +9,7 @@ html {
   color: white;
   font-size: 16px;
   line-height: 1.5;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -22,85 +23,60 @@ body {
   position: relative;
 }
 
-    /* 创建多层光影效果，让四周更暗 */
-    body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: 
-      /* 中央聚光效果 - 降低暗部强度 */
-      radial-gradient(
-        ellipse at center,
-        transparent 0%,
-        rgba(0, 0, 0, 0) 35%,
-        rgba(0, 0, 0, 0.5) 65%,
-        rgba(0, 0, 0, 0.7) 100%
-      ),
-      /* 顶部补光 - 稍微增加亮度 */
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, transparent 25%);
-    mix-blend-mode: multiply;
-    pointer-events: none;
-  }
-
-      /* 调整环境光 - 略微增加亮度 */
-      body::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.15) 0%, transparent 75%);
-    mix-blend-mode: overlay;
-    pointer-events: none;
-  }
-
-      /* 动态光效 */
-  #artwork-container::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(
-      circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      rgba(255, 255, 255, 0.15) 0%,
-      transparent 40%
-    );
-    opacity: 0.7;
-    mix-blend-mode: overlay;
-    pointer-events: none;
-  }
-
-/* 自定义滚动条样式 */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* 创建多层光影效果，让四周更暗 */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    /* 中央聚光效果 - 降低暗部强度 */
+    radial-gradient(
+      ellipse at center,
+      transparent 0%,
+      rgba(0, 0, 0, 0) 35%,
+      rgba(0, 0, 0, 0.5) 65%,
+      rgba(0, 0, 0, 0.7) 100%
+    ),
+    /* 顶部补光 - 稍微增加亮度 */
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, transparent 25%);
+  mix-blend-mode: multiply;
+  pointer-events: none;
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+/* 调整环境光 - 略微增加亮度 */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.15) 0%, transparent 75%);
+  mix-blend-mode: overlay;
+  pointer-events: none;
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+/* 动态光效 */
+#artwork-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(255, 255, 255, 0.15) 0%,
+    transparent 40%
+  );
+  opacity: 0.7;
+  mix-blend-mode: overlay;
+  pointer-events: none;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* 平滑滚动 */
-html {
-  scroll-behavior: smooth;
-}
-
-/* 图片加载动画 */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -119,8 +95,9 @@ button, a {
   transition: all 0.2s ease-in-out;
 }
 
+/* 移除按钮向上悬浮效果 */
 button:hover, a:hover {
-  transform: translateY(-1px);
+  transform: none;
 }
 
 /* 背景光效 */
@@ -185,6 +162,8 @@ button:hover, a:hover {
 #artwork-image {
   width: 100%;
   height: auto;
+  min-width: 30vh;
+  min-height: 50vh;
   max-height: 75vh;
   display: block;
   position: relative;
@@ -218,7 +197,7 @@ button:hover, a:hover {
 }
 
 #artwork-info::before {
-content: "";
+  content: "";
   position: absolute;
   inset: 0px;
   box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 3px inset;
@@ -242,6 +221,7 @@ content: "";
 #artwork-info a:hover {
   color: #000;
 }
+
 .artwork-info {
   color: inherit;
   text-decoration: none;
@@ -269,7 +249,6 @@ content: "";
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s;
-  cursor: pointer;
   z-index: 10;
 }
 
@@ -287,7 +266,6 @@ content: "";
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s;
-  cursor: pointer;
   z-index: 10;
 }
 
