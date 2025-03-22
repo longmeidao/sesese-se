@@ -1,50 +1,56 @@
-> 由 Cursor 生成，仅供参考。
+# sesese-se
 
-# Pixiv Artwork Fetcher
+一个优雅的 Pixiv 图片展示网站，使用 Astro 构建。
 
-这是一个 GitHub Action，用于自动获取 Pixiv 上的图片作品及其元数据信息。
+## 特点
 
-## 功能特点
+- 🎨 优雅的图片展示界面
+- 🔄 自动获取 Pixiv 图片
+- 📱 响应式设计
+- 🚀 基于 Astro 构建
+- 🤖 使用 GitHub Actions 自动部署
 
-- 支持获取单页和多页作品
-- 保存完整的元数据信息（包括作者、标签、创建日期等）
-- 自动下载原始图片
-- 支持通过 GitHub Actions 手动触发
+## 样式参考
 
-## 使用方法
+本站样式参考于 [Artab](https://github.com/get-artab/artab)，一个展示世界名画的新标签页扩展。
 
-1. 获取 Pixiv REFRESH_TOKEN：
-   - 登录 Pixiv 网页版
-   - 打开浏览器开发者工具（F12）
-   - 在 Network 标签页中找到任意 API 请求
-   - 在请求头中找到 `x-client-hash` 和 `x-client-time` 参数
-   - 使用这些参数构造 REFRESH_TOKEN
+## 开发工具
 
-2. 在你的 GitHub 仓库中设置以下 Secret：
-   - `PIXIV_REFRESH_TOKEN`: 你的 Pixiv REFRESH_TOKEN
+大部分的代码编写工作由 [Cursor](https://cursor.sh) 完成，这是一个强大的 AI 驱动的代码编辑器。
 
-3. 在 GitHub Actions 页面中：
-   - 选择 "Fetch Pixiv Artwork" 工作流
-   - 点击 "Run workflow"
-   - 输入要获取的 Pixiv 作品 ID
-   - 点击 "Run workflow" 开始执行
+## 开始使用
 
-## 输出
-
-工作流执行完成后，会在仓库中创建以下文件结构：
-
-```
-artworks/
-  └── {artwork_id}/
-      ├── metadata.json    # 包含作品的元数据信息
-      ├── page_1.jpg       # 第一页图片
-      ├── page_2.jpg       # 第二页图片（如果是多页作品）
-      └── ...
+1. 克隆仓库
+```bash
+git clone https://github.com/yourusername/sesese-se.git
+cd sesese-se
 ```
 
-## 注意事项
+2. 安装依赖
+```bash
+npm install
+```
 
-- 请确保你有权限访问目标作品
-- 建议遵守 Pixiv 的使用条款和版权规定
-- 不要频繁触发工作流，以免对 Pixiv 服务器造成压力
-- REFRESH_TOKEN 有效期较长，但也会过期，过期后需要重新获取 
+3. 启动开发服务器
+```bash
+npm run dev
+```
+
+4. 构建生产版本
+```bash
+npm run build
+```
+
+## 配置
+
+1. 在 `src/content/images/pixiv` 目录下创建作品目录，目录名为作品ID
+2. 将图片文件命名为 `作品ID_页码.jpg` 格式
+3. 在 `src/content/config.ts` 中配置作品信息
+
+## 部署
+
+本站使用 GitHub Actions 自动部署到 Vercel。每次推送代码到 main 分支时，都会自动触发部署。
+
+## 许可证
+
+MIT 

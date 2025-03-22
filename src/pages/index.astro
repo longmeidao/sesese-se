@@ -22,22 +22,21 @@ for (const artworkDir of pixivCollection) {
   }
 }
 
-// 按创建日期排序
+// 按创建日期倒序排序
 artworks.sort((a, b) => 
   new Date(b.create_date).getTime() - new Date(a.create_date).getTime()
 );
 
-// 获取最新的作品
-const latestArtwork = artworks[0];
+// 获取最新的作品（排序后的最后一个）
+const latestArtwork = artworks[artworks.length - 1];
 
 // 计算导航状态
-const hasNext = artworks.length > 1;
-const nextIndex = hasNext ? 1 : null;
-
-// 计算导航索引
 const currentIndex = latestArtwork ? artworks.findIndex(a => a.id === latestArtwork.id) : -1;
-const hasPrev = currentIndex > 0;
-const prevIndex = hasPrev ? currentIndex - 1 : null;
+const currentOrder = currentIndex + 1;  // 当前作品的order
+const hasNext = currentOrder > 1;  // 如果有更早的作品
+const hasPrev = currentOrder < artworks.length;  // 如果有更新的作品
+const nextOrder = hasNext ? currentOrder - 1 : null;  // 下一个是更早的作品
+const prevOrder = hasPrev ? currentOrder + 1 : null;  // 上一个是最新的作品
 
 // 确保所有必要的属性都存在
 const artworkData = latestArtwork ? {
@@ -62,16 +61,30 @@ const siteTitle = tsconfig.site?.title || '色览';
 
 <Layout title={siteTitle}>
   {/* Logo */}
-  <a href="/" class="site-logo">
-    <Image 
-      src="/se.png"
-      alt="Site Logo"
-      width={40}
-      height={40}
-      loading="eager"
-      decoding="sync"
-    />
-  </a>
+  <div class="logo-container">
+    <div class="site-logo">
+      <a href="/">
+        <Image 
+          src="/se.png"
+          alt="Site Logo"
+          width={40}
+          height={40}
+          loading="eager"
+          decoding="sync"
+        />
+      </a>
+      <a href="/about" class="dao-link">
+        <Image 
+          src="/dao.png"
+          alt="About"
+          width={40}
+          height={40}
+          loading="eager"
+          decoding="sync"
+        />
+      </a>
+    </div>
+  </div>
 
   {!artworkData ? (
     <div>
@@ -89,8 +102,8 @@ const siteTitle = tsconfig.site?.title || '色览';
     })}>
       {/* 作品切换按钮 */}
       <div class="artwork-nav-left">
-        {hasPrev && prevIndex !== null && (
-          <a class="artwork-nav-button" href={`/${prevIndex + 1}`} aria-label="上一个作品">
+        {hasPrev && prevOrder !== null && (
+          <a class="artwork-nav-button" href={`/${prevOrder}`} aria-label="上一个作品">
             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -190,8 +203,8 @@ const siteTitle = tsconfig.site?.title || '色览';
       </div>
       {/* 作品切换按钮 */}
       <div class="artwork-nav-right">
-        {hasNext && nextIndex !== null && (
-          <a class="artwork-nav-button" href={`/${nextIndex + 1}`} aria-label="下一个作品">
+        {hasNext && nextOrder !== null && (
+          <a class="artwork-nav-button" href={`/${nextOrder}`} aria-label="下一个作品">
             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>

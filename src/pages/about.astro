@@ -1,0 +1,109 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { Image } from 'astro:assets';
+import tsconfig from '../../tsconfig.json';
+import SpeedInsights from "@vercel/speed-insights/astro"
+import '../styles/artwork.css';
+
+const siteTitle = `${tsconfig.site?.title || '色览'} - 导览册`;
+---
+
+<style>
+  .about-content {
+    font-family: "Times New Roman", times, "Heti Song", serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    color: rgb(102, 102, 102);;
+  }
+
+  .about-content h1 {
+    font-weight: 800;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    color: #222;
+  }
+
+  .about-content p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    max-width: 600px;
+  }
+
+  .about-content a {
+    color: #000;
+    text-underline-offset: 4px;
+  }
+
+  .about-content a:hover {
+    text-decoration: underline;
+  }
+
+  .about-content p:last-child {
+    margin-bottom: 0;
+  }
+</style>
+
+<Layout title={siteTitle}>
+  {/* Logo */}
+  <div class="logo-container">
+    <div class="site-logo">
+      <a href="/">
+        <Image 
+          src="/se.png"
+          alt="Site Logo"
+          width={40}
+          height={40}
+          loading="eager"
+          decoding="sync"
+        />
+      </a>
+      <a href="/about" class="dao-link">
+        <Image 
+          src="/dao.png"
+          alt="About"
+          width={40}
+          height={40}
+          loading="eager"
+          decoding="sync"
+        />
+      </a>
+    </div>
+  </div>
+
+  <div id="artwork-container">
+    {/* 图片展示区域 */}
+    <div id="artwork-viewer">
+      <div id="artwork-box">
+        <div id="artwork-frame">
+          <div class="artwork-image-wrapper">
+            <div id="main-image-container">
+              <div class="about-content">
+                <h1>导览册</h1>
+                <p>「色览」是一个展示笔者精选作品的网站。</p>
+                <p>本站使用 Astro 构建，通过 GitHub Actions 自动获取 Pixiv 图片；样式参考于 <a href="https://github.com/get-artab/artab" target="_blank" rel="noopener noreferrer">Artab</a>，一个展示世界名画的浏览器新标签页扩展。</p>
+                <p>大部分的代码编写工作由 <a href="https://cursor.sh" target="_blank" rel="noopener noreferrer">Cursor</a> 完成，一个强大的 AI 驱动的代码编辑器。</p>
+                <p>本站所有作品均来自网络，仅供学习交流使用。</p>
+                <p>如有侵权，请联系笔者删除。</p>
+                <p><a href="mailto:se@sesese.se">se@sesese.se</a></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 等待 DOM 加载完成
+    document.addEventListener('DOMContentLoaded', () => {
+      import('../components/ArtworkManager').then(({ ArtworkManager }) => {
+        new ArtworkManager();
+      });
+    });
+  </script>
+
+</Layout> 
