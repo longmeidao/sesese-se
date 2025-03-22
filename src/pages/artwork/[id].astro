@@ -50,6 +50,21 @@ const artworkData = artwork ? {
   }
 } : null;
 
+// 确保图片数组存在
+const artworkImages = artworkData?.images || [];
+
+// 导入图片
+let artworkImage;
+try {
+  const imageFileName = `${artworkData?.id}_1.jpg`;
+  if (imageFileName) {
+    // @ts-ignore
+    artworkImage = await import(/* @vite-ignore */ `../../content/images/pixiv/${imageFileName}`);
+  }
+} catch (error) {
+  console.error('Error importing images:', error);
+}
+
 // 计算导航状态
 const hasPrev = currentIndex > 0;
 const hasNext = currentIndex < sortedArtworks.length - 1;
@@ -57,17 +72,6 @@ const prevIndex = hasPrev ? currentIndex - 1 : null;
 const nextIndex = hasNext ? currentIndex + 1 : null;
 
 const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}` : tsconfig.site?.title;
-
-// 导入图片
-let artworkImage;
-try {
-  if (artworkData?.images && artworkData.images.length > 0) {
-    // @ts-ignore
-    artworkImage = await import(/* @vite-ignore */ artworkData.images[0]);
-  }
-} catch (error) {
-  console.error('Error importing images:', error);
-}
 ---
 
 <Layout title={pageTitle}>
@@ -86,7 +90,7 @@ try {
 
   <div id="artwork-container" data-artwork={JSON.stringify({
     id: artworkData?.id,
-    images: artworkData?.images,
+    images: artworkImages,
     page_count: artworkData?.page_count
   })}>
     {/* 作品切换按钮 */}
@@ -104,19 +108,16 @@ try {
     <div id="artwork-viewer">
       <div id="artwork-box">
         <div id="artwork-frame">
-          {artworkData?.images && artworkData.images.length > 0 ? (
-            <Image 
+          {artworkData ? (
+            <img 
               id="artwork-image"
-              src={artworkData.images[currentIndex]} 
+              src={`/_image?href=/src/content/images/pixiv/${artworkData.id}_1.jpg`}
               alt={artworkData?.title || '作品图片'}
               width={800}
               height={600}
-              format="webp"
-              quality={90}
               loading="eager"
               decoding="sync"
               fetchpriority="high"
-              priority
             />
           ) : (
             <div>
@@ -306,9 +307,23 @@ try {
     }
   }
 
-  function updateImage() {
-    if (artworkImage && artworkData.images) {
-      artworkImage.src = artworkData.images[currentImageIndex];
+  async function updateImage() {
+    if (artworkImage && artworkData.images && artworkData.images[currentImageIndex]) {
+      try {
+        // 使用 Astro 的图片处理路径
+        const imageId = artworkData.id;
+        const imageIndex = currentImageIndex + 1;
+        const imagePath = `/_image?href=/src/content/images/pixiv/${imageId}_${imageIndex}.jpg`;
+        
+        // 更新图片路径
+        artworkImage.src = imagePath;
+        
+        // 打印调试信息
+        console.log('Current Image Index:', currentImageIndex);
+        console.log('New Image Path:', imagePath);
+      } catch (error) {
+        console.error('Error updating image:', error);
+      }
     }
   }
 

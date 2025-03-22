@@ -28,6 +28,18 @@ artworks.sort((a, b) =>
 // 获取最新的作品
 const latestArtwork = artworks[0];
 
+// 导入图片
+let artworkImage;
+try {
+  const imageFileName = `${latestArtwork?.id}_1.jpg`;
+  if (imageFileName) {
+    // @ts-ignore
+    artworkImage = await import(/* @vite-ignore */ `../content/images/pixiv/${imageFileName}`);
+  }
+} catch (error) {
+  console.error('Error importing images:', error);
+}
+
 // 计算导航状态
 const hasNext = artworks.length > 1;
 const nextIndex = hasNext ? 1 : null;
@@ -36,6 +48,31 @@ const nextIndex = hasNext ? 1 : null;
 const currentIndex = latestArtwork ? artworks.findIndex(a => a.id === latestArtwork.id) : -1;
 const hasPrev = currentIndex > 0;
 const prevIndex = hasPrev ? currentIndex - 1 : null;
+
+// 确保图片数组存在
+const artworkImages = latestArtwork?.images || [];
+const firstImage = artworkImages[0] || '';
+
+// 导入图片
+let authorImage;
+try {
+  if (firstImage) {
+    const imageFileName = `${latestArtwork?.id}_1.jpg`;
+    if (imageFileName) {
+      // @ts-ignore
+      artworkImage = await import(/* @vite-ignore */ `../content/images/pixiv/${imageFileName}`);
+    }
+  }
+  if (latestArtwork?.author.profile_image_url) {
+    const profileImageFileName = `author_${latestArtwork.author.id}.jpg`;
+    if (profileImageFileName) {
+      // @ts-ignore
+      authorImage = await import(/* @vite-ignore */ `../content/images/pixiv/${profileImageFileName}`);
+    }
+  }
+} catch (error) {
+  console.error('Error importing images:', error);
+}
 
 // 确保所有必要的属性都存在
 const artworkData = latestArtwork ? {
@@ -54,17 +91,6 @@ const artworkData = latestArtwork ? {
     profile_image_url: latestArtwork.author.profile_image_url
   }
 } : null;
-
-// 导入图片
-let artworkImage;
-try {
-  if (artworkData?.images && artworkData.images.length > 0) {
-    // @ts-ignore
-    artworkImage = await import(/* @vite-ignore */ artworkData.images[0]);
-  }
-} catch (error) {
-  console.error('Error importing images:', error);
-}
 
 // 导出 getStaticPaths 函数
 export async function getStaticPaths() {
@@ -152,39 +178,18 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
           </div>
       {/* 图片展示区域 */}
       <div id="artwork-viewer">
-
-
-          {/* 多图切换按钮 */}
-          {artworkData.page_count > 1 && artworkData.images?.length > 1 && artworkData.images?.length === artworkData.page_count && (
-            <div>
-              <button id="prev-image" aria-label="上一张图片" disabled>
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <span id="image-counter">1 / {artworkData.images.length}</span>
-              <button id="next-image" aria-label="下一张图片">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          )}
           <div id="artwork-box">
             <div id="artwork-frame">
-        {artworkData.images.length > 0 ? (
-          <Image 
+        {artworkData ? (
+          <img 
             id="artwork-image"
-            src={artworkData.images[currentIndex]} 
+            src={`/_image?href=/src/content/images/pixiv/${artworkData.id}_1.jpg`}
             alt={artworkData.title}
             width={800}
             height={600}
-            format="webp"
-            quality={90}
             loading="eager"
             decoding="sync"
             fetchpriority="high"
-            priority
           />
         ) : (
           <div>
@@ -253,6 +258,22 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
       </div>
         </div>
       </div>
+            {/* 多图切换按钮 */}
+            {artworkData?.page_count && artworkData?.page_count > 1 && artworkData?.images?.length > 1 && artworkData?.images?.length === artworkData?.page_count && (
+        <div class="artwork-images-nav">
+          <button id="prev-image" aria-label="上一张图片" disabled>
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <span id="image-counter">1 / {artworkData?.images?.length}</span>
+          <button id="next-image" aria-label="下一张图片">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       </div>
           {/* 作品切换按钮 */}
@@ -385,9 +406,23 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
     }
   }
 
-  function updateImage() {
-    if (artworkImage && artworkData.images) {
-      artworkImage.src = artworkData.images[currentImageIndex];
+  async function updateImage() {
+    if (artworkImage && artworkData.images && artworkData.images[currentImageIndex]) {
+      try {
+        // 使用 Astro 的图片处理路径
+        const imageId = artworkData.id;
+        const imageIndex = currentImageIndex + 1;
+        const imagePath = `/_image?href=/src/content/images/pixiv/${imageId}_${imageIndex}.jpg`;
+        
+        // 更新图片路径
+        artworkImage.src = imagePath;
+        
+        // 打印调试信息
+        console.log('Current Image Index:', currentImageIndex);
+        console.log('New Image Path:', imagePath);
+      } catch (error) {
+        console.error('Error updating image:', error);
+      }
     }
   }
 
@@ -413,7 +448,8 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
 
   // 添加键盘快捷键支持
   document.addEventListener('keydown', (e) => {
-    // 获取下一个作品的链接
+    // 获取导航链接
+    const prevArtworkLink = document.querySelector('.artwork-nav-left a') as HTMLAnchorElement;
     const nextArtworkLink = document.querySelector('.artwork-nav-right a') as HTMLAnchorElement;
 
     if (e.key === 'ArrowLeft') {
@@ -421,11 +457,15 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
       if (totalImages > 1 && currentImageIndex > 0) {
         prevImageBtn?.click();
       }
+      // 如果是单页作品或在第一页，且存在上一个作品，跳转到上一个作品
+      else if (prevArtworkLink) {
+        prevArtworkLink.click();
+      }
     } else if (e.key === 'ArrowRight') {
       // 如果是多页作品且不在最后一页，切换到下一页
       if (totalImages > 1 && currentImageIndex < totalImages - 1) {
         nextImageBtn?.click();
-      } 
+      }
       // 如果是单页作品或在最后一页，且存在下一个作品，跳转到下一个作品
       else if (nextArtworkLink) {
         nextArtworkLink.click();
