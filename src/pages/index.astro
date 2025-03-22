@@ -6,6 +6,7 @@ import type { PixivArtwork } from '../types/pixiv';
 import tsconfig from '../../tsconfig.json';
 import SpeedInsights from "@vercel/speed-insights/astro"
 import '../styles/artwork.css';
+import { ArtworkManager } from '../components/ArtworkManager';
 
 // 获取所有作品并按创建日期排序
 const pixivCollection = await getCollection('pixiv');
@@ -204,7 +205,7 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
 </Layout>
 
 <script>
-  import { ArtworkManager } from '../scripts/artwork';
+  import { ArtworkManager } from '../components/ArtworkManager';
   
   // 初始化作品管理器
   new ArtworkManager();

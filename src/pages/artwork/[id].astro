@@ -6,6 +6,7 @@ import type { PixivArtwork } from '../../types/pixiv';
 import tsconfig from '../../../tsconfig.json';
 import '../../styles/artwork.css';
 import SpeedInsights from "@vercel/speed-insights/astro"
+import { ArtworkManager } from '../../components/ArtworkManager';
 
 // 导出 getStaticPaths 函数
 export async function getStaticPaths() {
@@ -202,7 +203,7 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
 </Layout>
 
 <script>
-  import { ArtworkManager } from '../../scripts/artwork';
+  import { ArtworkManager } from '../../components/ArtworkManager';
   
   // 初始化作品管理器
   new ArtworkManager();
