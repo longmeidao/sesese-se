@@ -130,6 +130,22 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
                   );
                 })}
               </div>
+              {/* 多图切换按钮 */}
+              {artworkData?.page_count && artworkData?.page_count > 1 && artworkData?.images?.length > 1 && artworkData?.images?.length === artworkData?.page_count && (
+                <div class="artwork-images-nav">
+                  <button id="prev-image" aria-label="上一张图片" disabled>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <span id="image-counter">1 / {artworkData?.images?.length}</span>
+                  <button id="next-image" aria-label="下一张图片">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div>
@@ -140,52 +156,35 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
               <p>请稍后重试</p>
             </div>
           )}
-
-          {/* 作品信息 */}
-          <div id="artwork-info">
-            <a href={`https://www.pixiv.net/artworks/${artworkData?.id}`} target="_blank" rel="noopener noreferrer">
-              <h2>{artworkData?.title}</h2>
+        </div>
+        {/* 作品信息 */}
+        <div id="artwork-info">
+          <a href={`https://www.pixiv.net/artworks/${artworkData?.id}`} target="_blank" rel="noopener noreferrer">
+            <h2>{artworkData?.title}</h2>
+          </a>
+          <div class="artwork-author">
+            <a href={`https://www.pixiv.net/users/${artworkData?.author?.id}`} target="_blank" rel="noopener noreferrer">
+              <span>{artworkData?.author?.name}</span>
             </a>
-            <div class="artwork-author">
-              <a href={`https://www.pixiv.net/users/${artworkData?.author?.id}`} target="_blank" rel="noopener noreferrer">
-                <span>{artworkData?.author?.name}</span>
-              </a>
-            </div>
-            <div class="artwork-tags">
-              {artworkData?.tags && artworkData.tags.length > 0 && (
-                artworkData.tags.slice(0, 5).map((tag: string) => (
-                  <a 
-                    href={`https://www.pixiv.net/tags/${encodeURIComponent(tag)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    #{tag}
-                  </a>
-                ))
-              )}
-              {artworkData?.tags && artworkData.tags.length > 5 && (
-                <span>+{artworkData.tags.length - 5}</span>
-              )}
-            </div>
+          </div>
+          <div class="artwork-tags">
+            {artworkData?.tags && artworkData.tags.length > 0 && (
+              artworkData.tags.slice(0, 5).map((tag: string) => (
+                <a 
+                  href={`https://www.pixiv.net/tags/${encodeURIComponent(tag)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  #{tag}
+                </a>
+              ))
+            )}
+            {artworkData?.tags && artworkData.tags.length > 5 && (
+              <span>+{artworkData.tags.length - 5}</span>
+            )}
           </div>
         </div>
       </div>
-      {/* 多图切换按钮 */}
-      {artworkData?.page_count && artworkData?.page_count > 1 && artworkData?.images?.length > 1 && artworkData?.images?.length === artworkData?.page_count && (
-        <div class="artwork-images-nav">
-          <button id="prev-image" aria-label="上一张图片" disabled>
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <span id="image-counter">1 / {artworkData?.images?.length}</span>
-          <button id="next-image" aria-label="下一张图片">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      )}
     </div>
 
     {/* 作品切换按钮 */}

@@ -1,3 +1,357 @@
+:root {
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+}
+
+html {
+  font-family: system-ui, sans-serif;
+  background-color: black;
+  color: white;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: black;
+  color: white;
+  overflow-x: hidden;
+  background: url(/bg.jpg) center / cover no-repeat fixed;
+  position: relative;
+}
+
+    /* 创建多层光影效果，让四周更暗 */
+    body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      /* 中央聚光效果 - 降低暗部强度 */
+      radial-gradient(
+        ellipse at center,
+        transparent 0%,
+        rgba(0, 0, 0, 0) 35%,
+        rgba(0, 0, 0, 0.5) 65%,
+        rgba(0, 0, 0, 0.7) 100%
+      ),
+      /* 顶部补光 - 稍微增加亮度 */
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, transparent 25%);
+    mix-blend-mode: multiply;
+    pointer-events: none;
+  }
+
+      /* 调整环境光 - 略微增加亮度 */
+      body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.15) 0%, transparent 75%);
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+      /* 动态光效 */
+  #artwork-container::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+      circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(255, 255, 255, 0.15) 0%,
+      transparent 40%
+    );
+    opacity: 0.7;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 图片加载动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+img {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* 按钮悬停效果 */
+button, a {
+  transition: all 0.2s ease-in-out;
+}
+
+button:hover, a:hover {
+  transform: translateY(-1px);
+}
+
+/* 背景光效 */
+.bg-gradient {
+  background: radial-gradient(
+    circle at var(--mouse-x) var(--mouse-y),
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 50%
+  );
+}
+
+#artwork-container {
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+#artwork-viewer {
+  display: flex;
+  flex-direction: column;
+  -webkit-box-align: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+#artwork-box {
+  position: relative;
+}
+
+#artwork-frame {
+  background: rgb(255, 255, 255);
+  padding: 24px;
+  border: 12px solid rgb(0, 0, 0);
+  position: relative;
+  width: auto;
+  box-sizing: border-box;
+  box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 30px inset, rgba(0, 0, 0, 0.5) 0px 20px 50px, rgba(0, 0, 0, 0.7) 0px 35px 90px -20px, rgba(0, 0, 0, 0.4) 0px 30px 45px -15px, rgba(0, 0, 0, 0.1) 0px 0px 0px 1px, rgba(255, 255, 255, 0.15) 0px -5px 20px;
+}
+
+#artwork-frame::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border: 12px solid rgb(0, 0, 0);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='woodgrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23woodgrain)'/%3E%3C/svg%3E");
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+#artwork-image {
+  width: 100%;
+  height: auto;
+  max-height: 75vh;
+  display: block;
+  position: relative;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 10px inset, rgba(255, 255, 255, 0.1) 0px -2px 10px;
+}
+
+#artwork-image::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  right: -12px;
+  height: 60px;
+  background: linear-gradient(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+#artwork-info {
+  width: 160px;
+  background: rgb(248, 248, 248);
+  color: rgb(51, 51, 51);
+  padding: 16px;
+  font-size: 12px;
+  text-align: left;
+  letter-spacing: 0.1px;
+  position: absolute;
+  right: -210px;
+  bottom: 30px;
+  box-shadow: rgba(0, 0, 0, 0.2) 0px 4px 8px, rgba(0, 0, 0, 0.15) 0px 8px 24px, rgba(0, 0, 0, 0.1) 0px 1px 2px;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+#artwork-info::before {
+content: "";
+  position: absolute;
+  inset: 0px;
+  box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 3px inset;
+  pointer-events: none;
+}
+
+#artwork-info h2 {
+  margin: 0px 0px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgb(34, 34, 34);
+  line-height: 1.4;
+}
+
+#artwork-info h2 a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.artwork-info {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.artwork-author, .artwork-tags {
+  margin: 6px 0px;
+  line-height: 1.4;
+  color: rgb(102, 102, 102);
+  font-size: 11px;  
+}
+
+.artwork-nav-left {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 7%;
+  min-width: 55px;
+  height: 100vh;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.artwork-nav-right {
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  width: 7%;
+  min-width: 55px;
+  height: 100vh;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.artwork-nav-button {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 100%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* 多图切换按钮容器 */
+.artwork-images-nav {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 4px;
+  border-radius: 20px;
+  backdrop-filter: blur(1px);
+}
+
+/* 多图切换按钮 */
+.artwork-images-nav button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.artwork-images-nav button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.artwork-images-nav button:not(:disabled):hover {
+  transform: scale(1.1);
+}
+
+/* 图片计数器 */
+#image-counter {
+  color: white;
+  font-size: 14px;
+  min-width: 50px;
+  text-align: center;
+}
+
 .artwork-nav-left,
 .artwork-nav-right {
   position: fixed;
@@ -85,7 +439,6 @@
 .artwork-image-wrapper {
   width: 100%;
   height: 100%;
-  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -103,3 +456,20 @@
   visibility: hidden !important;
   pointer-events: none !important;
 } 
+
+/* 响应式调整 */
+@media (max-width: 1080px) {
+  #artwork-info {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    width: 180px;
+    margin: 20px auto 0;
+  }
+
+  #artwork-viewer {
+    padding: 20px 0px;
+  }
+
+
+}
