@@ -18,6 +18,14 @@
 
 大部分的代码编写工作由 [Cursor](https://cursor.sh) 完成，这是一个强大的 AI 驱动的代码编辑器。
 
+## Todo List
+
+ - [] 设立 @sesese.se 邮局
+ - [] 添加除了 Pixiv 之外站点（如 X、Danbooru 等）的图片获取方式
+ - [] 解决图片加载后导致的网页重排问题
+ - [] 使用统一的组件来调用 index.astro 和 [order].astro 中重复的代码部分
+ - [] 使用 ajax/pjax 或类似的技术来实现全站的无缝加载
+
 ## 开始使用
 
 1. 克隆仓库
