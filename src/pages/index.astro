@@ -337,9 +337,18 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
           throw new Error('无法找到主图片容器');
         }
 
-        // 构建新的图片路径
-        const newImagePath = `/src/content/images/pixiv/${artworkData.id}_${imageIndex}.jpg`;
-        console.log('新图片路径:', newImagePath);
+        // 获取预加载的目标图片
+        const targetImage = document.querySelector(
+          imageIndex === 1 ? '#artwork-image' : `#artwork-image-${imageIndex}`
+        ) as HTMLImageElement;
+
+        if (!targetImage) {
+          throw new Error(`无法找到图片 ${imageIndex}`);
+        }
+
+        // 使用预加载图片的优化后路径
+        const optimizedSrc = targetImage.src;
+        console.log('使用优化后的图片路径:', optimizedSrc);
 
         // 创建新的图片元素
         const img = document.createElement('img');
@@ -352,9 +361,7 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
         img.style.width = '100%';
         img.style.height = '100%';
         img.style.objectFit = 'contain';
-
-        // 使用 Astro 的图片处理路径
-        img.src = `/_image?href=${encodeURIComponent(newImagePath)}&w=800&h=600&f=webp`;
+        img.src = optimizedSrc;
         
         // 清空并更新主图片容器
         mainContainer.innerHTML = '';
