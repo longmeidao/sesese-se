@@ -91,12 +91,12 @@ img {
 }
 
 /* 按钮悬停效果 */
-button, a {
+button {
   transition: all 0.2s ease-in-out;
 }
 
 /* 移除按钮向上悬浮效果 */
-button:hover, a:hover {
+button:hover {
   transform: none;
 }
 
@@ -425,10 +425,10 @@ button:hover, a:hover {
   transform: translateX(-50%);
   width: 40px;
   height: 40px;
-  display: none;  /* 默认隐藏 */
+  display: none;
   margin-top: 10px;
   cursor: pointer;
-  z-index: 21;  /* 确保在logo上层 */
+  z-index: 21;
 }
 
 /* 当鼠标悬停在logo-container上时显示dao.png */
@@ -440,10 +440,10 @@ button:hover, a:hover {
 .site-logo::before {
   content: "";
   position: absolute;
-  top: -10px;  /* 扩大hover区域 */
+  top: -10px;
   left: -10px;
   right: -10px;
-  bottom: -60px;  /* 扩大hover区域，包含dao.png */
+  bottom: -60px;
   pointer-events: none;
 }
 
@@ -485,7 +485,7 @@ button:hover, a:hover {
 
 @media (max-width: 760px) {
   .site-logo img {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.85);
     border-radius: 50%;
     padding: 8px;
   }
