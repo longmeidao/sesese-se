@@ -7,22 +7,30 @@ interface ArtworkData {
 
 export class ArtworkManager {
   private currentImageIndex: number = 0;
-  private artwork: HTMLDivElement;
-  private artworkFrame: HTMLDivElement;
-  private prevImageBtn: HTMLButtonElement;
-  private nextImageBtn: HTMLButtonElement;
-  private imageCounter: HTMLElement;
-  private artworkData: ArtworkData;
-  private totalImages: number;
+  private artwork: HTMLDivElement | null = null;
+  private artworkFrame: HTMLDivElement | null = null;
+  private prevImageBtn: HTMLButtonElement | null = null;
+  private nextImageBtn: HTMLButtonElement | null = null;
+  private imageCounter: HTMLElement | null = null;
+  private artworkData: ArtworkData = { id: 0, page_count: 1 };
+  private totalImages: number = 1;
 
   constructor() {
-    this.artwork = document.querySelector('#artwork-container') as HTMLDivElement;
-    this.artworkFrame = document.querySelector('#artwork-frame') as HTMLDivElement;
-    this.prevImageBtn = document.querySelector('#prev-image') as HTMLButtonElement;
-    this.nextImageBtn = document.querySelector('#next-image') as HTMLButtonElement;
-    this.imageCounter = document.querySelector('#image-counter') as HTMLElement;
-    this.artworkData = this.artwork ? JSON.parse(this.artwork.dataset.artwork || '{}') : {};
+    // 确保在客户端环境中执行
+    if (typeof window === 'undefined') return;
+
+    this.artwork = document.querySelector('#artwork-container');
+    this.artworkFrame = document.querySelector('#artwork-frame');
+    this.prevImageBtn = document.querySelector('#prev-image');
+    this.nextImageBtn = document.querySelector('#next-image');
+    this.imageCounter = document.querySelector('#image-counter');
+    this.artworkData = this.artwork ? JSON.parse(this.artwork.dataset.artwork || '{}') : { id: 0, page_count: 1 };
     this.totalImages = this.artworkData.page_count || 1;
+
+    if (!this.artwork || !this.artworkFrame || !this.prevImageBtn || !this.nextImageBtn || !this.imageCounter) {
+      console.error('Required DOM elements not found');
+      return;
+    }
 
     this.init();
   }
