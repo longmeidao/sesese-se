@@ -203,8 +203,9 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
 </Layout>
 
 <script>
-  import { ArtworkManager } from '../../components/ArtworkManager';
-  
-  // 初始化作品管理器
-  new ArtworkManager();
+  document.addEventListener('DOMContentLoaded', () => {
+    import('../../components/ArtworkManager').then(({ ArtworkManager }) => {
+      new ArtworkManager();
+    });
+  });
 </script> 

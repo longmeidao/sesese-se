@@ -205,8 +205,9 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
 </Layout>
 
 <script>
-  import { ArtworkManager } from '../components/ArtworkManager';
-  
-  // 初始化作品管理器
-  new ArtworkManager();
+  document.addEventListener('DOMContentLoaded', () => {
+    import('../components/ArtworkManager').then(({ ArtworkManager }) => {
+      new ArtworkManager();
+    });
+  });
 </script>
