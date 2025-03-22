@@ -27,8 +27,17 @@ export class ArtworkManager {
     this.artworkData = this.artwork ? JSON.parse(this.artwork.dataset.artwork || '{}') : { id: 0, page_count: 1 };
     this.totalImages = this.artworkData.page_count || 1;
 
-    if (!this.artwork || !this.artworkFrame || !this.prevImageBtn || !this.nextImageBtn || !this.imageCounter) {
-      console.error('Required DOM elements not found');
+    // 只有在需要多页切换功能时才检查相关元素
+    if (this.totalImages > 1) {
+      if (!this.prevImageBtn || !this.nextImageBtn || !this.imageCounter) {
+        console.warn('Multi-page navigation elements not found');
+        return;
+      }
+    }
+
+    // 基本元素检查
+    if (!this.artwork || !this.artworkFrame) {
+      console.warn('Basic artwork elements not found');
       return;
     }
 
