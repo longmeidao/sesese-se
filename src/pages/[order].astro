@@ -1,10 +1,10 @@
 ---
 import { getCollection } from 'astro:content';
-import Layout from '../../layouts/Layout.astro';
+import Layout from '../layouts/Layout.astro';
 import { Image } from 'astro:assets';
-import type { PixivArtwork } from '../../types/pixiv';
-import tsconfig from '../../../tsconfig.json';
-import '../../styles/artwork.css';
+import type { PixivArtwork } from '../types/pixiv';
+import tsconfig from '../../tsconfig.json';
+import '../styles/artwork.css';
 import SpeedInsights from "@vercel/speed-insights/astro"
 
 // 导出 getStaticPaths 函数
@@ -29,9 +29,9 @@ export async function getStaticPaths() {
     new Date(b.create_date).getTime() - new Date(a.create_date).getTime()
   );
 
-  // 为每个作品生成一个路径，并传入排序后的作品列表
+  // 为每个作品生成一个路径，使用索引+1作为order
   return artworks.map((artwork, index) => ({
-    params: { id: artwork.id.toString() },
+    params: { order: (index + 1).toString() },
     props: { artwork, sortedArtworks: artworks, currentIndex: index },
   }));
 }
@@ -85,7 +85,7 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
     {/* 作品切换按钮 */}
     <div class="artwork-nav-left">
       {hasPrev && prevIndex !== null && (
-        <a class="artwork-nav-button" href={`/artwork/${sortedArtworks[prevIndex].id}`} aria-label="上一个作品">
+        <a class="artwork-nav-button" href={`/${prevIndex + 1}`} aria-label="上一个作品">
           <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
@@ -102,7 +102,7 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
               {/* 显示第一张图片 */}
               <div id="main-image-container">
                 <Image 
-                  src={import(`../../content/images/pixiv/${artworkData.id}_1.jpg`)}
+                  src={import(`../content/images/pixiv/${artworkData.id}_1.jpg`)}
                   alt={artworkData.title}
                   width={800}
                   height={600}
@@ -118,7 +118,7 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
                   const imageIndex = index + 2;
                   return (
                     <Image 
-                      src={import(`../../content/images/pixiv/${artworkData.id}_${imageIndex}.jpg`)}
+                      src={import(`../content/images/pixiv/${artworkData.id}_${imageIndex}.jpg`)}
                       alt={`${artworkData.title} - ${imageIndex}`}
                       width={800}
                       height={600}
@@ -190,7 +190,7 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
     {/* 作品切换按钮 */}
     <div class="artwork-nav-right">
       {hasNext && nextIndex !== null && (
-        <a class="artwork-nav-button" href={`/artwork/${sortedArtworks[nextIndex].id}`} aria-label="下一个作品">
+        <a class="artwork-nav-button" href={`/${nextIndex + 1}`} aria-label="下一个作品">
           <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
@@ -202,7 +202,7 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
   <script>
     // 等待 DOM 加载完成
     document.addEventListener('DOMContentLoaded', () => {
-      import('../../components/ArtworkManager').then(({ ArtworkManager }) => {
+      import('../components/ArtworkManager').then(({ ArtworkManager }) => {
         new ArtworkManager();
       });
     });

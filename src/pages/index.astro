@@ -57,7 +57,7 @@ const artworkData = latestArtwork ? {
   }
 } : null;
 
-const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
+const siteTitle = tsconfig.site?.title || '色览';
 ---
 
 <Layout title={siteTitle}>
@@ -90,7 +90,7 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
       {/* 作品切换按钮 */}
       <div class="artwork-nav-left">
         {hasPrev && prevIndex !== null && (
-          <a class="artwork-nav-button" href={`/artwork/${artworks[prevIndex].id}`} aria-label="上一个作品">
+          <a class="artwork-nav-button" href={`/${prevIndex + 1}`} aria-label="上一个作品">
             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -191,7 +191,7 @@ const siteTitle = tsconfig.site?.title || 'Daily Pixiv';
       {/* 作品切换按钮 */}
       <div class="artwork-nav-right">
         {hasNext && nextIndex !== null && (
-          <a class="artwork-nav-button" href={`/artwork/${artworks[nextIndex].id}`} aria-label="下一个作品">
+          <a class="artwork-nav-button" href={`/${nextIndex + 1}`} aria-label="下一个作品">
             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
