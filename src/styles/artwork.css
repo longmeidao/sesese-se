@@ -144,7 +144,7 @@ button:hover {
   padding: 24px;
   border: 12px solid rgb(0, 0, 0);
   position: relative;
-  width: auto;
+  width: fit-content;
   box-sizing: border-box;
   box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 30px inset, rgba(0, 0, 0, 0.5) 0px 20px 50px, rgba(0, 0, 0, 0.7) 0px 35px 90px -20px, rgba(0, 0, 0, 0.4) 0px 30px 45px -15px, rgba(0, 0, 0, 0.1) 0px 0px 0px 1px, rgba(255, 255, 255, 0.15) 0px -5px 20px;
 }
@@ -162,7 +162,6 @@ button:hover {
 #artwork-image {
   width: 100%;
   height: auto;
-  max-width: 55vw;
   max-height: 75vh;
   display: block;
   position: relative;
@@ -436,7 +435,7 @@ button:hover {
 }
 
 .artwork-image-wrapper {
-  width: 100%;
+  width: fit-content;
   height: 100%;
   overflow: hidden;
 }
@@ -469,6 +468,7 @@ button:hover {
   #artwork-viewer {
     padding: 20px 0px;
   }
+
 }
 
 @media (max-width: 840px) {
