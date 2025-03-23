@@ -145,6 +145,8 @@ button:hover {
   border: 12px solid rgb(0, 0, 0);
   position: relative;
   width: auto;
+  max-width: 55vw;
+  max-height: 75vh;
   box-sizing: border-box;
   box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 30px inset, rgba(0, 0, 0, 0.5) 0px 20px 50px, rgba(0, 0, 0, 0.7) 0px 35px 90px -20px, rgba(0, 0, 0, 0.4) 0px 30px 45px -15px, rgba(0, 0, 0, 0.1) 0px 0px 0px 1px, rgba(255, 255, 255, 0.15) 0px -5px 20px;
 }
@@ -162,6 +164,7 @@ button:hover {
 #artwork-image {
   width: 100%;
   height: auto;
+  max-width: 55vw;
   max-height: 75vh;
   display: block;
   position: relative;
