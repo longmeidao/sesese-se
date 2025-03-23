@@ -162,8 +162,6 @@ button:hover {
 #artwork-image {
   width: 100%;
   height: auto;
-  min-width: 30vh;
-  min-height: 50vh;
   max-height: 75vh;
   display: block;
   position: relative;
