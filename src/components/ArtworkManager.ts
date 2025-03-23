@@ -133,8 +133,8 @@ export class ArtworkManager {
         img.height = 600;
         img.loading = 'eager';
         img.decoding = 'sync';
-        img.style.width = '100%';
-        img.style.height = '100%';
+        img.style.width = 'auto';
+        img.style.height = 'auto';
         img.style.objectFit = 'contain';
         img.src = targetSrc;
         img.dataset.index = imageIndex.toString();
