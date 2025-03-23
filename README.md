@@ -66,7 +66,7 @@ npm run build
 
 ## 部署
 
-本站使用 GitHub Actions 自动部署到 Vercel。每次推送代码到 main 分支时，都会自动触发部署。
+本站使用 GitHub Actions 自动部署到 Netlify。每次推送代码到 main 分支时，都会自动触发部署。
 
 ## 许可证
 
