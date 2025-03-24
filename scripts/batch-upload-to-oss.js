@@ -1,6 +1,10 @@
-const OSS = require('ali-oss');
-const fs = require('fs');
-const path = require('path');
+import OSS from 'ali-oss';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const client = new OSS({
   accessKeyId: process.env.OSS_ACCESS_KEY_ID,
@@ -55,19 +59,36 @@ async function uploadArtworks() {
     return;
   }
 
-  const artworkDirs = fs.readdirSync(sourceDir);
+  const files = fs.readdirSync(sourceDir);
+  console.log(`Found ${files.length} files in pixiv directory`);
   
-  for (const artworkDir of artworkDirs) {
-    const artworkPath = path.join(sourceDir, artworkDir);
-    if (fs.statSync(artworkPath).isDirectory()) {
-      const ossArtworkPath = `${ossArtworksPath}/${artworkDir}`;
-      const files = fs.readdirSync(artworkPath);
-      
-      for (const file of files) {
-        const filePath = path.join(artworkPath, file);
-        const ossFilePath = `${ossArtworkPath}/${file}`;
-        await uploadFile(filePath, ossFilePath);
+  // 按作品ID分组文件
+  const artworkGroups = {};
+  for (const file of files) {
+    if (file.startsWith('author_')) continue; // 跳过作者头像
+    
+    const match = file.match(/^(\d+)_(\d+)\.jpg$/);
+    if (match) {
+      const artworkId = match[1];
+      if (!artworkGroups[artworkId]) {
+        artworkGroups[artworkId] = [];
       }
+      artworkGroups[artworkId].push(file);
+    }
+  }
+  
+  console.log(`Found ${Object.keys(artworkGroups).length} artworks`);
+  
+  // 上传每个作品的所有图片
+  for (const [artworkId, artworkFiles] of Object.entries(artworkGroups)) {
+    console.log(`Processing artwork ${artworkId} with ${artworkFiles.length} files`);
+    const ossArtworkPath = `${ossArtworksPath}/${artworkId}`;
+    
+    for (const file of artworkFiles) {
+      const filePath = path.join(sourceDir, file);
+      const ossFilePath = `${ossArtworkPath}/${file}`;
+      console.log(`Uploading ${filePath} to ${ossFilePath}`);
+      await uploadFile(filePath, ossFilePath);
     }
   }
 }
