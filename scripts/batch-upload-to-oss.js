@@ -2,6 +2,7 @@ import OSS from 'ali-oss';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import sharp from 'sharp';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,6 +14,20 @@ const client = new OSS({
   region: process.env.OSS_REGION,
   secure: true
 });
+
+// 转换图片为 WebP 格式
+async function convertToWebP(inputPath, outputPath) {
+  try {
+    await sharp(inputPath)
+      .webp({ quality: 80 }) // 设置 WebP 质量为 80
+      .toFile(outputPath);
+    console.log(`Successfully converted ${inputPath} to WebP`);
+    return true;
+  } catch (error) {
+    console.error(`Failed to convert ${inputPath} to WebP:`, error);
+    return false;
+  }
+}
 
 // 上传单个文件到 OSS
 async function uploadFile(filePath, ossPath) {
@@ -42,7 +57,19 @@ async function uploadAssets() {
   for (const asset of assets) {
     const filePath = path.join(publicDir, asset);
     if (fs.existsSync(filePath)) {
+      // 上传原始文件
       await uploadFile(filePath, `${ossAssetsPath}/${asset}`);
+      
+      // 如果是 jpg 或 png 文件，转换为 WebP 并上传
+      if (asset.endsWith('.jpg') || asset.endsWith('.png')) {
+        const webpPath = filePath.replace(/\.(jpg|png)$/, '.webp');
+        if (await convertToWebP(filePath, webpPath)) {
+          const webpOssPath = `${ossAssetsPath}/${asset.replace(/\.(jpg|png)$/, '.webp')}`;
+          await uploadFile(webpPath, webpOssPath);
+          // 删除临时 WebP 文件
+          fs.unlinkSync(webpPath);
+        }
+      }
     } else {
       console.warn(`Asset file not found: ${filePath}`);
     }
@@ -88,7 +115,18 @@ async function uploadArtworks() {
       const filePath = path.join(sourceDir, file);
       const ossFilePath = `${ossArtworkPath}/${file}`;
       console.log(`Uploading ${filePath} to ${ossFilePath}`);
+      
+      // 上传原始文件
       await uploadFile(filePath, ossFilePath);
+      
+      // 转换为 WebP 并上传
+      const webpPath = filePath.replace('.jpg', '.webp');
+      if (await convertToWebP(filePath, webpPath)) {
+        const webpOssPath = `${ossArtworkPath}/${file.replace('.jpg', '.webp')}`;
+        await uploadFile(webpPath, webpOssPath);
+        // 删除临时 WebP 文件
+        fs.unlinkSync(webpPath);
+      }
     }
   }
 }

@@ -118,32 +118,44 @@ const siteTitle = tsconfig.site?.title || '色览';
               <div class="artwork-image-wrapper">
                 {/* 显示第一张图片 */}
                 <div id="main-image-container">
-                  <Image 
-                    src={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_1.jpg`))}
-                    alt={artworkData.title}
-                    id="artwork-image"
-                    loading="eager"
-                    decoding="sync"
-                    data-index="1"
-                    width={800}
-                    height={600}
-                  />
+                  <picture>
+                    <source
+                      type="image/webp"
+                      srcset={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_1.jpg`, 'webp'))}
+                    />
+                    <Image 
+                      src={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_1.jpg`))}
+                      alt={artworkData.title}
+                      id="artwork-image"
+                      loading="eager"
+                      decoding="sync"
+                      data-index="1"
+                      width={800}
+                      height={600}
+                    />
+                  </picture>
                 </div>
                 {/* 预加载其他图片 */}
                 <div id="preloaded-images" style="display: none; height: 0; overflow: hidden; position: absolute;">
                   {artworkData.page_count > 1 && Array.from({ length: artworkData.page_count - 1 }).map((_, index) => {
                     const imageIndex = index + 2;
                     return (
-                      <Image 
-                        src={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_${imageIndex}.jpg`))}
-                        alt={`${artworkData.title} - ${imageIndex}`}
-                        width={800}
-                        height={600}
-                        id={`artwork-image-${imageIndex}`}
-                        loading="lazy"
-                        decoding="async"
-                        data-index={imageIndex}
-                      />
+                      <picture>
+                        <source
+                          type="image/webp"
+                          srcset={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_${imageIndex}.jpg`, 'webp'))}
+                        />
+                        <Image 
+                          src={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_${imageIndex}.jpg`))}
+                          alt={`${artworkData.title} - ${imageIndex}`}
+                          width={800}
+                          height={600}
+                          id={`artwork-image-${imageIndex}`}
+                          loading="lazy"
+                          decoding="async"
+                          data-index={imageIndex}
+                        />
+                      </picture>
                     );
                   })}
                 </div>

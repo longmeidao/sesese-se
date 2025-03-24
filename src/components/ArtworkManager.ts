@@ -126,6 +126,15 @@ export class ArtworkManager {
         }
 
         // 创建新的图片元素
+        const picture = document.createElement('picture');
+        
+        // 添加 WebP 源
+        const webpSource = document.createElement('source');
+        webpSource.type = 'image/webp';
+        webpSource.srcset = targetSrc.replace('.jpg', '.webp');
+        picture.appendChild(webpSource);
+        
+        // 添加原始图片
         const img = document.createElement('img');
         img.id = 'artwork-image';
         img.alt = this.artworkData.title || `图片 ${imageIndex}`;
@@ -139,15 +148,18 @@ export class ArtworkManager {
         img.src = targetSrc;
         img.dataset.index = imageIndex.toString();
         
+        picture.appendChild(img);
+        
         console.log('New image element created:', {
           id: img.id,
           src: img.src,
+          webpSrc: webpSource.srcset,
           index: img.dataset.index
         });
 
         // 清空并更新主图片容器
         mainContainer.innerHTML = '';
-        mainContainer.appendChild(img);
+        mainContainer.appendChild(picture);
 
         // 更新按钮状态
         this.updateImageButtons();
