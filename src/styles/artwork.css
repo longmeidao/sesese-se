@@ -162,7 +162,7 @@ button:hover {
 #artwork-image {
   width: auto;
   height: auto;
-  max-width: 75vw;
+  max-width: 50vw;
   max-height: 75vh;
   display: block;
   position: relative;
@@ -466,6 +466,10 @@ button:hover {
 
   #artwork-viewer {
     padding: 20px 0px;
+  }
+
+  #artwork-image {
+    max-width: 75vw;
   }
 
 }
