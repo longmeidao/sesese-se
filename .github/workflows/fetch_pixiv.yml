@@ -4,10 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       artwork_id:
-        description: 'Pixiv artwork ID'
+        description: 'Pixiv Artwork ID'
         required: true
         type: string
-        default: ''
       exclude_images:
         description: '要排除的图片索引（用逗号分隔，从0开始），例如：0,2,3 表示排除第1、3、4张图片'
         required: false
@@ -80,6 +79,16 @@ jobs:
             }' > src/content/pixiv/${{ github.event.inputs.artwork_id }}.json
             echo "Created empty metadata file"
           fi
+
+      - name: Upload to OSS
+        run: |
+          npm install ali-oss
+          node scripts/upload-to-oss.js ${{ github.event.inputs.artwork_id }}
+        env:
+          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+          OSS_BUCKET: ${{ secrets.OSS_BUCKET }}
+          OSS_REGION: ${{ secrets.OSS_REGION }}
           
       - name: Commit changes
         run: |

@@ -9,5 +9,11 @@ export default defineConfig({
     remotePatterns: [],
     // 确保 Astro 能识别内容目录中的图片
     contentDir: 'src/content'
-  }
+  },
+  output: 'static',
+  vite: {
+    build: {
+      assetsDir: 'assets',
+    },
+  },
 }); 

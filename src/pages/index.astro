@@ -5,6 +5,7 @@ import { Image } from 'astro:assets';
 import type { PixivArtwork } from '../types/pixiv';
 import tsconfig from '../../tsconfig.json';
 import '../styles/artwork.css';
+import { getArtworkPath, getOSSPath } from '../lib/oss';
 
 // 获取所有作品并按创建日期排序
 const pixivCollection = await getCollection('pixiv');
@@ -118,12 +119,14 @@ const siteTitle = tsconfig.site?.title || '色览';
                 {/* 显示第一张图片 */}
                 <div id="main-image-container">
                   <Image 
-                    src={import(`../content/images/pixiv/${artworkData.id}_1.jpg`)}
+                    src={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_1.jpg`))}
                     alt={artworkData.title}
                     id="artwork-image"
                     loading="eager"
                     decoding="sync"
                     data-index="1"
+                    width={800}
+                    height={600}
                   />
                 </div>
                 {/* 预加载其他图片 */}
@@ -132,7 +135,7 @@ const siteTitle = tsconfig.site?.title || '色览';
                     const imageIndex = index + 2;
                     return (
                       <Image 
-                        src={import(`../content/images/pixiv/${artworkData.id}_${imageIndex}.jpg`)}
+                        src={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_${imageIndex}.jpg`))}
                         alt={`${artworkData.title} - ${imageIndex}`}
                         width={800}
                         height={600}

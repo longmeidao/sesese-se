@@ -19,7 +19,7 @@ body {
   background-color: black;
   color: white;
   overflow-x: hidden;
-  background: url(/bg.jpg) center / cover no-repeat fixed;
+  background: url(https://lmd-oss.oss-cn-shenzhen.aliyuncs.com/sesese-se/assets/bg.jpg) center / cover no-repeat fixed;
   position: relative;
 }
 
