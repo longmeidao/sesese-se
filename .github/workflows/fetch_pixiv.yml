@@ -83,7 +83,7 @@ jobs:
       - name: Upload to OSS
         run: |
           npm install ali-oss
-          node scripts/upload-to-oss.js ${{ github.event.inputs.artwork_id }}
+          node scripts/batch-upload-to-oss.js ${{ github.event.inputs.artwork_id }}
         env:
           OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
           OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
