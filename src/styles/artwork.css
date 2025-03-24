@@ -234,6 +234,10 @@ button:hover {
   font-size: 11px;  
 }
 
+.artwork-tags a {
+  margin-right: 4px;
+}
+
 .artwork-nav-left {
   position: fixed;
   top: 0px;
