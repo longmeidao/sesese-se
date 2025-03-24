@@ -138,8 +138,8 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
                       width={800}
                       height={600}
                       id={`artwork-image-${imageIndex}`}
-                      loading="eager"
-                      decoding="sync"
+                      loading="lazy"
+                      decoding="async"
                       data-index={imageIndex}
                     />
                   );

@@ -140,8 +140,8 @@ const siteTitle = tsconfig.site?.title || '色览';
                         width={800}
                         height={600}
                         id={`artwork-image-${imageIndex}`}
-                        loading="eager"
-                        decoding="sync"
+                        loading="lazy"
+                        decoding="async"
                         data-index={imageIndex}
                       />
                     );
