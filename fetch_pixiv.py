@@ -37,22 +37,22 @@ def download_file(url, output_dir, filename):
 def create_metadata(artwork):
     """创建作品元数据"""
     return {
-        "id": artwork.id,
-        "title": artwork.title,
-        "caption": artwork.caption,
-        "create_date": artwork.create_date,
-        "tags": [tag.name for tag in artwork.tags],
-        "page_count": artwork.page_count,
-        "author": {
-            "id": artwork.user.id,
-            "name": artwork.user.name,
-            "account": artwork.user.account,
-            "profile_image_url": artwork.user.profile_image_urls.medium
+        'id': artwork.id,
+        'title': artwork.title,
+        'caption': artwork.caption,
+        'create_date': artwork.create_date,
+        'tags': [tag.name for tag in artwork.tags],
+        'page_count': artwork.page_count,
+        'total_view': artwork.total_view,
+        'total_bookmarks': artwork.total_bookmarks,
+        'is_muted': artwork.is_muted,
+        'author': {
+            'id': artwork.user.id,
+            'name': artwork.user.name,
+            'account': artwork.user.account,
+            'profile_image_url': artwork.user.profile_image_urls.get('medium')
         },
-        "total_bookmarks": artwork.total_bookmarks,
-        "total_view": artwork.total_view,
-        "images": [],
-        "is_muted": False
+        'images': []
     }
 
 def fetch_artwork(api, artwork_id, exclude_images=None):
@@ -70,7 +70,7 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
         content_dir = os.path.join('src', 'content')
         os.makedirs(content_dir, exist_ok=True)
         
-        # 创建图片保存目录 - Astro Image 组件需要的路径
+        # 创建图片保存目录 - 临时目录，用于下载和处理图片
         images_dir = os.path.join(content_dir, 'images', 'pixiv')
         os.makedirs(images_dir, exist_ok=True)
         
@@ -133,10 +133,25 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
             
         print(f"✅ 成功获取并保存作品 {artwork_id}")
         print(f"图片已保存到: {images_dir}")
-        print(f"元数据已保存到: {json_path}")
+        
+        # 删除图片目录中的所有文件
+        for file in os.listdir(images_dir):
+            file_path = os.path.join(images_dir, file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(f"删除文件失败 {file_path}: {e}")
+        
+        # 删除空的图片目录
+        try:
+            os.rmdir(images_dir)
+        except Exception as e:
+            print(f"删除目录失败 {images_dir}: {e}")
+            
         return True
     except Exception as e:
-        print(f"获取作品时发生错误: {e}")
+        print(f"处理作品 {artwork_id} 时出错: {e}")
         return False
 
 if __name__ == "__main__":

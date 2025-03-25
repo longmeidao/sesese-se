@@ -41,6 +41,18 @@ async function uploadFile(filePath, ossPath) {
   }
 }
 
+// 删除文件
+function deleteFile(filePath) {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log(`Successfully deleted ${filePath}`);
+    }
+  } catch (error) {
+    console.error(`Failed to delete ${filePath}:`, error);
+  }
+}
+
 // 上传静态资源
 async function uploadAssets() {
   const publicDir = path.join(__dirname, '..', 'public');
@@ -67,7 +79,7 @@ async function uploadAssets() {
           const webpOssPath = `${ossAssetsPath}/${asset.replace(/\.(jpg|png)$/, '.webp')}`;
           await uploadFile(webpPath, webpOssPath);
           // 删除临时 WebP 文件
-          fs.unlinkSync(webpPath);
+          deleteFile(webpPath);
         }
       }
     } else {
@@ -125,9 +137,20 @@ async function uploadArtworks() {
         const webpOssPath = `${ossArtworkPath}/${file.replace('.jpg', '.webp')}`;
         await uploadFile(webpPath, webpOssPath);
         // 删除临时 WebP 文件
-        fs.unlinkSync(webpPath);
+        deleteFile(webpPath);
       }
+      
+      // 删除原始文件
+      deleteFile(filePath);
     }
+  }
+  
+  // 删除空的图片目录
+  try {
+    fs.rmdirSync(sourceDir);
+    console.log(`Successfully deleted empty directory: ${sourceDir}`);
+  } catch (error) {
+    console.error(`Failed to delete directory ${sourceDir}:`, error);
   }
 }
 
