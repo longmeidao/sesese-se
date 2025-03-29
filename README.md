@@ -1,6 +1,6 @@
-# sesese-se
+# 色览
 
-一个优雅的 Pixiv 图片展示网站，使用 Astro 构建。
+[https://sesese.se](https://sesese.se)，一个优雅的 Pixiv 图片展示网站，使用 Astro 构建。
 
 ## 特点
 
