@@ -35,7 +35,7 @@ export async function getStaticPaths() {
   // 为每个作品生成一个路径，使用索引+1作为order
   // 最新作品获得最大的 order 数字
   return artworks.map((artwork, index) => {
-    const order = artworks.length - index;  // 计算 order
+    const order = artworks.length - index;  // 计算 order，最新作品获得最大的 order
     return {
       params: { order: order.toString() },
       props: { artwork, sortedArtworks: artworks, currentIndex: index, order },
