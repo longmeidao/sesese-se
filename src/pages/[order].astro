@@ -6,11 +6,22 @@ import type { PixivArtwork } from '../types/pixiv';
 import '../styles/artwork.css';
 import { getArtworkPath, getOSSPath } from '../lib/oss';
 import tsconfig from '../../tsconfig.json';
-import fs from 'node:fs';
+import { execSync } from 'child_process';
 import path from 'node:path';
 
 // 导出 getStaticPaths 函数
 export async function getStaticPaths() {
+  // 获取文件的 git commit 时间
+  function getGitCommitTime(filePath: string): number {
+    try {
+      const output = execSync(`git log -1 --format=%ct ${filePath}`).toString().trim();
+      return parseInt(output) * 1000; // 转换为毫秒
+    } catch (error) {
+      console.error(`Error getting git commit time for ${filePath}:`, error);
+      return 0;
+    }
+  }
+
   const pixivCollection = await getCollection('pixiv');
   const artworks: PixivArtwork[] = [];
 
@@ -19,18 +30,22 @@ export async function getStaticPaths() {
     const artworkId = parseInt(artworkDir.id);
     const artworkData = artworkDir.data as unknown as PixivArtwork;
     if (artworkData && artworkData.id) {
-      const filePath = path.join(process.cwd(), 'src/content/pixiv', `${artworkDir.id}.json`);
-      const stats = fs.statSync(filePath);
+      const filePath = path.join('src/content/pixiv', `${artworkDir.id}.json`);
+      const commitTime = getGitCommitTime(filePath);
       artworks.push({
         ...artworkData,
         id: artworkId,
-        fileCreatedTime: stats.birthtime.getTime()
+        commitTime
       });
     }
   }
 
-  // 按文件创建时间倒序排序
-  artworks.sort((a, b) => b.fileCreatedTime - a.fileCreatedTime);
+  // 按 git commit 时间倒序排序
+  artworks.sort((a, b) => {
+    const timeA = a.commitTime || 0;
+    const timeB = b.commitTime || 0;
+    return timeB - timeA;
+  });
 
   // 为每个作品生成一个路径，使用索引+1作为order
   // 最新作品获得最大的 order 数字
