@@ -41,7 +41,6 @@ jobs:
           echo "Current directory structure:"
           ls -la
           echo "Creating directories if they don't exist..."
-          mkdir -p src/content/images/pixiv
           mkdir -p src/content/pixiv
           
       - name: Run fetch script
@@ -52,7 +51,6 @@ jobs:
       - name: Check downloaded files
         run: |
           echo "Checking downloaded files:"
-          ls -la src/content/images/pixiv
           ls -la src/content/pixiv
           echo "Checking artwork metadata:"
           if [ -f "src/content/pixiv/${{ github.event.inputs.artwork_id }}.json" ]; then
@@ -94,7 +92,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add src/content/images/pixiv src/content/pixiv
+          git add src/content/pixiv
           git status
           git commit -m "chore: update pixiv artwork ${{ github.event.inputs.artwork_id }}" || exit 0
           
