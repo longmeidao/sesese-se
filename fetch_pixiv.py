@@ -134,21 +134,7 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
         print(f"✅ 成功获取并保存作品 {artwork_id}")
         print(f"图片已保存到: {images_dir}")
         
-        # 删除图片目录中的所有文件
-        for file in os.listdir(images_dir):
-            file_path = os.path.join(images_dir, file)
-            try:
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-            except Exception as e:
-                print(f"删除文件失败 {file_path}: {e}")
-        
-        # 删除空的图片目录
-        try:
-            os.rmdir(images_dir)
-        except Exception as e:
-            print(f"删除目录失败 {images_dir}: {e}")
-            
+        # 注意：这里不删除图片，让 batch-upload-to-oss.js 在上传完成后删除
         return True
     except Exception as e:
         print(f"处理作品 {artwork_id} 时出错: {e}")

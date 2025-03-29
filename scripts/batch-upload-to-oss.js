@@ -15,6 +15,19 @@ const client = new OSS({
   secure: true
 });
 
+// 检查文件是否存在于 OSS
+async function existsInOSS(ossPath) {
+  try {
+    await client.head(ossPath);
+    return true;
+  } catch (error) {
+    if (error.code === 'NoSuchKey') {
+      return false;
+    }
+    throw error;
+  }
+}
+
 // 转换图片为 WebP 格式
 async function convertToWebP(inputPath, outputPath) {
   try {
@@ -32,9 +45,16 @@ async function convertToWebP(inputPath, outputPath) {
 // 上传单个文件到 OSS
 async function uploadFile(filePath, ossPath) {
   try {
+    // 检查文件是否已存在于 OSS
+    if (await existsInOSS(ossPath)) {
+      console.log(`File already exists in OSS: ${ossPath}`);
+      return true;
+    }
+
     console.log(`Uploading ${filePath} to OSS...`);
     await client.put(ossPath, filePath);
     console.log(`Successfully uploaded ${filePath}`);
+    return true;
   } catch (error) {
     console.error(`Failed to upload ${filePath}:`, error);
     throw error;
@@ -67,16 +87,30 @@ async function uploadAssets() {
   // 上传静态资源
   const assets = ['bg.jpg', 'dao.png', 'se.png'];
   for (const asset of assets) {
-    const filePath = path.join(publicDir, asset);
+    const filePath = path.join(assetsDir, asset);
     if (fs.existsSync(filePath)) {
+      // 检查原始文件是否已存在于 OSS
+      const ossPath = `${ossAssetsPath}/${asset}`;
+      if (await existsInOSS(ossPath)) {
+        console.log(`Asset already exists in OSS: ${ossPath}`);
+        continue;
+      }
+
       // 上传原始文件
-      await uploadFile(filePath, `${ossAssetsPath}/${asset}`);
+      await uploadFile(filePath, ossPath);
       
       // 如果是 jpg 或 png 文件，转换为 WebP 并上传
       if (asset.endsWith('.jpg') || asset.endsWith('.png')) {
         const webpPath = filePath.replace(/\.(jpg|png)$/, '.webp');
+        const webpOssPath = `${ossAssetsPath}/${asset.replace(/\.(jpg|png)$/, '.webp')}`;
+        
+        // 检查 WebP 文件是否已存在于 OSS
+        if (await existsInOSS(webpOssPath)) {
+          console.log(`WebP asset already exists in OSS: ${webpOssPath}`);
+          continue;
+        }
+
         if (await convertToWebP(filePath, webpPath)) {
-          const webpOssPath = `${ossAssetsPath}/${asset.replace(/\.(jpg|png)$/, '.webp')}`;
           await uploadFile(webpPath, webpOssPath);
           // 删除临时 WebP 文件
           deleteFile(webpPath);
@@ -126,6 +160,15 @@ async function uploadArtworks() {
     for (const file of artworkFiles) {
       const filePath = path.join(sourceDir, file);
       const ossFilePath = `${ossArtworkPath}/${file}`;
+      
+      // 检查原始文件是否已存在于 OSS
+      if (await existsInOSS(ossFilePath)) {
+        console.log(`Artwork file already exists in OSS: ${ossFilePath}`);
+        // 删除本地文件，因为已经上传到 OSS
+        deleteFile(filePath);
+        continue;
+      }
+      
       console.log(`Uploading ${filePath} to ${ossFilePath}`);
       
       // 上传原始文件
@@ -133,14 +176,23 @@ async function uploadArtworks() {
       
       // 转换为 WebP 并上传
       const webpPath = filePath.replace('.jpg', '.webp');
+      const webpOssPath = `${ossArtworkPath}/${file.replace('.jpg', '.webp')}`;
+      
+      // 检查 WebP 文件是否已存在于 OSS
+      if (await existsInOSS(webpOssPath)) {
+        console.log(`WebP artwork file already exists in OSS: ${webpOssPath}`);
+        // 删除本地文件，因为已经上传到 OSS
+        deleteFile(filePath);
+        continue;
+      }
+      
       if (await convertToWebP(filePath, webpPath)) {
-        const webpOssPath = `${ossArtworkPath}/${file.replace('.jpg', '.webp')}`;
         await uploadFile(webpPath, webpOssPath);
         // 删除临时 WebP 文件
         deleteFile(webpPath);
       }
       
-      // 删除原始文件
+      // 删除原始文件，因为已经上传到 OSS
       deleteFile(filePath);
     }
   }
