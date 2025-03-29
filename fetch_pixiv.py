@@ -10,6 +10,7 @@ import time
 import random
 import requests
 import sys
+import subprocess
 from pixivpy3 import AppPixivAPI
 
 def download_file(url, output_dir, filename):
@@ -134,7 +135,6 @@ def fetch_artwork(api, artwork_id, exclude_images=None):
         print(f"✅ 成功获取并保存作品 {artwork_id}")
         print(f"图片已保存到: {images_dir}")
         
-        # 注意：这里不删除图片，让 batch-upload-to-oss.js 在上传完成后删除
         return True
     except Exception as e:
         print(f"处理作品 {artwork_id} 时出错: {e}")

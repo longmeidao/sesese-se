@@ -15,4 +15,5 @@ export interface PixivArtwork {
     profile_image_url: string;
   };
   images: string[];
+  fileCreatedTime?: number;
 } 

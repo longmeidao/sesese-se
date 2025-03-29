@@ -27,16 +27,15 @@ artworks.sort((a, b) =>
   new Date(b.create_date).getTime() - new Date(a.create_date).getTime()
 );
 
-// 获取最新的作品（排序后的最后一个）
-const latestArtwork = artworks[artworks.length - 1];
+// 获取最新的作品（排序后的第一个）
+const latestArtwork = artworks[0];
 
 // 计算导航状态
-const currentIndex = latestArtwork ? artworks.findIndex(a => a.id === latestArtwork.id) : -1;
-const currentOrder = currentIndex + 1;  // 当前作品的order
+const currentOrder = artworks.length;  // 最新作品的 order 是总数
 const hasNext = currentOrder > 1;  // 如果有更早的作品
-const hasPrev = currentOrder < artworks.length;  // 如果有更新的作品
+const hasPrev = false;  // 首页是最新的作品，没有更新的作品
 const nextOrder = hasNext ? currentOrder - 1 : null;  // 下一个是更早的作品
-const prevOrder = hasPrev ? currentOrder + 1 : null;  // 上一个是最新的作品
+const prevOrder = null;  // 首页没有上一个作品
 
 // 确保所有必要的属性都存在
 const artworkData = latestArtwork ? {
