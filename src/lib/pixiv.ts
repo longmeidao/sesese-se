@@ -87,7 +87,6 @@ export async function fetchPixivArtworks(): Promise<PixivArtwork[]> {
         : [work.meta_single_page.original_image_url]
     }));
   } catch (error) {
-    console.error('Error fetching Pixiv artworks:', error);
     throw error;
   }
 } 

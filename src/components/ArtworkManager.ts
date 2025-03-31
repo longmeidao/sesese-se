@@ -32,25 +32,17 @@ export class ArtworkManager {
     const firstImage = document.querySelector('#artwork-image') as HTMLImageElement;
     if (firstImage) {
       this.initialFirstImage = firstImage.src;
-      console.log('Initial first image path saved:', this.initialFirstImage);
     }
-
-    console.log('ArtworkManager initialized:', {
-      artworkData: this.artworkData,
-      totalImages: this.totalImages
-    });
 
     // 只有在需要多页切换功能时才检查相关元素
     if (this.totalImages > 1) {
       if (!this.prevImageBtn || !this.nextImageBtn || !this.imageCounter) {
-        console.warn('Multi-page navigation elements not found');
         return;
       }
     }
 
     // 基本元素检查
     if (!this.artwork || !this.artworkFrame) {
-      console.warn('Basic artwork elements not found');
       return;
     }
 
@@ -76,16 +68,10 @@ export class ArtworkManager {
     if (this.artworkFrame && this.artworkData.id) {
       try {
         const imageIndex = this.currentImageIndex + 1;
-        console.log('Updating image:', {
-          currentIndex: this.currentImageIndex,
-          imageIndex,
-          totalImages: this.totalImages
-        });
 
         // 获取主图片容器
         const mainContainer = document.querySelector('#main-image-container');
         if (!mainContainer) {
-          console.error('Main image container not found');
           throw new Error('无法找到主图片容器');
         }
 
@@ -95,20 +81,14 @@ export class ArtworkManager {
         
         if (imageIndex === 1 && this.initialFirstImage) {
           // 如果是切换回第一张图片，使用保存的初始路径
-          console.log('Using initial first image:', this.initialFirstImage);
           targetSrc = this.initialFirstImage;
         } else {
           // 从预加载区域查找目标图片
           const preloadedImages = document.querySelectorAll('#preloaded-images img') as NodeListOf<HTMLImageElement>;
-          console.log('Preloaded images count:', preloadedImages.length);
 
           // 遍历所有预加载的图片
           for (const img of preloadedImages) {
             const imgIndex = img.dataset.index;
-            console.log('Checking preloaded image:', {
-              index: imgIndex,
-              src: img.src
-            });
             
             if (imgIndex === imageIndex.toString()) {
               targetSrc = img.src;
@@ -118,10 +98,6 @@ export class ArtworkManager {
         }
 
         if (!targetSrc) {
-          console.error('Target image not found:', {
-            imageIndex,
-            artworkId: this.artworkData.id
-          });
           throw new Error(`无法找到图片 ${imageIndex}`);
         }
 
@@ -149,13 +125,6 @@ export class ArtworkManager {
         img.dataset.index = imageIndex.toString();
         
         picture.appendChild(img);
-        
-        console.log('New image element created:', {
-          id: img.id,
-          src: img.src,
-          webpSrc: webpSource.srcset,
-          index: img.dataset.index
-        });
 
         // 清空并更新主图片容器
         mainContainer.innerHTML = '';
@@ -164,7 +133,6 @@ export class ArtworkManager {
         // 更新按钮状态
         this.updateImageButtons();
       } catch (error) {
-        console.error('Error updating image:', error);
         // 发生错误时重置为第一张图片
         this.currentImageIndex = 0;
         this.updateImageButtons();
