@@ -1,9 +1,8 @@
 import { defineConfig } from 'astro/config';
-import tailwind from '@astrojs/tailwind';
 import { passthroughImageService } from 'astro/config';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  integrations: [tailwind()],
   // 你的 Astro 配置
   image: {
     domains: [],
@@ -21,6 +20,7 @@ export default defineConfig({
   },
   output: 'static',
   vite: {
+    plugins: [tailwindcss()],
     build: {
       assetsDir: 'assets',
     },

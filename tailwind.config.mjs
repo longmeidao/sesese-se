@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}'],
   darkMode: 'class',
   theme: {
     extend: {
@@ -25,8 +24,9 @@ export default {
     },
   },
   plugins: [
-    require('@tailwindcss/typography'),
-    require('@tailwindcss/forms'),
-    require('@tailwindcss/aspect-ratio'),
+    // TEMPORARILY REMOVE PLUGINS - Check compatibility with v4
+    // require('@tailwindcss/typography'),
+    // require('@tailwindcss/forms'),
+    // require('@tailwindcss/aspect-ratio'),
   ],
 } 
