@@ -44,6 +44,7 @@ export const GET: APIRoute = async () => {
 
   // 生成 RSS 内容
   const rssContent = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="/pretty-feed-v3.xsl" type="text/xsl"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>色览</title>
