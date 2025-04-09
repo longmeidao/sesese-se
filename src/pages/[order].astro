@@ -134,6 +134,9 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
         <div id="artwork-box">
           <div id="artwork-frame">
             <div class="artwork-image-wrapper">
+              <div id="image-loader" class="image-loader">
+                <svg class="spinner" viewBox="0 0 50 50"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
+              </div>
               <div id="main-image-container">
                 <picture>
                   <source
@@ -229,22 +232,17 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
     let artworkManagerInstance: ArtworkManagerType | null = null;
 
     function initArtworkManager() {
-      // 销毁旧实例（如果存在且未被 before-swap 清理）
       if (artworkManagerInstance) {
-        console.log('Instance found during init, destroying first (likely redundant due to before-swap)');
         artworkManagerInstance.destroy();
         artworkManagerInstance = null;
       }
-      // 动态导入并创建新实例
       import('../components/ArtworkManager').then(({ ArtworkManager }) => {
-        console.log('Initializing ArtworkManager via astro:page-load on [order]');
         artworkManagerInstance = new ArtworkManager(getOSSPath, getArtworkPath);
       }).catch(err => {
         console.error('Failed to load or initialize ArtworkManager:', err);
       });
     }
 
-    // 处理画框初始显示逻辑
     function handleFrameVisibility() {
       const frame = document.getElementById('artwork-frame');
       const image = frame?.querySelector('#artwork-image') as HTMLImageElement | null;
@@ -267,16 +265,13 @@ const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}`
       }
     }
 
-    // 在页面加载和转换后处理画框可见性
     document.addEventListener('astro:page-load', () => {
       initArtworkManager();
       handleFrameVisibility();
     });
 
-    // 在 Astro 页面转换前销毁旧实例
     document.addEventListener('astro:before-swap', () => {
       if (artworkManagerInstance) {
-        console.log('Destroying ArtworkManager before swap on [order]');
         artworkManagerInstance.destroy();
         artworkManagerInstance = null;
       }

@@ -68,6 +68,9 @@ const siteTitle = tsconfig.site?.title || '色览';
         <div id="artwork-box">
           <div id="artwork-frame">
             <div class="artwork-image-wrapper">
+              <div id="image-loader" class="image-loader">
+                <svg class="spinner" viewBox="0 0 50 50"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
+              </div>
               <div id="main-image-container">
                 <picture>
                   <source
@@ -163,22 +166,17 @@ const siteTitle = tsconfig.site?.title || '色览';
     let artworkManagerInstance: ArtworkManagerType | null = null;
 
     function initArtworkManager() {
-      // 销毁旧实例（如果存在且未被 before-swap 清理）
       if (artworkManagerInstance) {
-        console.log('Instance found during init, destroying first (likely redundant due to before-swap)');
         artworkManagerInstance.destroy();
         artworkManagerInstance = null;
       }
-      // 动态导入并创建新实例
       import('../components/ArtworkManager').then(({ ArtworkManager }) => {
-        console.log('Initializing ArtworkManager via astro:page-load on index');
         artworkManagerInstance = new ArtworkManager(getOSSPath, getArtworkPath);
       }).catch(err => {
         console.error('Failed to load or initialize ArtworkManager:', err);
       });
     }
 
-    // 处理画框初始显示逻辑
     function handleFrameVisibility() {
       const frame = document.getElementById('artwork-frame');
       const image = frame?.querySelector('#artwork-image') as HTMLImageElement | null;
@@ -186,38 +184,31 @@ const siteTitle = tsconfig.site?.title || '色览';
       if (frame && image) {
         const showFrame = () => {
           frame.classList.add('artwork-frame-loaded');
-          // 清理监听器，防止内存泄漏
           image.removeEventListener('load', showFrame);
           image.removeEventListener('error', showFrame);
         };
         
-        // 检查图片是否已经加载完成 (例如从缓存加载)
         if (image.complete && image.naturalHeight > 0) {
           showFrame();
         } else {
           image.addEventListener('load', showFrame);
-          image.addEventListener('error', showFrame); // 加载失败也显示画框
+          image.addEventListener('error', showFrame);
         }
       } else {
-          // 如果找不到 frame 或 image (例如在"暂无作品"状态)，确保 frame (如果存在) 可见
           frame?.classList.add('artwork-frame-loaded');
       }
     }
 
-    // 在页面加载和转换后处理画框可见性
     document.addEventListener('astro:page-load', () => {
       initArtworkManager();
-      handleFrameVisibility(); // 在初始化管理器后调用
+      handleFrameVisibility();
     });
 
-    // 在 Astro 页面转换前销毁旧实例
     document.addEventListener('astro:before-swap', () => {
       if (artworkManagerInstance) {
-        console.log('Destroying ArtworkManager before swap on index');
         artworkManagerInstance.destroy();
         artworkManagerInstance = null;
       }
-      // 注意：这里不需要移除 frame 的 load/error 监听器，因为页面即将被替换
     });
 
   </script>

@@ -20,4 +20,65 @@
   .tag {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 hover:bg-primary-200;
   }
+}
+
+/* 页面过渡加载指示器 */
+#page-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7); /* 可以比图片加载器更暗一些 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-in-out, visibility 0s 0.3s;
+  z-index: 9999; /* 最高层级 */
+  pointer-events: none; /* 允许下方内容交互（虽然它覆盖了）*/
+}
+
+#page-loader.visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.1s ease-in-out; /* 显示时快一点 */
+  pointer-events: auto; /* 显示时阻止下方交互 */
+}
+
+/* 复用 spinner 样式 (如果 artwork.css 中已定义，这里可以省略) */
+#page-loader .spinner {
+  animation: rotate 2s linear infinite;
+  width: 60px; /* 可以比图片加载器稍大 */
+  height: 60px;
+}
+
+#page-loader .spinner .path {
+  stroke: #FFF;
+  stroke-linecap: round;
+  animation: dash 1.5s ease-in-out infinite;
+  stroke-width: 4; /* 可以稍细 */
+}
+
+/* 如果 spinner 动画已在 artwork.css 定义，以下可以省略 */
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 150;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -124;
+  }
 } 

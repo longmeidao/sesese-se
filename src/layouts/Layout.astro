@@ -24,5 +24,70 @@ const { title } = Astro.props;
   </head>
   <body>
     <slot />
+    
+    <div id="page-loader" class="page-loader">
+      <svg class="spinner" viewBox="0 0 50 50"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
+    </div>
+    
+    <script>
+      const pageLoader = document.getElementById('page-loader');
+      
+      if (pageLoader) {
+        document.addEventListener('astro:before-preparation', () => {
+          pageLoader.classList.add('visible');
+        });
+        
+        document.addEventListener('astro:page-load', () => {
+          setTimeout(() => {
+              pageLoader.classList.remove('visible');
+          }, 100);
+        });
+      }
+    </script>
   </body>
 </html>
+
+<style is:global>
+  :root {
+    --accent: 136, 58, 234;
+    --accent-light: 224, 204, 250;
+    --accent-dark: 49, 10, 101;
+    --accent-gradient: linear-gradient(
+      45deg,
+      rgb(var(--accent)),
+      rgb(var(--accent-light)) 30%,
+      white 60%
+    );
+  }
+  html {
+    font-family: system-ui, sans-serif;
+    background: #13151a;
+    background-size: 224px;
+    color: white;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  code {
+    font-family: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono,
+      Bitstream Vera Sans Mono, Courier New, monospace;
+  }
+  
+  @keyframes gradient-move {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+</style>

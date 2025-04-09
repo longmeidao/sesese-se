@@ -21,6 +21,9 @@ export class ArtworkManager {
   private initialFirstImage: string | null = null;  // 存储初始第一张图片的路径
   private getOSSPath: GetOSSPathFunc = () => '';  // 提供默认空函数作为初始值
   private getArtworkPath: GetArtworkPathFunc = () => '';
+  private imageWrapper: HTMLDivElement | null = null; // 新增：图片容器引用
+  private mainImageElement: HTMLImageElement | null = null; // 新增：主图片引用
+  private handleImageLoadOrError: (() => void) | null = null; // 新增：加载完成/失败的处理器
 
   // 用于存储事件监听器引用，以便移除
   private handleKeyDown: ((e: KeyboardEvent) => void) | null = null;
@@ -30,7 +33,6 @@ export class ArtworkManager {
   private handleClickNext: (() => void) | null = null;
 
   constructor(getOSSPathFunc: GetOSSPathFunc, getArtworkPathFunc: GetArtworkPathFunc) {
-    // 确保在客户端环境中执行
     if (typeof window === 'undefined') return;
 
     // 保存传入的函数
@@ -39,14 +41,16 @@ export class ArtworkManager {
 
     this.artwork = document.querySelector('#artwork-container');
     this.artworkFrame = document.querySelector('#artwork-frame');
+    this.imageWrapper = this.artworkFrame?.querySelector('.artwork-image-wrapper') ?? null; 
+    this.mainImageElement = this.imageWrapper?.querySelector('#artwork-image') ?? null;
+    
     this.prevImageBtn = document.querySelector('#prev-image');
     this.nextImageBtn = document.querySelector('#next-image');
     this.imageCounter = document.querySelector('#image-counter');
     this.artworkData = this.artwork ? JSON.parse(this.artwork.dataset.artwork || '{}') : { id: 0, page_count: 1 };
     this.totalImages = this.artworkData.page_count || 1;
 
-    // 保存初始第一张图片的路径
-    const firstImage = document.querySelector('#artwork-image') as HTMLImageElement;
+    const firstImage = this.mainImageElement; // 使用已获取的引用
     if (firstImage) {
       this.initialFirstImage = firstImage.src;
     }
@@ -54,13 +58,15 @@ export class ArtworkManager {
     // 只有在需要多页切换功能时才检查相关元素
     if (this.totalImages > 1) {
       if (!this.prevImageBtn || !this.nextImageBtn || !this.imageCounter) {
-        return;
+        // console.error("ArtworkManager: Missing multi-image navigation elements."); // 移除或保留
+        // return; // 可能允许只显示第一张图？根据需求决定
       }
     }
 
     // 基本元素检查
-    if (!this.artwork || !this.artworkFrame) {
-      return;
+    if (!this.artwork || !this.artworkFrame || !this.imageWrapper || !this.mainImageElement) { 
+        // console.error("ArtworkManager: Missing critical elements (artwork, frame, wrapper, or main image)."); // 移除或保留
+        return;
     }
 
     this.init();
@@ -71,6 +77,7 @@ export class ArtworkManager {
     this.updateImageButtons();
     this.setupEdgeDetection();
     this.setupMouseTracking();
+    this.setupImageLoadingListener();
   }
 
   private updateImageButtons() {
@@ -82,68 +89,69 @@ export class ArtworkManager {
   }
 
   private async updateImage() {
-    if (this.artworkFrame && this.artworkData.id) {
+    if (this.artworkFrame && this.imageWrapper && this.mainImageElement && this.artworkData.id) {
       try {
         const imageIndex = this.currentImageIndex + 1;
-
-        // 获取主图片容器内的 picture 和 img 元素
+        this.imageWrapper.classList.add('loading');
+        
         const mainContainer = this.artworkFrame.querySelector('#main-image-container');
         const pictureElement = mainContainer?.querySelector('picture');
-        const imgElement = pictureElement?.querySelector('img#artwork-image') as HTMLImageElement | null;
+        const imgElement = this.mainImageElement;
         const webpSourceElement = pictureElement?.querySelector('source[type="image/webp"]') as HTMLSourceElement | null;
 
         if (!mainContainer || !pictureElement || !imgElement || !webpSourceElement) {
-          // 如果关键元素不存在，可能需要回退到创建元素的逻辑（或者报错）
-          // 为了简化，这里仅打印错误并退出，实际应用可能需要更健壮的处理
-          console.error('无法找到主图片显示所需的元素 (picture, img, source)');
+          // console.error('无法找到主图片显示所需的元素 (picture, img, source)'); // 移除或保留
+          this.imageWrapper.classList.remove('loading');
           return; 
         }
 
-        // 获取目标图片的路径
         let targetSrc: string | null = null;
         let targetWebpSrc: string | null = null;
 
         if (imageIndex === 1 && this.initialFirstImage) {
           targetSrc = this.initialFirstImage;
-          targetWebpSrc = targetSrc.replace(/\.jpg$/, '.webp'); // 假设 WebP 路径对应
+          targetWebpSrc = targetSrc.replace(/\.jpg$/, '.webp');
         } else {
-          // 使用传入的 this.getOSSPath 和 this.getArtworkPath
-          const preloadedPicture = document.querySelector(`#preloaded-images picture[key="${this.artworkData.id}-${imageIndex}"]`);
-          const preloadedImg = preloadedPicture?.querySelector('img') as HTMLImageElement | null;
-          const preloadedWebpSource = preloadedPicture?.querySelector('source[type="image/webp"]') as HTMLSourceElement | null;
+          // --- 修改：使用 data-index 查找预加载图片 --- 
+          const preloadedImg = document.querySelector(`#preloaded-images img[data-index="${imageIndex}"]`) as HTMLImageElement | null;
           
-          if (preloadedImg && preloadedWebpSource) {
+          if (preloadedImg) {
             targetSrc = preloadedImg.src;
-            targetWebpSrc = preloadedWebpSource.srcset; 
+            // 尝试找到对应的 picture 和 source 来获取 webp srcset
+            const preloadedPicture = preloadedImg.closest('picture');
+            const preloadedWebpSource = preloadedPicture?.querySelector('source[type="image/webp"]') as HTMLSourceElement | null;
+            if (preloadedWebpSource) {
+              targetWebpSrc = preloadedWebpSource.srcset;
+            } else {
+              // 如果找不到 source，回退到基于 src 的假设
+              targetWebpSrc = targetSrc.replace(/\.jpg$/, '.webp');
+              // console.warn(`图片 ${imageIndex} 的 WebP source 未找到，根据 jpg src 推断。`); // 移除
+            }
           } else {
-              // 如果预加载图片没找到，尝试动态生成路径 (作为备选)
+              // 如果预加载图片没找到，动态生成路径 (作为备选)
               const filename = `${this.artworkData.id}_${imageIndex}.jpg`;
               targetSrc = this.getOSSPath(this.getArtworkPath(this.artworkData.id.toString(), filename, 'jpg'));
               targetWebpSrc = this.getOSSPath(this.getArtworkPath(this.artworkData.id.toString(), filename, 'webp'));
-              console.warn(`图片 ${imageIndex} 未在预加载区域找到，动态生成路径。`);
+              // console.warn(`图片 ${imageIndex} 未在预加载区域找到，动态生成路径。`); // 移除
           }
         }
 
         if (!targetSrc || !targetWebpSrc) {
+          this.imageWrapper.classList.remove('loading');
           throw new Error(`无法确定图片 ${imageIndex} 的源路径`);
         }
 
-        // --- 优化：更新现有元素的属性 --- 
         imgElement.src = targetSrc; 
         imgElement.alt = this.artworkData.title || `图片 ${imageIndex}`; 
         imgElement.dataset.index = imageIndex.toString();
-        
         webpSourceElement.srcset = targetWebpSrc;
-
-        // 图片加载完成后更新按钮状态可能更平滑，但这里保持原逻辑
-        this.updateImageButtons();
 
       } catch (error) {
         console.error('更新图片时出错:', error);
-        // 发生错误时可以考虑重置或显示错误信息
-        // this.currentImageIndex = 0;
-        // this.updateImageButtons();
+        this.imageWrapper?.classList.remove('loading');
       }
+    } else {
+        // console.error("updateImage called but critical elements are missing."); // 移除或保留
     }
   }
 
@@ -225,9 +233,22 @@ export class ArtworkManager {
     document.addEventListener('mousemove', this.handleMouseMoveTrack);
   }
 
+  // 新增方法：设置图片加载监听器
+  private setupImageLoadingListener() {
+      if (!this.mainImageElement || !this.imageWrapper) return;
+      
+      this.handleImageLoadOrError = () => {
+          this.imageWrapper?.classList.remove('loading');
+          this.updateImageButtons();
+      };
+      
+      this.mainImageElement.addEventListener('load', this.handleImageLoadOrError);
+      this.mainImageElement.addEventListener('error', this.handleImageLoadOrError);
+  }
+
   // 新增 destroy 方法
   public destroy() {
-    console.log('Destroying ArtworkManager instance and listeners');
+    // console.log('Destroying ArtworkManager instance and listeners'); // 移除
     // 移除按钮监听器
     if (this.handleClickPrev) {
       this.prevImageBtn?.removeEventListener('click', this.handleClickPrev);
@@ -245,16 +266,22 @@ export class ArtworkManager {
     if (this.handleMouseMoveTrack) {
       document.removeEventListener('mousemove', this.handleMouseMoveTrack);
     }
+    // 移除图片加载监听器
+    if (this.handleImageLoadOrError && this.mainImageElement) {
+        this.mainImageElement.removeEventListener('load', this.handleImageLoadOrError);
+        this.mainImageElement.removeEventListener('error', this.handleImageLoadOrError);
+    }
     // 清理引用
     this.handleKeyDown = null;
     this.handleMouseMoveEdge = null;
     this.handleMouseMoveTrack = null;
     this.handleClickPrev = null;
     this.handleClickNext = null;
-    // 可选：重置其他状态或引用，虽然实例将被丢弃
+    this.handleImageLoadOrError = null; // 清理新处理器引用
     this.artwork = null;
     this.artworkFrame = null;
-    // ... etc
+    this.imageWrapper = null; // 清理新引用
+    this.mainImageElement = null; // 清理新引用
   }
 }
 
