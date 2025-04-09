@@ -50,7 +50,11 @@ const siteTitle = `${tsconfig.site?.title || '色览'} - 导览册`;
     .about-content {
         padding: 0.6rem;
     }
-}
+  }
+
+  #artwork-frame {
+    opacity: 1 !important;
+  }
 </style>
 
 <Layout title={siteTitle}>
@@ -90,13 +94,16 @@ const siteTitle = `${tsconfig.site?.title || '色览'} - 导览册`;
     </div>
   </div>
 
-  <div id="artwork-container">
+  {/* 将 about-content 移回到原来的位置 */}
+  <div id="artwork-container"> 
     {/* 图片展示区域 */}
     <div id="artwork-viewer">
       <div id="artwork-box">
+        {/* 在 about 页面隐藏画框 */}
         <div id="artwork-frame">
           <div class="artwork-image-wrapper">
             <div id="main-image-container">
+              {/* 此处原为 about-content */}
               <div class="about-content">
                 <h1>导览册</h1>
                 <p>「色览」是一个展示笔者心水之画作的网站。</p>
@@ -110,14 +117,5 @@ const siteTitle = `${tsconfig.site?.title || '色览'} - 导览册`;
       </div>
     </div>
   </div>
-
-  <script>
-    // 等待 DOM 加载完成
-    document.addEventListener('DOMContentLoaded', () => {
-      import('../components/ArtworkManager').then(({ ArtworkManager }) => {
-        new ArtworkManager();
-      });
-    });
-  </script>
 
 </Layout> 
