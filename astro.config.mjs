@@ -1,10 +1,12 @@
 import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
+import { passthroughImageService } from 'astro/config';
 
 export default defineConfig({
   integrations: [tailwind()],
   // 你的 Astro 配置
   image: {
+    // service: passthroughImageService(),
     domains: [],
     remotePatterns: [
       {
@@ -14,7 +16,11 @@ export default defineConfig({
       }
     ],
     // 确保 Astro 能识别内容目录中的图片
-    contentDir: 'src/content'
+    contentDir: 'src/content',
+    service: {
+      entrypoint: passthroughImageService(),
+      config: {}
+    }
   },
   output: 'static',
   vite: {
