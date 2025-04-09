@@ -92,7 +92,6 @@ export class ArtworkManager {
     if (this.artworkFrame && this.imageWrapper && this.mainImageElement && this.artworkData.id) {
       try {
         const imageIndex = this.currentImageIndex + 1;
-        this.imageWrapper.classList.add('loading');
         
         const mainContainer = this.artworkFrame.querySelector('#main-image-container');
         const pictureElement = mainContainer?.querySelector('picture');
@@ -101,8 +100,7 @@ export class ArtworkManager {
 
         if (!mainContainer || !pictureElement || !imgElement || !webpSourceElement) {
           // console.error('无法找到主图片显示所需的元素 (picture, img, source)'); // 移除或保留
-          this.imageWrapper.classList.remove('loading');
-          return; 
+          return;
         }
 
         let targetSrc: string | null = null;
@@ -137,7 +135,6 @@ export class ArtworkManager {
         }
 
         if (!targetSrc || !targetWebpSrc) {
-          this.imageWrapper.classList.remove('loading');
           throw new Error(`无法确定图片 ${imageIndex} 的源路径`);
         }
 
@@ -148,7 +145,6 @@ export class ArtworkManager {
 
       } catch (error) {
         console.error('更新图片时出错:', error);
-        this.imageWrapper?.classList.remove('loading');
       }
     } else {
         // console.error("updateImage called but critical elements are missing."); // 移除或保留
@@ -238,7 +234,6 @@ export class ArtworkManager {
       if (!this.mainImageElement || !this.imageWrapper) return;
       
       this.handleImageLoadOrError = () => {
-          this.imageWrapper?.classList.remove('loading');
           this.updateImageButtons();
       };
       
