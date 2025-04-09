@@ -29,23 +29,25 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7); /* 可以比图片加载器更暗一些 */
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
   opacity: 0;
   visibility: hidden;
+  /* Apply a slightly longer transition for fade-out to match potential page animation */
   transition: opacity 0.3s ease-in-out, visibility 0s 0.3s;
-  z-index: 9999; /* 最高层级 */
-  pointer-events: none; /* 允许下方内容交互（虽然它覆盖了）*/
+  z-index: 9999;
+  pointer-events: none;
 }
 
-/* 使用 data 属性选择器 */
-#page-loader[data-loading="true"] {
+/* 当页面处于导航状态时显示加载器 */
+html.astro-navigating #page-loader {
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.1s ease-in-out; /* 显示时快一点 */
-  pointer-events: auto; /* 显示时阻止下方交互 */
+  /* Fade in quickly */
+  transition: opacity 0.1s ease-in-out;
+  pointer-events: auto;
 }
 
 /* 复用 spinner 样式 (如果 artwork.css 中已定义，这里可以省略) */
