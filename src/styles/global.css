@@ -40,7 +40,8 @@
   pointer-events: none; /* 允许下方内容交互（虽然它覆盖了）*/
 }
 
-#page-loader.visible {
+/* 使用 data 属性选择器 */
+#page-loader[data-loading="true"] {
   opacity: 1;
   visibility: visible;
   transition: opacity 0.1s ease-in-out; /* 显示时快一点 */

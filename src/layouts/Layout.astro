@@ -25,7 +25,7 @@ const { title } = Astro.props;
   <body>
     <slot />
     
-    <div id="page-loader" class="page-loader">
+    <div id="page-loader" class="page-loader" data-loading="false">
       <svg class="spinner" viewBox="0 0 50 50"><circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
     </div>
     
@@ -34,13 +34,11 @@ const { title } = Astro.props;
       
       if (pageLoader) {
         document.addEventListener('astro:before-preparation', () => {
-          pageLoader.classList.add('visible');
+          pageLoader.dataset.loading = 'true';
         });
         
         document.addEventListener('astro:page-load', () => {
-          setTimeout(() => {
-              pageLoader.classList.remove('visible');
-          }, 100);
+          pageLoader.dataset.loading = 'false';
         });
       }
     </script>
