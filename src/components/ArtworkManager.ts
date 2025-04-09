@@ -5,6 +5,10 @@ interface ArtworkData {
   images?: string[];
 }
 
+// 定义函数类型
+type GetOSSPathFunc = (path: string) => string;
+type GetArtworkPathFunc = (id: string, filename: string, format: 'jpg' | 'webp') => string;
+
 export class ArtworkManager {
   private currentImageIndex: number = 0;
   private artwork: HTMLDivElement | null = null;
@@ -15,10 +19,23 @@ export class ArtworkManager {
   private artworkData: ArtworkData = { id: 0, page_count: 1 };
   private totalImages: number = 1;
   private initialFirstImage: string | null = null;  // 存储初始第一张图片的路径
+  private getOSSPath: GetOSSPathFunc = () => '';  // 提供默认空函数作为初始值
+  private getArtworkPath: GetArtworkPathFunc = () => '';
 
-  constructor() {
+  // 用于存储事件监听器引用，以便移除
+  private handleKeyDown: ((e: KeyboardEvent) => void) | null = null;
+  private handleMouseMoveEdge: ((e: MouseEvent) => void) | null = null;
+  private handleMouseMoveTrack: ((e: MouseEvent) => void) | null = null;
+  private handleClickPrev: (() => void) | null = null;
+  private handleClickNext: (() => void) | null = null;
+
+  constructor(getOSSPathFunc: GetOSSPathFunc, getArtworkPathFunc: GetArtworkPathFunc) {
     // 确保在客户端环境中执行
     if (typeof window === 'undefined') return;
+
+    // 保存传入的函数
+    this.getOSSPath = getOSSPathFunc;
+    this.getArtworkPath = getArtworkPathFunc;
 
     this.artwork = document.querySelector('#artwork-container');
     this.artworkFrame = document.querySelector('#artwork-frame');
@@ -69,121 +86,106 @@ export class ArtworkManager {
       try {
         const imageIndex = this.currentImageIndex + 1;
 
-        // 获取主图片容器
-        const mainContainer = document.querySelector('#main-image-container');
-        if (!mainContainer) {
-          throw new Error('无法找到主图片容器');
+        // 获取主图片容器内的 picture 和 img 元素
+        const mainContainer = this.artworkFrame.querySelector('#main-image-container');
+        const pictureElement = mainContainer?.querySelector('picture');
+        const imgElement = pictureElement?.querySelector('img#artwork-image') as HTMLImageElement | null;
+        const webpSourceElement = pictureElement?.querySelector('source[type="image/webp"]') as HTMLSourceElement | null;
+
+        if (!mainContainer || !pictureElement || !imgElement || !webpSourceElement) {
+          // 如果关键元素不存在，可能需要回退到创建元素的逻辑（或者报错）
+          // 为了简化，这里仅打印错误并退出，实际应用可能需要更健壮的处理
+          console.error('无法找到主图片显示所需的元素 (picture, img, source)');
+          return; 
         }
 
-        // 获取目标图片
-        let targetImage: HTMLImageElement | null = null;
+        // 获取目标图片的路径
         let targetSrc: string | null = null;
-        
-        if (imageIndex === 1 && this.initialFirstImage) {
-          // 如果是切换回第一张图片，使用保存的初始路径
-          targetSrc = this.initialFirstImage;
-        } else {
-          // 从预加载区域查找目标图片
-          const preloadedImages = document.querySelectorAll('#preloaded-images img') as NodeListOf<HTMLImageElement>;
+        let targetWebpSrc: string | null = null;
 
-          // 遍历所有预加载的图片
-          for (const img of preloadedImages) {
-            const imgIndex = img.dataset.index;
-            
-            if (imgIndex === imageIndex.toString()) {
-              targetSrc = img.src;
-              break;
-            }
+        if (imageIndex === 1 && this.initialFirstImage) {
+          targetSrc = this.initialFirstImage;
+          targetWebpSrc = targetSrc.replace(/\.jpg$/, '.webp'); // 假设 WebP 路径对应
+        } else {
+          // 使用传入的 this.getOSSPath 和 this.getArtworkPath
+          const preloadedPicture = document.querySelector(`#preloaded-images picture[key="${this.artworkData.id}-${imageIndex}"]`);
+          const preloadedImg = preloadedPicture?.querySelector('img') as HTMLImageElement | null;
+          const preloadedWebpSource = preloadedPicture?.querySelector('source[type="image/webp"]') as HTMLSourceElement | null;
+          
+          if (preloadedImg && preloadedWebpSource) {
+            targetSrc = preloadedImg.src;
+            targetWebpSrc = preloadedWebpSource.srcset; 
+          } else {
+              // 如果预加载图片没找到，尝试动态生成路径 (作为备选)
+              const filename = `${this.artworkData.id}_${imageIndex}.jpg`;
+              targetSrc = this.getOSSPath(this.getArtworkPath(this.artworkData.id.toString(), filename, 'jpg'));
+              targetWebpSrc = this.getOSSPath(this.getArtworkPath(this.artworkData.id.toString(), filename, 'webp'));
+              console.warn(`图片 ${imageIndex} 未在预加载区域找到，动态生成路径。`);
           }
         }
 
-        if (!targetSrc) {
-          throw new Error(`无法找到图片 ${imageIndex}`);
+        if (!targetSrc || !targetWebpSrc) {
+          throw new Error(`无法确定图片 ${imageIndex} 的源路径`);
         }
 
-        // 创建新的图片元素
-        const picture = document.createElement('picture');
+        // --- 优化：更新现有元素的属性 --- 
+        imgElement.src = targetSrc; 
+        imgElement.alt = this.artworkData.title || `图片 ${imageIndex}`; 
+        imgElement.dataset.index = imageIndex.toString();
         
-        // 添加 WebP 源
-        const webpSource = document.createElement('source');
-        webpSource.type = 'image/webp';
-        webpSource.srcset = targetSrc.replace('.jpg', '.webp');
-        picture.appendChild(webpSource);
-        
-        // 添加原始图片
-        const img = document.createElement('img');
-        img.id = 'artwork-image';
-        img.alt = this.artworkData.title || `图片 ${imageIndex}`;
-        img.width = 800;
-        img.height = 600;
-        img.loading = 'eager';
-        img.decoding = 'sync';
-        img.style.width = 'auto';
-        img.style.height = 'auto';
-        img.style.objectFit = 'contain';
-        img.src = targetSrc;
-        img.dataset.index = imageIndex.toString();
-        
-        picture.appendChild(img);
+        webpSourceElement.srcset = targetWebpSrc;
 
-        // 清空并更新主图片容器
-        mainContainer.innerHTML = '';
-        mainContainer.appendChild(picture);
-
-        // 更新按钮状态
+        // 图片加载完成后更新按钮状态可能更平滑，但这里保持原逻辑
         this.updateImageButtons();
+
       } catch (error) {
-        // 发生错误时重置为第一张图片
-        this.currentImageIndex = 0;
-        this.updateImageButtons();
+        console.error('更新图片时出错:', error);
+        // 发生错误时可以考虑重置或显示错误信息
+        // this.currentImageIndex = 0;
+        // this.updateImageButtons();
       }
     }
   }
 
   private bindEvents() {
-    // 绑定按钮事件
-    this.prevImageBtn?.addEventListener('click', () => {
+    // 保存监听器引用
+    this.handleClickPrev = () => {
       if (this.currentImageIndex > 0) {
         this.currentImageIndex--;
         this.updateImage();
-        this.updateImageButtons();
+        // this.updateImageButtons(); // updateImage 内部会调用
       }
-    });
-
-    this.nextImageBtn?.addEventListener('click', () => {
+    };
+    this.handleClickNext = () => {
       if (this.currentImageIndex < this.totalImages - 1) {
         this.currentImageIndex++;
         this.updateImage();
-        this.updateImageButtons();
+        // this.updateImageButtons(); // updateImage 内部会调用
       }
-    });
+    };
 
-    // 添加键盘快捷键支持
-    document.addEventListener('keydown', (e) => {
-      // 获取导航链接
+    this.prevImageBtn?.addEventListener('click', this.handleClickPrev);
+    this.nextImageBtn?.addEventListener('click', this.handleClickNext);
+
+    this.handleKeyDown = (e: KeyboardEvent) => {
       const prevArtworkLink = document.querySelector('.artwork-nav-left a') as HTMLAnchorElement;
       const nextArtworkLink = document.querySelector('.artwork-nav-right a') as HTMLAnchorElement;
 
       if (e.key === 'ArrowLeft') {
-        // 如果是多页作品且不在第一页，切换到上一页
         if (this.totalImages > 1 && this.currentImageIndex > 0) {
           this.prevImageBtn?.click();
-        }
-        // 如果是单页作品或在第一页，且存在上一个作品，跳转到上一个作品
-        else if (prevArtworkLink) {
-          prevArtworkLink.click();
+        } else if (prevArtworkLink) {
+          prevArtworkLink.click(); // 触发 Astro View Transitions 导航
         }
       } else if (e.key === 'ArrowRight') {
-        // 如果是多页作品且不在最后一页，切换到下一页
         if (this.totalImages > 1 && this.currentImageIndex < this.totalImages - 1) {
           this.nextImageBtn?.click();
-        }
-        // 如果是单页作品或在最后一页，且存在下一个作品，跳转到下一个作品
-        else if (nextArtworkLink) {
-          nextArtworkLink.click();
+        } else if (nextArtworkLink) {
+          nextArtworkLink.click(); // 触发 Astro View Transitions 导航
         }
       }
-    });
+    };
+    document.addEventListener('keydown', this.handleKeyDown);
   }
 
   private setupEdgeDetection() {
@@ -192,42 +194,70 @@ export class ArtworkManager {
     const prevButton = navLeft?.querySelector('.artwork-nav-button') as HTMLElement;
     const nextButton = navRight?.querySelector('.artwork-nav-button') as HTMLElement;
     
-    document.addEventListener('mousemove', (e) => {
+    // 保存监听器引用
+    this.handleMouseMoveEdge = (e: MouseEvent) => {
       const x = e.clientX;
       const windowWidth = window.innerWidth;
-      
       if (x < 100) {
-        if (prevButton) {
-          navLeft?.classList.add('show');
-          prevButton.style.cursor = 'pointer';
-        }
+        if (prevButton) { navLeft?.classList.add('show'); prevButton.style.cursor = 'pointer'; }
       } else {
         navLeft?.classList.remove('show');
-        if (prevButton) {
-          prevButton.style.cursor = 'default';
-        }
+        if (prevButton) { prevButton.style.cursor = 'default'; }
       }
-      
       if (x > windowWidth - 100) {
-        if (nextButton) {
-          navRight?.classList.add('show');
-          nextButton.style.cursor = 'pointer';
-        }
+        if (nextButton) { navRight?.classList.add('show'); nextButton.style.cursor = 'pointer'; }
       } else {
         navRight?.classList.remove('show');
-        if (nextButton) {
-          nextButton.style.cursor = 'default';
-        }
+        if (nextButton) { nextButton.style.cursor = 'default'; }
       }
-    });
+    };
+    document.addEventListener('mousemove', this.handleMouseMoveEdge);
   }
 
   private setupMouseTracking() {
-    document.addEventListener('mousemove', (e) => {
+    // 保存监听器引用
+    this.handleMouseMoveTrack = (e: MouseEvent) => {
       const x = (e.clientX / window.innerWidth) * 100;
       const y = (e.clientY / window.innerHeight) * 100;
       document.documentElement.style.setProperty('--mouse-x', `${x}%`);
       document.documentElement.style.setProperty('--mouse-y', `${y}%`);
-    });
+    };
+    document.addEventListener('mousemove', this.handleMouseMoveTrack);
   }
-} 
+
+  // 新增 destroy 方法
+  public destroy() {
+    console.log('Destroying ArtworkManager instance and listeners');
+    // 移除按钮监听器
+    if (this.handleClickPrev) {
+      this.prevImageBtn?.removeEventListener('click', this.handleClickPrev);
+    }
+    if (this.handleClickNext) {
+      this.nextImageBtn?.removeEventListener('click', this.handleClickNext);
+    }
+    // 移除 document 监听器
+    if (this.handleKeyDown) {
+      document.removeEventListener('keydown', this.handleKeyDown);
+    }
+    if (this.handleMouseMoveEdge) {
+      document.removeEventListener('mousemove', this.handleMouseMoveEdge);
+    }
+    if (this.handleMouseMoveTrack) {
+      document.removeEventListener('mousemove', this.handleMouseMoveTrack);
+    }
+    // 清理引用
+    this.handleKeyDown = null;
+    this.handleMouseMoveEdge = null;
+    this.handleMouseMoveTrack = null;
+    this.handleClickPrev = null;
+    this.handleClickNext = null;
+    // 可选：重置其他状态或引用，虽然实例将被丢弃
+    this.artwork = null;
+    this.artworkFrame = null;
+    // ... etc
+  }
+}
+
+// 移除 declare function，因为函数现在作为参数传入
+// declare function getOSSPath(path: string): string;
+// declare function getArtworkPath(id: string, filename: string, format: 'jpg' | 'webp'): string; 

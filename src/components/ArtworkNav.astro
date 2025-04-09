@@ -1,0 +1,32 @@
+---
+interface Props {
+  hasPrev: boolean;
+  prevOrder: number | null;
+  hasNext: boolean;
+  nextOrder: number | null;
+}
+
+const { hasPrev, prevOrder, hasNext, nextOrder } = Astro.props;
+---
+
+{/* 作品切换按钮 (左) */}
+<div class="artwork-nav-left">
+  {hasPrev && prevOrder !== null && (
+    <a class="artwork-nav-button" href={`/${prevOrder}`} aria-label="上一个作品">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+    </a>
+  )}
+</div>
+
+{/* 作品切换按钮 (右) */}
+<div class="artwork-nav-right">
+  {hasNext && nextOrder !== null && (
+    <a class="artwork-nav-button" href={`/${nextOrder}`} aria-label="下一个作品">
+      <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+    </a>
+  )}
+</div> 
