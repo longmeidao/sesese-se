@@ -1,20 +1,72 @@
 {
   "schema_version": 2,
   "id": "pixiv-128255980",
+  "content_hash": "sha256:4bc340c500a5260f84643f1c27fbd4345825f5d94cca42236ec7c977233b672a",
   "display_image_index": 1,
-  "source": { "type": "pixiv", "id": "128255980", "url": "https://www.pixiv.net/artworks/128255980" },
+  "source": {
+    "type": "pixiv",
+    "id": "128255980",
+    "url": "https://www.pixiv.net/artworks/128255980"
+  },
   "title": "Castorice",
   "description": "",
   "published_at": "2025-03-16T01:13:11+09:00",
   "collected_at": "2025-03-17T18:48:32Z",
-  "tags": ["崩壊:スターレイル", "キャストリス", "崩壊:スターレイル5000users入り", "トレンカ", "足", "崩壊:スターレイル10000users入り"],
-  "author": { "id": "6662895", "name": "ATDAN-", "handle": "atdan86", "url": "https://www.pixiv.net/users/6662895" },
-  "media": [{
-    "index": 1,
-    "width": 1448,
-    "height": 2300,
-    "alt": "Castorice",
-    "variants": [{ "key": "media/pixiv/128255980/1/original.webp", "format": "webp", "width": 1448, "height": 2300 }]
-  }],
-  "metrics": { "views": 50625, "bookmarks": 10900 }
+  "tags": [
+    "崩壊:スターレイル",
+    "キャストリス",
+    "崩壊:スターレイル5000users入り",
+    "トレンカ",
+    "足",
+    "崩壊:スターレイル10000users入り"
+  ],
+  "author": {
+    "id": "6662895",
+    "name": "ATDAN-",
+    "handle": "atdan86",
+    "url": "https://www.pixiv.net/users/6662895"
+  },
+  "media": [
+    {
+      "index": 1,
+      "width": 1448,
+      "height": 2300,
+      "alt": "Castorice",
+      "content_hash": "sha256:b3ecbbab20fcee4e101cdb82e499751bc4514ea03b07004d4002e116ce975d34",
+      "variants": [
+        {
+          "key": "media/pixiv/128255980/1/403w.webp",
+          "format": "webp",
+          "width": 403,
+          "height": 640,
+          "bytes": 54162
+        },
+        {
+          "key": "media/pixiv/128255980/1/604w.webp",
+          "format": "webp",
+          "width": 604,
+          "height": 960,
+          "bytes": 114146
+        },
+        {
+          "key": "media/pixiv/128255980/1/1007w.webp",
+          "format": "webp",
+          "width": 1007,
+          "height": 1600,
+          "bytes": 295366
+        },
+        {
+          "key": "media/pixiv/128255980/1/original.webp",
+          "format": "webp",
+          "width": 1448,
+          "height": 2300,
+          "bytes": 568134
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "views": 104025,
+    "bookmarks": 18340
+  }
 }

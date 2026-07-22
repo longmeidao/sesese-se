@@ -1,20 +1,76 @@
 {
   "schema_version": 2,
   "id": "pixiv-128378150",
+  "content_hash": "sha256:c344c91b6fd4640fb32dca05b5aba323bc72cb768d8d12dd0462d3c1488b9008",
   "display_image_index": 1,
-  "source": { "type": "pixiv", "id": "128378150", "url": "https://www.pixiv.net/artworks/128378150" },
+  "source": {
+    "type": "pixiv",
+    "id": "128378150",
+    "url": "https://www.pixiv.net/artworks/128378150"
+  },
   "title": "レテリンさん",
   "description": "",
   "published_at": "2025-03-19T16:58:50+09:00",
   "collected_at": "2025-03-20T07:48:12Z",
-  "tags": ["女の子", "おっぱい", "へそ", "イラスト", "太もも", "金髪", "ランジェリー", "魅惑のふともも", "キャラクター", "腋"],
-  "author": { "id": "73117898", "name": "FymriE", "handle": "fymrie", "url": "https://www.pixiv.net/users/73117898" },
-  "media": [{
-    "index": 1,
-    "width": 1600,
-    "height": 2931,
-    "alt": "レテリンさん",
-    "variants": [{ "key": "media/pixiv/128378150/1/original.webp", "format": "webp", "width": 1600, "height": 2931 }]
-  }],
-  "metrics": { "views": 9303, "bookmarks": 4364 }
+  "tags": [
+    "女の子",
+    "おっぱい",
+    "へそ",
+    "イラスト",
+    "太もも",
+    "金髪",
+    "ランジェリー",
+    "魅惑のふともも",
+    "キャラクター",
+    "腋"
+  ],
+  "author": {
+    "id": "73117898",
+    "name": "FymriE",
+    "handle": "fymrie",
+    "url": "https://www.pixiv.net/users/73117898"
+  },
+  "media": [
+    {
+      "index": 1,
+      "width": 1310,
+      "height": 2400,
+      "alt": "レテリンさん",
+      "content_hash": "sha256:e93945598f9f64c78e9851483b22d31822bdbf0031d94110f125f0ccf8f0855d",
+      "variants": [
+        {
+          "key": "media/pixiv/128378150/1/349w.webp",
+          "format": "webp",
+          "width": 349,
+          "height": 640,
+          "bytes": 36326
+        },
+        {
+          "key": "media/pixiv/128378150/1/524w.webp",
+          "format": "webp",
+          "width": 524,
+          "height": 960,
+          "bytes": 70248
+        },
+        {
+          "key": "media/pixiv/128378150/1/873w.webp",
+          "format": "webp",
+          "width": 873,
+          "height": 1600,
+          "bytes": 154162
+        },
+        {
+          "key": "media/pixiv/128378150/1/original.webp",
+          "format": "webp",
+          "width": 1310,
+          "height": 2400,
+          "bytes": 276230
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "views": 111159,
+    "bookmarks": 33901
+  }
 }

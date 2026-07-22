@@ -1,16 +1,65 @@
 {
   "schema_version": 2,
   "id": "pixiv-128265340",
+  "content_hash": "sha256:09af4cee97ea9092ab26949218de9ce53c448da58f0242e01b756b4d9fd715cd",
   "display_image_index": 1,
-  "source": { "type": "pixiv", "id": "128265340", "url": "https://www.pixiv.net/artworks/128265340" },
+  "source": {
+    "type": "pixiv",
+    "id": "128265340",
+    "url": "https://www.pixiv.net/artworks/128265340"
+  },
   "title": "ホワイトデーに遅れたお詫びに（キサキ・ヒナ）＜全5枚＞",
-  "description": "激務ゆえにホワイトデーのことを忘れていた先生。キサキとヒナへのお返しに、3人でカラオケへ行くことにした。",
+  "description": "激務ゆえにホワイトデーのことを忘れていた先生<br />キサキとヒナへのお返しのプレゼントを用意しようと思った先生だったが<br />プレゼントが1つしか用意できなかったのでお詫びに3人でカラオケに行くことにした<br /><br />カラオケではキサキの提案で<br />＜カラオケの得点が高い方が相手が歌っている間だけ好きなだけ先生に甘えることができる＞<br />というゲームをすることにした<br /><br />結果、互いに先生に甘えることができた二人だった！",
   "published_at": "2025-03-16T10:00:10+09:00",
   "collected_at": "2025-03-18T06:17:25Z",
-  "tags": ["ブルーアーカイブ", "竜華キサキ", "空崎ヒナ", "バニーガール"],
-  "author": { "id": "24222104", "name": "HOURAKU", "handle": "sayuten111", "url": "https://www.pixiv.net/users/24222104" },
-  "media": [
-    { "index": 1, "width": 832, "height": 1177, "alt": "ホワイトデーに遅れたお詫びに · 1/5", "variants": [{ "key": "media/pixiv/128265340/1/original.webp", "format": "webp", "width": 832, "height": 1177 }] }
+  "tags": [
+    "ブルーアーカイブ",
+    "竜華キサキ",
+    "空崎ヒナ",
+    "バニーガール",
+    "ロリ",
+    "ブルーアーカイブ10000users入り"
   ],
-  "metrics": { "views": 44915, "bookmarks": 9144 }
+  "author": {
+    "id": "24222104",
+    "name": "HOURAKU",
+    "handle": "sayuten111",
+    "url": "https://www.pixiv.net/users/24222104"
+  },
+  "media": [
+    {
+      "index": 1,
+      "width": 832,
+      "height": 1177,
+      "alt": "ホワイトデーに遅れたお詫びに（キサキ・ヒナ）＜全5枚＞",
+      "content_hash": "sha256:95bc1cb220167600387f3c5cedc3470b0b7a92d99a8acf80d2688ae695a487b8",
+      "variants": [
+        {
+          "key": "media/pixiv/128265340/1/452w.webp",
+          "format": "webp",
+          "width": 452,
+          "height": 640,
+          "bytes": 35912
+        },
+        {
+          "key": "media/pixiv/128265340/1/679w.webp",
+          "format": "webp",
+          "width": 679,
+          "height": 960,
+          "bytes": 60738
+        },
+        {
+          "key": "media/pixiv/128265340/1/original.webp",
+          "format": "webp",
+          "width": 832,
+          "height": 1177,
+          "bytes": 79960
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "views": 139649,
+    "bookmarks": 21719
+  }
 }

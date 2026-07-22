@@ -1,16 +1,74 @@
 {
   "schema_version": 2,
   "id": "pixiv-128409880",
+  "content_hash": "sha256:bdc49bb0aa3b68627481b8373846d5e89e8fa47eeb87d8badd7aa593a27d7b86",
   "display_image_index": 1,
-  "source": { "type": "pixiv", "id": "128409880", "url": "https://www.pixiv.net/artworks/128409880" },
+  "source": {
+    "type": "pixiv",
+    "id": "128409880",
+    "url": "https://www.pixiv.net/artworks/128409880"
+  },
   "title": "Switch",
   "description": "",
   "published_at": "2025-03-20T15:11:11+09:00",
   "collected_at": "2025-03-21T19:05:04Z",
-  "tags": ["ブルーアーカイブ", "BlueArchive", "一之瀬アスナ(制服)", "角楯カリン(制服)", "衣装交換", "褐色化", "色白", "性格入れ替え", "一之瀬アスナ"],
-  "author": { "id": "13408193", "name": "D.I.S.H", "handle": "dishwasher1910", "url": "https://www.pixiv.net/users/13408193" },
-  "media": [
-    { "index": 1, "width": 4058, "height": 5554, "alt": "Switch · 1/2", "variants": [{ "key": "media/pixiv/128409880/1/original.webp", "format": "webp", "width": 4058, "height": 5554 }] }
+  "tags": [
+    "ブルーアーカイブ",
+    "BlueArchive",
+    "一之瀬アスナ(制服)",
+    "角楯カリン(制服)",
+    "衣装交換",
+    "性格入れ替え",
+    "一之瀬アスナ",
+    "角楯カリン"
   ],
-  "metrics": { "views": 28541, "bookmarks": 6033 }
+  "author": {
+    "id": "13408193",
+    "name": "D.I.S.H",
+    "handle": "dishwasher1910",
+    "url": "https://www.pixiv.net/users/13408193"
+  },
+  "media": [
+    {
+      "index": 1,
+      "width": 1754,
+      "height": 2400,
+      "alt": "Switch",
+      "content_hash": "sha256:72b41ef31c9b2122a76135b7bb692fdd606fa179342a0d3d2542f159e168ff21",
+      "variants": [
+        {
+          "key": "media/pixiv/128409880/1/468w.webp",
+          "format": "webp",
+          "width": 468,
+          "height": 640,
+          "bytes": 27714
+        },
+        {
+          "key": "media/pixiv/128409880/1/701w.webp",
+          "format": "webp",
+          "width": 701,
+          "height": 960,
+          "bytes": 49846
+        },
+        {
+          "key": "media/pixiv/128409880/1/1169w.webp",
+          "format": "webp",
+          "width": 1169,
+          "height": 1600,
+          "bytes": 102970
+        },
+        {
+          "key": "media/pixiv/128409880/1/original.webp",
+          "format": "webp",
+          "width": 1754,
+          "height": 2400,
+          "bytes": 178894
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "views": 83450,
+    "bookmarks": 12954
+  }
 }
