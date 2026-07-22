@@ -1,4 +1,5 @@
 import { defineCollection, z } from 'astro:content';
+import { glob } from 'astro/loaders';
 
 const variantSchema = z.object({
   key: z.string(),
@@ -68,7 +69,7 @@ const legacyPixivSchema = z.object({
 });
 
 const artworks = defineCollection({
-  type: 'data',
+  loader: glob({ pattern: '**/*.json', base: './src/content/artworks' }),
   schema: z.union([artworkSchema, legacyPixivSchema]),
 });
 
