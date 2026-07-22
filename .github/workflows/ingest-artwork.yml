@@ -1,0 +1,119 @@
+name: Ingest artwork
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Source adapter
+        required: true
+        default: pixiv
+        type: choice
+        options: [pixiv, x, danbooru, other]
+      artwork_id:
+        description: Pixiv ID, complete X status URL, or stable slug
+        required: true
+        type: string
+      display_image:
+        description: One-based image to display (defaults to the first)
+        required: false
+        default: 1
+        type: number
+      source_url:
+        description: Original page URL (required for direct adapters)
+        required: false
+        type: string
+      image_urls:
+        description: Direct image URLs, one per line (direct adapter or X fallback)
+        required: false
+        type: string
+      title:
+        description: Title (required for direct adapters)
+        required: false
+        type: string
+      description:
+        description: Description
+        required: false
+        type: string
+      tags:
+        description: Tags, comma separated
+        required: false
+        type: string
+      author_name:
+        description: Author name (required for direct adapters)
+        required: false
+        type: string
+      author_url:
+        description: Author URL
+        required: false
+        type: string
+      force:
+        description: Overwrite existing objects
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ingest-artwork
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install --requirement requirements.txt
+      - name: Fetch, optimize, and upload
+        env:
+          SOURCE: ${{ inputs.source }}
+          ARTWORK_ID: ${{ inputs.artwork_id }}
+          DISPLAY_IMAGE: ${{ inputs.display_image }}
+          SOURCE_URL: ${{ inputs.source_url }}
+          IMAGE_URLS: ${{ inputs.image_urls }}
+          TITLE: ${{ inputs.title }}
+          DESCRIPTION: ${{ inputs.description }}
+          TAGS: ${{ inputs.tags }}
+          AUTHOR_NAME: ${{ inputs.author_name }}
+          AUTHOR_URL: ${{ inputs.author_url }}
+          FORCE: ${{ inputs.force }}
+          PIXIV_REFRESH_TOKEN: ${{ secrets.PIXIV_REFRESH_TOKEN }}
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+        run: |
+          args=(
+            --source "$SOURCE"
+            --id "$ARTWORK_ID"
+            --display-image "$DISPLAY_IMAGE"
+            --source-url "$SOURCE_URL"
+            --image-urls "$IMAGE_URLS"
+            --title "$TITLE"
+            --description "$DESCRIPTION"
+            --tags "$TAGS"
+            --author-name "$AUTHOR_NAME"
+            --author-url "$AUTHOR_URL"
+          )
+          if [[ "$FORCE" == "true" ]]; then args+=(--force); fi
+          python scripts/ingest.py "${args[@]}"
+      - name: Commit metadata
+        run: |
+          if git diff --quiet -- src/content/artworks; then
+            echo "Metadata is already current"
+            exit 0
+          fi
+          git config user.name "sesese-se bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/content/artworks
+          git commit -m "content: ingest ${{ inputs.source }} ${{ inputs.artwork_id }}"
+          git push

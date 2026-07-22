@@ -1,0 +1,20 @@
+{
+  "schema_version": 2,
+  "id": "pixiv-128700071",
+  "display_image_index": 1,
+  "source": { "type": "pixiv", "id": "128700071", "url": "https://www.pixiv.net/artworks/128700071" },
+  "title": "お姉さんとプール",
+  "description": "猫りん堂さんのグッズ用イラストです。",
+  "published_at": "2025-03-28T20:46:46+09:00",
+  "collected_at": "2025-03-29T13:13:21Z",
+  "tags": ["オリジナル", "水着", "おへそ", "大股開き", "おっぱい", "ピンクネイル", "ペディキュア", "すじ", "裸足", "チョキ"],
+  "author": { "id": "24392", "name": "おりょう", "handle": "oryoillust", "url": "https://www.pixiv.net/users/24392" },
+  "media": [{
+    "index": 1,
+    "width": 1600,
+    "height": 1200,
+    "alt": "お姉さんとプール",
+    "variants": [{ "key": "media/pixiv/128700071/1/original.webp", "format": "webp", "width": 1600, "height": 1200 }]
+  }],
+  "metrics": { "views": 21779, "bookmarks": 4269 }
+}

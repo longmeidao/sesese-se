@@ -1,0 +1,66 @@
+---
+import type { OrderedArtwork } from '../types/artwork';
+import { fallbackVariant, mediaUrl, srcset } from '../lib/media';
+import { plainText } from '../lib/artworks';
+
+interface Props {
+  artwork: OrderedArtwork;
+  total: number;
+}
+
+const { artwork, total } = Astro.props;
+const displayedMedia = artwork.media.find((item) => item.index === artwork.display_image_index) || artwork.media[0];
+const fallback = fallbackVariant(displayedMedia);
+const previousOrder = artwork.order < total ? artwork.order + 1 : null;
+const nextOrder = artwork.order > 1 ? artwork.order - 1 : null;
+const previousHref = previousOrder === total ? '/' : `/${previousOrder}/`;
+const nextHref = nextOrder ? `/${nextOrder}/` : null;
+---
+
+<main id="main-content" class="viewer">
+  <div class="viewer__stage" transition:name="artwork-stage" transition:animate="fade">
+    <div class="viewer__ambient" aria-hidden="true"></div>
+    <figure class="artwork-frame">
+      <div class="artwork-frame__mat">
+        <picture id="artwork-picture">
+          {srcset(displayedMedia, 'avif') && <source type="image/avif" srcset={srcset(displayedMedia, 'avif')} sizes="(max-width: 720px) 92vw, 72vw" />}
+          {srcset(displayedMedia, 'webp') && <source type="image/webp" srcset={srcset(displayedMedia, 'webp')} sizes="(max-width: 720px) 92vw, 72vw" />}
+          <img
+            id="artwork-image"
+            src={mediaUrl(fallback.key)}
+            width={displayedMedia.width}
+            height={displayedMedia.height}
+            alt={displayedMedia.alt || artwork.title}
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+          />
+        </picture>
+      </div>
+    </figure>
+
+  </div>
+
+  <aside class="artwork-card" transition:name="artwork-details" transition:animate="fade">
+    <div class="artwork-card__eyebrow">
+      <span>{artwork.source.type}</span>
+      <span>{String(artwork.order).padStart(3, '0')} / {String(total).padStart(3, '0')}</span>
+    </div>
+    <h1><a href={artwork.source.url} target="_blank" rel="noopener noreferrer">{artwork.title}</a></h1>
+    <p class="artwork-card__author">
+      <span>作者</span>
+      <a href={artwork.author.url} target="_blank" rel="noopener noreferrer">{artwork.author.name}</a>
+    </p>
+    {plainText(artwork.description) && <p class="artwork-card__description">{plainText(artwork.description)}</p>}
+    <div class="artwork-card__tags" aria-label="标签">
+      {artwork.tags.slice(0, 6).map((tag) => <span>#{tag}</span>)}
+    </div>
+    <a class="source-link" href={artwork.source.url} target="_blank" rel="noopener noreferrer">查看原作 ↗</a>
+  </aside>
+
+  <nav class="collection-nav" aria-label="藏品导航">
+    {previousOrder ? <a class="collection-nav__previous" href={previousHref} rel="prev" data-astro-prefetch><span>较新</span>←</a> : <span></span>}
+    <a class="collection-nav__archive" href="/archive/" data-astro-prefetch>全部藏品</a>
+    {nextHref ? <a class="collection-nav__next" href={nextHref} rel="next" data-astro-prefetch><span>较早</span>→</a> : <span></span>}
+  </nav>
+</main>

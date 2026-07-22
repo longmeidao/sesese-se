@@ -1,53 +1,23 @@
-import { getCollection } from 'astro:content';
 import type { APIRoute } from 'astro';
+import { getArtworks, xmlEscape } from '../lib/artworks';
 
 export const GET: APIRoute = async () => {
-  const pixivCollection = await getCollection('pixiv');
-  const artworks: any[] = [];
+  const artworks = await getArtworks();
+  const staticPages = [
+    ['https://sesese.se/', artworks.at(-1)?.collected_at],
+    ['https://sesese.se/archive/', artworks.at(-1)?.collected_at],
+    ['https://sesese.se/about/', undefined],
+  ] as const;
+  const urls = [
+    ...staticPages.map(([url, date]) => ({ url, date })),
+    ...artworks.map((artwork) => ({ url: `https://sesese.se/${artwork.order}/`, date: artwork.collected_at })),
+  ];
 
-  // 遍历所有作品目录并按创建日期排序
-  for (const artworkDir of pixivCollection) {
-    const artworkId = parseInt(artworkDir.id);
-    const artworkData = artworkDir.data as unknown as any;
-    if (artworkData && artworkData.id) {
-      artworks.push({
-        ...artworkData,
-        id: artworkId
-      });
-    }
-  }
-
-  // 按创建日期倒序排序
-  artworks.sort((a, b) => 
-    new Date(b.create_date).getTime() - new Date(a.create_date).getTime()
-  );
-
-  // 生成 sitemap
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  return new Response(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(({ url, date }) => `
   <url>
-    <loc>https://sesese.se/</loc>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://sesese.se/about</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  ${artworks.map((artwork, index) => `
-  <url>
-    <loc>https://sesese.se/${index + 1}</loc>
-    <lastmod>${new Date(artwork.create_date).toISOString()}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
+    <loc>${xmlEscape(url)}</loc>${date ? `
+    <lastmod>${new Date(date).toISOString()}</lastmod>` : ''}
   </url>`).join('')}
-</urlset>`;
-
-  return new Response(sitemap, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/xml'
-    }
-  });
-}; 
+</urlset>`, { headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
+};

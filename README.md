@@ -1,73 +1,66 @@
 # 色览
 
-[https://sesese.se](https://sesese.se)，一个优雅的 Pixiv 图片展示网站，使用 Astro 构建。
+[sesese.se](https://sesese.se) 是一个展示笔者心水之画作的网站。项目从 Pixiv 开始，并通过统一的作品模型支持 X、Danbooru 或任意网页图片。
 
-## 特点
+## 现在的架构
 
-- 🎨 优雅的图片展示界面
-- 🔄 自动获取 Pixiv 图片
-- 📱 响应式设计
-- 🚀 基于 Astro 构建
-- 🤖 使用 GitHub Actions 自动部署
+- Astro 生成纯静态页面；Astro ClientRouter 负责无刷新切换和 View Transitions。
+- 图片存放在对象存储中，默认方案是 Cloudflare R2；仓库只提交 JSON 元数据。
+- GitHub Actions 抓取、压缩、上传图片并提交元数据。
+- Cloudflare Workers Static Assets 分发静态构建产物；仅 `/api/ingest` 调用动态 Worker。
+- OSS 不在默认链路中，只保留为付费灾备或中国大陆加速的最后选项。
 
-## 样式参考
+完整取舍见 [架构说明](docs/architecture.md)，日常操作见 [运维手册](docs/operations.md)。
 
-本站样式参考于 [Artab](https://github.com/get-artab/artab)，一个展示世界名画的新标签页扩展。
+## 本地开发
 
-## 开发工具
-
-大部分的代码编写工作由 [Cursor](https://cursor.sh) 完成，这是一个强大的 AI 驱动的代码编辑器。
-
-## Todo List
-
-- [x] 设立 @sesese.se 邮局
-- [ ] 添加除了 Pixiv 之外站点（如 X、Danbooru 等）的图片获取方式
-- [ ] 解决图片加载后导致的网页重排问题
-- [ ] 使用统一的组件来调用 index.astro 和 [order].astro 中重复的代码部分
-- [ ] 使用 ajax/pjax 或类似的技术来实现全站的无缝加载
-
-## 开始使用
-
-1. 克隆仓库
 ```bash
-git clone https://github.com/yourusername/sesese-se.git
-cd sesese-se
-```
-
-2. 安装依赖
-```bash
-npm install
-```
-
-3. 启动开发服务器
-```bash
+npm ci
 npm run dev
 ```
 
-4. 构建生产版本
+构建生产版本：
+
 ```bash
 npm run build
 ```
 
-## 配置
+本地页面默认从 `https://media.sesese.se` 读取图片。需要切换对象存储域名时，复制 `.env.example` 为 `.env` 并修改 `PUBLIC_MEDIA_ORIGIN`。
 
-1. 获取 Pixiv REFRESH_TOKEN：
-   - 参考 [pixivpy](https://github.com/upbit/pixivpy)
+## 添加作品
 
-2. 在你的 GitHub 仓库中设置以下 Secret：
-   - `PIXIV_REFRESH_TOKEN`: 你的 Pixiv REFRESH_TOKEN
+在 GitHub Actions 中运行 **Ingest artwork**：
 
-3. 添加图片：
-   - 在 GitHub Actions 页面中选择 "Fetch Pixiv Artwork" 工作流
-   - 点击 "Run workflow"
-   - 输入要获取的 Pixiv 作品 ID
-   - 点击 "Run workflow" 开始执行
-   - 工作流会自动下载图片并更新网站内容
+- Pixiv：选择 `pixiv`，输入作品 ID。
+- X：选择 `x`，直接粘贴完整状态链接。默认通过免费的 FxTwitter 尝试取得正文、标签、稳定作者 ID 和图片；配置 `X_BEARER_TOKEN` 后改用 X 官方付费 API。
+- Danbooru 或其他网站：填写原页面、直接图片 URL、标题和作者。
+- 多图作品用 `display_image` 指定原作中的第几张（一基）；不填时只抓取并展示第 1 张。
 
-## 部署
+工作流只下载选中的一张，按最长边 640/960/1600/2400px 生成 WebP、上传对象存储，并在 `src/content/artworks` 写入统一元数据。展示层不依赖来源站点；新增自动适配器时，只需扩展 `scripts/ingest.py`。
 
-本站使用 GitHub Actions 自动部署到 Netlify。每次推送代码到 main 分支时，都会自动触发部署。
+部署 `/api/ingest` 后，macOS 与 iOS 可通过系统“快捷指令”的分享表单直接提交 Pixiv/X 链接，无需进入仓库。配置步骤见 [运维手册](docs/operations.md#从-macos--ios-快捷指令添加)。
+
+## 所需配置
+
+GitHub Secrets：
+
+- `PIXIV_REFRESH_TOKEN`
+- `X_BEARER_TOKEN`（可选；官方 API 会计费）
+- `CLOUDFLARE_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `CLOUDFLARE_API_TOKEN`
+
+Cloudflare Worker Secrets：
+
+- `GITHUB_TOKEN`（仅限本仓库，Actions read/write）
+- `INGEST_WEBHOOK_SECRET`（自行生成的长随机值）
+
+GitHub Variables：
+
+- `R2_BUCKET`，建议为 `sesese-se-media`
+- `PUBLIC_MEDIA_ORIGIN`，建议为 `https://media.sesese.se`
 
 ## 许可证
 
-MIT 
+代码采用 MIT 许可证。展示图片的权利归原作者或相应权利人所有。

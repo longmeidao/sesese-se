@@ -1,0 +1,49 @@
+name: Migrate existing media to R2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ingest-artwork
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install --requirement requirements.txt
+      - name: Re-fetch every Pixiv artwork and upload to R2
+        env:
+          PIXIV_REFRESH_TOKEN: ${{ secrets.PIXIV_REFRESH_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+        run: |
+          for file in src/content/artworks/pixiv-*.json; do
+            artwork_id=$(jq -r '.source.id' "$file")
+            display_image=$(jq -r '.display_image_index // 1' "$file")
+            python scripts/ingest.py --source pixiv --id "$artwork_id" --display-image "$display_image"
+          done
+      - name: Commit refreshed metadata
+        run: |
+          if git diff --quiet -- src/content/artworks; then
+            echo "Metadata is already current"
+            exit 0
+          fi
+          git config user.name "sesese-se bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/content/artworks
+          git commit -m "content: migrate existing media to R2"
+          git push

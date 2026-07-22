@@ -1,279 +1,32 @@
 ---
-import { getCollection } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
 import Layout from '../layouts/Layout.astro';
-import type { PixivArtwork } from '../types/pixiv';
-import '../styles/artwork.css';
-import { getArtworkPath, getOSSPath } from '../lib/oss';
-import tsconfig from '../../tsconfig.json';
-import { execSync } from 'child_process';
-import path from 'node:path';
-import fs from 'node:fs';
-import LogoHeader from '../components/LogoHeader.astro';
-import ArtworkNav from '../components/ArtworkNav.astro';
-import { Image } from 'astro:assets';
+import SiteHeader from '../components/SiteHeader.astro';
+import ArtworkViewer from '../components/ArtworkViewer.astro';
+import { getArtworks, plainText } from '../lib/artworks';
+import type { OrderedArtwork } from '../types/artwork';
 
-// 导出 getStaticPaths 函数
-export async function getStaticPaths() {
-  // 获取目录下所有文件的 git commit 时间
-  function getGitCommitTimes(dirPath: string): Map<string, number> {
-    const commitTimes = new Map<string, number>();
-    try {
-      // --pretty=format:%ct:%H 只输出 commit 时间戳和 hash
-      // --name-only 只显示被修改的文件名
-      // --no-renames 禁用重命名检测，可能提高性能
-      // --diff-filter=A 只关心添加的文件 (或者根据需要调整 filter)
-      // 或者更直接的方式：遍历文件，对每个文件执行一次 log -1
-      // 如果文件非常多，一次性获取所有 log 可能输出巨大。
-      // 考虑优化：只获取指定目录下 json 文件的最后修改时间
-      const filePaths = fs.readdirSync(dirPath)
-        .filter(file => file.endsWith('.json'))
-        .map(file => path.join(dirPath, file));
+export const getStaticPaths = (async () => {
+  const artworks = await getArtworks();
+  return artworks.map((artwork) => ({
+    params: { order: String(artwork.order) },
+    props: { artwork, total: artworks.length },
+  }));
+}) satisfies GetStaticPaths;
 
-      for (const filePath of filePaths) {
-        try {
-          const output = execSync(`git log -1 --format=%ct -- "${filePath}"`).toString().trim();
-          if (output) {
-            const commitTime = parseInt(output) * 1000; // 转换为毫秒
-            // 使用相对路径作为 key，以便后续匹配
-            commitTimes.set(path.relative(process.cwd(), filePath), commitTime);
-          } else {
-             // 文件可能未提交，使用文件系统 mtime 作为备选
-             const stats = fs.statSync(filePath);
-             commitTimes.set(path.relative(process.cwd(), filePath), stats.mtimeMs);
-          }
-        } catch (error) {
-          console.warn(`Warning: Could not get git commit time for ${filePath}, using file mtime. Error: ${error}`);
-          // 获取 git log 失败时，使用文件系统 mtime
-           try {
-             const stats = fs.statSync(filePath);
-             commitTimes.set(path.relative(process.cwd(), filePath), stats.mtimeMs);
-           } catch (statError) {
-              console.error(`Error getting mtime for ${filePath}:`, statError);
-              commitTimes.set(path.relative(process.cwd(), filePath), 0); // 出错则设为 0
-           }
-        }
-      }
-    } catch (error) {
-      console.error(`Error getting git commit times for directory ${dirPath}:`, error);
-      // 如果 git 命令或 readdir 失败，尝试回退或报错
-    }
-    return commitTimes;
-  }
-
-  const pixivContentDir = path.join(process.cwd(), 'src', 'content', 'pixiv');
-  const allCommitTimes = getGitCommitTimes(pixivContentDir);
-
-  const pixivCollection = await getCollection('pixiv');
-  const artworks: PixivArtwork[] = [];
-
-  // 遍历所有作品目录并获取文件信息
-  for (const artworkDir of pixivCollection) {
-    const artworkId = parseInt(artworkDir.id);
-    const artworkData = artworkDir.data as unknown as PixivArtwork;
-    if (artworkData && artworkData.id) {
-      // 构建文件的相对路径以匹配 Map 中的 key
-      const relativeFilePath = path.join('src', 'content', 'pixiv', `${artworkDir.id}.json`);
-      const commitTime = allCommitTimes.get(relativeFilePath) || 0; // 从 Map 获取时间，找不到则为 0
-      artworks.push({
-        ...artworkData,
-        id: artworkId,
-        commitTime
-      });
-    }
-  }
-
-  // 按 commitTime 倒序排序 (时间戳越大越新)
-  artworks.sort((a, b) => (b.commitTime || 0) - (a.commitTime || 0));
-
-  // 为每个作品生成一个路径，使用索引+1作为order
-  // 最新作品获得最大的 order 数字
-  return artworks.map((artwork, index) => {
-    const order = artworks.length - index;  // 计算 order，最新作品获得最大的 order
-    return {
-      params: { order: order.toString() },
-      props: { artwork, sortedArtworks: artworks, currentIndex: index, order },
-    };
-  });
+interface Props {
+  artwork: OrderedArtwork;
+  total: number;
 }
 
-// 获取传入的 props
-const { artwork, sortedArtworks, currentIndex, order } = Astro.props;
-
-// 计算导航状态
-const currentOrder = order;
-const hasNext = currentOrder > 1;
-const hasPrev = currentOrder < sortedArtworks.length;
-const nextOrder = hasNext ? currentOrder - 1 : null;
-const prevOrder = hasPrev ? currentOrder + 1 : null;
-
-const artworkData = artwork; // 直接使用 props 中的 artwork
-
-const pageTitle = artworkData ? `${tsconfig.site?.title} - ${artworkData.title}` : tsconfig.site?.title;
+const { artwork, total } = Astro.props;
 ---
 
-<Layout title={pageTitle}>
-  <LogoHeader />
-
-  <div id="artwork-container" data-artwork={JSON.stringify({ 
-    id: artworkData?.id,
-    images: artworkData?.images, 
-    page_count: artworkData?.page_count
-  })}>
-    <ArtworkNav hasPrev={hasPrev} prevOrder={prevOrder} hasNext={hasNext} nextOrder={nextOrder} />
-    
-    {!artworkData ? (
-      <div>
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        <h3>作品加载失败</h3>
-        <p>请稍后重试或检查链接。</p>
-      </div>
-    ) : (
-      <div id="artwork-viewer">
-        <div id="artwork-box">
-          <div id="artwork-frame">
-            <div class="artwork-image-wrapper">
-              <div id="main-image-container">
-                <picture>
-                  <source
-                    type="image/webp"
-                    srcset={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_1.jpg`, 'webp'))}
-                  />
-                  <Image 
-                    src={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_1.jpg`))}
-                    alt={artworkData.title}
-                    id="artwork-image"
-                    loading="eager"
-                    decoding="sync"
-                    data-index="1"
-                    width={800} 
-                    height={600}
-                  />
-                </picture>
-              </div>
-              <div id="preloaded-images" style="display: none; height: 0; overflow: hidden; position: absolute;">
-                {artworkData.page_count > 1 && Array.from({ length: artworkData.page_count - 1 }).map((_, index) => {
-                  const imageIndex = index + 2;
-                  return (
-                    <picture>
-                      <source
-                        type="image/webp"
-                        srcset={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_${imageIndex}.jpg`, 'webp'))}
-                      />
-                      <Image 
-                        src={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_${imageIndex}.jpg`))}
-                        alt={`${artworkData.title} - ${imageIndex}`}
-                        width={800}
-                        height={600}
-                        id={`artwork-image-${imageIndex}`}
-                        loading="lazy"
-                        decoding="async"
-                        data-index={imageIndex}
-                      />
-                    </picture>
-                  );
-                })}
-              </div>
-              {artworkData?.page_count && artworkData?.page_count > 1 && artworkData?.images?.length > 1 && artworkData?.images?.length === artworkData?.page_count && (
-                <div class="artwork-images-nav">
-                  <button id="prev-image" aria-label="上一张图片" disabled>
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <span id="image-counter">1 / {artworkData.images.length}</span>
-                  <button id="next-image" aria-label="下一张图片">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-          <div id="artwork-info">
-            <a href={`https://www.pixiv.net/artworks/${artworkData.id}`} target="_blank" rel="noopener noreferrer">
-              <h2>{artworkData.title}</h2>
-            </a>
-            <div class="artwork-author">
-              <a href={`https://www.pixiv.net/users/${artworkData.author.id}`} target="_blank" rel="noopener noreferrer">
-                <span>{artworkData.author.name}</span>
-              </a>
-            </div>
-            <div class="artwork-tags">
-              {artworkData.tags.slice(0, 5).map((tag: string) => (
-                <a 
-                  href={`https://www.pixiv.net/tags/${encodeURIComponent(tag)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  #{tag}
-                </a>
-              ))}
-              {artworkData.tags.length > 5 && (
-                <span>+{artworkData.tags.length - 5}</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
-
-  </div>
-
-  <script>
-    import { getOSSPath, getArtworkPath } from '../lib/oss';
-    import type { ArtworkManager as ArtworkManagerType } from '../components/ArtworkManager';
-
-    let artworkManagerInstance: ArtworkManagerType | null = null;
-
-    function initArtworkManager() {
-      if (artworkManagerInstance) {
-        artworkManagerInstance.destroy();
-        artworkManagerInstance = null;
-      }
-      import('../components/ArtworkManager').then(({ ArtworkManager }) => {
-        artworkManagerInstance = new ArtworkManager(getOSSPath, getArtworkPath);
-      }).catch(err => {
-        console.error('Failed to load or initialize ArtworkManager:', err);
-      });
-    }
-
-    function handleFrameVisibility() {
-      const frame = document.getElementById('artwork-frame');
-      const image = frame?.querySelector('#artwork-image') as HTMLImageElement | null;
-      
-      if (frame && image) {
-        const showFrame = () => {
-          frame.classList.add('artwork-frame-loaded');
-          image.removeEventListener('load', showFrame);
-          image.removeEventListener('error', showFrame);
-        };
-        
-        if (image.complete && image.naturalHeight > 0) {
-          showFrame();
-        } else {
-          image.addEventListener('load', showFrame);
-          image.addEventListener('error', showFrame);
-        }
-      } else {
-          frame?.classList.add('artwork-frame-loaded');
-      }
-    }
-
-    document.addEventListener('astro:page-load', () => {
-      initArtworkManager();
-      handleFrameVisibility();
-    });
-
-    document.addEventListener('astro:before-swap', () => {
-      if (artworkManagerInstance) {
-        artworkManagerInstance.destroy();
-        artworkManagerInstance = null;
-      }
-    });
-
-  </script> 
+<Layout
+  title={artwork.title}
+  description={plainText(artwork.description) || `来自 ${artwork.author.name} 的作品`}
+  canonical={`/${artwork.order}/`}
+>
+  <SiteHeader />
+  <ArtworkViewer artwork={artwork} total={total} />
 </Layout>
-

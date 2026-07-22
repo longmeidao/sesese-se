@@ -1,213 +1,25 @@
 ---
-import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
-import { Image } from 'astro:assets';
-import type { PixivArtwork } from '../types/pixiv';
-import tsconfig from '../../tsconfig.json';
-import '../styles/artwork.css';
-import { getArtworkPath, getOSSPath } from '../lib/oss';
-import LogoHeader from '../components/LogoHeader.astro';
-import ArtworkNav from '../components/ArtworkNav.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import ArtworkViewer from '../components/ArtworkViewer.astro';
+import { getArtworks, plainText } from '../lib/artworks';
 
-// 获取所有作品并按创建日期排序
-const pixivCollection = await getCollection('pixiv');
-const artworks: PixivArtwork[] = [];
-
-for (const artworkDir of pixivCollection) {
-  const artworkId = parseInt(artworkDir.id);
-  const artworkData = artworkDir.data as unknown as PixivArtwork;
-  if (artworkData && artworkData.id) {
-    artworks.push({
-      ...artworkData,
-      id: artworkId
-    });
-  }
-}
-
-// 按创建日期倒序排序
-artworks.sort((a, b) => 
-  new Date(b.create_date).getTime() - new Date(a.create_date).getTime()
-);
-
-// 获取最新的作品（排序后的第一个）
-const latestArtwork = artworks[0];
-
-// 计算导航状态 (首页特殊处理prev)
-const currentOrder = artworks.length; 
-const hasNext = currentOrder > 1;  
-const hasPrev = false; // 首页没有上一个
-const nextOrder = hasNext ? currentOrder - 1 : null;
-const prevOrder = null; // 首页没有上一个
-
-// 使用 latestArtwork 而不是重新构建 artworkData
-const artworkData = latestArtwork; // 直接使用获取到的最新作品数据
-
-const siteTitle = tsconfig.site?.title || '色览';
+const artworks = await getArtworks();
+const artwork = artworks.at(-1);
 ---
 
-<Layout title={siteTitle}>
-  <LogoHeader />
-
-  <div id="artwork-container" data-artwork={JSON.stringify({ 
-    id: artworkData?.id,
-    images: artworkData?.images, 
-    page_count: artworkData?.page_count
-  })}>
-    <ArtworkNav hasPrev={hasPrev} prevOrder={prevOrder} hasNext={hasNext} nextOrder={nextOrder} />
-    
-    {!artworkData ? (
-      <div>
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        <h3>暂无作品</h3>
-        <p>请先运行 GitHub Action 获取作品。获取后将自动显示在这里。</p>
-      </div>
-    ) : (
-      <div id="artwork-viewer">
-        <div id="artwork-box">
-          <div id="artwork-frame">
-            <div class="artwork-image-wrapper">
-              <div id="main-image-container">
-                <picture>
-                  <source
-                    type="image/webp"
-                    srcset={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_1.jpg`, 'webp'))}
-                  />
-                  <Image 
-                    src={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_1.jpg`))}
-                    alt={artworkData.title}
-                    id="artwork-image"
-                    loading="eager"
-                    decoding="sync"
-                    data-index="1"
-                    width={800} 
-                    height={600}
-                  />
-                </picture>
-              </div>
-              <div id="preloaded-images" style="display: none; height: 0; overflow: hidden; position: absolute;">
-                {artworkData.page_count > 1 && Array.from({ length: artworkData.page_count - 1 }).map((_, index) => {
-                  const imageIndex = index + 2;
-                  return (
-                    <picture>
-                      <source
-                        type="image/webp"
-                        srcset={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_${imageIndex}.jpg`, 'webp'))}
-                      />
-                      <Image 
-                        src={getOSSPath(getArtworkPath(artworkData.id.toString(), `${artworkData.id}_${imageIndex}.jpg`))}
-                        alt={`${artworkData.title} - ${imageIndex}`}
-                        width={800}
-                        height={600}
-                        id={`artwork-image-${imageIndex}`}
-                        loading="lazy"
-                        decoding="async"
-                        data-index={imageIndex}
-                      />
-                    </picture>
-                  );
-                })}
-              </div>
-              {artworkData?.page_count && artworkData?.page_count > 1 && artworkData?.images?.length > 1 && artworkData?.images?.length === artworkData?.page_count && (
-                <div class="artwork-images-nav">
-                  <button id="prev-image" aria-label="上一张图片" disabled>
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <span id="image-counter">1 / {artworkData.images.length}</span>
-                  <button id="next-image" aria-label="下一张图片">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-          <div id="artwork-info">
-            <a href={`https://www.pixiv.net/artworks/${artworkData.id}`} target="_blank" rel="noopener noreferrer">
-              <h2>{artworkData.title}</h2>
-            </a>
-            <div class="artwork-author">
-              <a href={`https://www.pixiv.net/users/${artworkData.author.id}`} target="_blank" rel="noopener noreferrer">
-                <span>{artworkData.author.name}</span>
-              </a>
-            </div>
-            <div class="artwork-tags">
-              {artworkData.tags.slice(0, 5).map((tag: string) => (
-                <a 
-                  href={`https://www.pixiv.net/tags/${encodeURIComponent(tag)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  #{tag}
-                </a>
-              ))}
-              {artworkData.tags.length > 5 && (
-                <span>+{artworkData.tags.length - 5}</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
-
-  </div>
-
-  <script>
-    import { getOSSPath, getArtworkPath } from '../lib/oss';
-    import type { ArtworkManager as ArtworkManagerType } from '../components/ArtworkManager';
-
-    let artworkManagerInstance: ArtworkManagerType | null = null;
-
-    function initArtworkManager() {
-      if (artworkManagerInstance) {
-        artworkManagerInstance.destroy();
-        artworkManagerInstance = null;
-      }
-      import('../components/ArtworkManager').then(({ ArtworkManager }) => {
-        artworkManagerInstance = new ArtworkManager(getOSSPath, getArtworkPath);
-      }).catch(err => {
-        console.error('Failed to load or initialize ArtworkManager:', err);
-      });
-    }
-
-    function handleFrameVisibility() {
-      const frame = document.getElementById('artwork-frame');
-      const image = frame?.querySelector('#artwork-image') as HTMLImageElement | null;
-      
-      if (frame && image) {
-        const showFrame = () => {
-          frame.classList.add('artwork-frame-loaded');
-          image.removeEventListener('load', showFrame);
-          image.removeEventListener('error', showFrame);
-        };
-        
-        if (image.complete && image.naturalHeight > 0) {
-          showFrame();
-        } else {
-          image.addEventListener('load', showFrame);
-          image.addEventListener('error', showFrame);
-        }
-      } else {
-          frame?.classList.add('artwork-frame-loaded');
-      }
-    }
-
-    document.addEventListener('astro:page-load', () => {
-      initArtworkManager();
-      handleFrameVisibility();
-    });
-
-    document.addEventListener('astro:before-swap', () => {
-      if (artworkManagerInstance) {
-        artworkManagerInstance.destroy();
-        artworkManagerInstance = null;
-      }
-    });
-
-  </script>
+<Layout
+  title="色览"
+  description={artwork ? `${artwork.title} — ${plainText(artwork.description) || `来自 ${artwork.author.name} 的作品`}` : '从 Pixiv 与其他图站采集、整理并展示值得停留的作品。'}
+>
+  <SiteHeader />
+  {artwork ? (
+    <ArtworkViewer artwork={artwork} total={artworks.length} />
+  ) : (
+    <main id="main-content" class="empty-state">
+      <p>藏品室正在布置</p>
+      <h1>还没有作品</h1>
+      <p>运行「采集作品」工作流后，第一件作品会出现在这里。</p>
+    </main>
+  )}
 </Layout>
-

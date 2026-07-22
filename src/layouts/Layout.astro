@@ -1,73 +1,54 @@
 ---
 import '../styles/global.css';
-import { ViewTransitions } from 'astro:transitions';
+import { ClientRouter } from 'astro:transitions';
 
 interface Props {
-  title: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  canonical?: string;
 }
 
-const { title } = Astro.props;
+const {
+  title = '色览',
+  description = '从 Pixiv 与其他图站采集、整理并展示值得停留的作品。',
+  image = '/og.png',
+  canonical = Astro.url.pathname,
+} = Astro.props;
+const pageTitle = title === '色览' ? title : `${title} · 色览`;
+const canonicalUrl = new URL(canonical, Astro.site ?? Astro.url.origin);
+const imageUrl = new URL(image, Astro.site ?? Astro.url.origin);
 ---
 
 <!doctype html>
-<html lang="zh">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content="色览" />
-    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, minimum-scale=1.0, viewport-fit=coverh" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="sitemap" href="/sitemap.xml">
-    <link rel="alternate" type="application/rss+xml" title="色览" href="/rss.xml">
-    <meta name="generator" content={Astro.generator} />
-    <title>{title}</title>
-    <ViewTransitions />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#171714" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="sitemap" href="/sitemap.xml" />
+    <link rel="alternate" type="application/rss+xml" title="色览" href="/rss.xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="色览" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={imageUrl} />
+    <title>{pageTitle}</title>
+    <ClientRouter fallback="animate" />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">跳到正文</a>
     <slot />
   </body>
 </html>
-
-<style is:global>
-  :root {
-    --accent: 136, 58, 234;
-    --accent-light: 224, 204, 250;
-    --accent-dark: 49, 10, 101;
-    --accent-gradient: linear-gradient(
-      45deg,
-      rgb(var(--accent)),
-      rgb(var(--accent-light)) 30%,
-      white 60%
-    );
-  }
-  html {
-    font-family: system-ui, sans-serif;
-    background: #13151a;
-    background-size: 224px;
-    color: white;
-  }
-  body {
-    margin: 0;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-  code {
-    font-family: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono,
-      Bitstream Vera Sans Mono, Courier New, monospace;
-  }
-  
-  @keyframes gradient-move {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
-  }
-
-</style>

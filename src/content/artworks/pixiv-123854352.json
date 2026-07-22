@@ -1,0 +1,20 @@
+{
+  "schema_version": 2,
+  "id": "pixiv-123854352",
+  "display_image_index": 1,
+  "source": { "type": "pixiv", "id": "123854352", "url": "https://www.pixiv.net/artworks/123854352" },
+  "title": "レゾナンス:無限号列車",
+  "description": "レゾナンス二次創作募集！",
+  "published_at": "2024-10-31T18:22:30+09:00",
+  "collected_at": "2025-03-24T17:34:08Z",
+  "tags": ["レゾナンス:無限号列車", "雷索纳斯", "足裏", "水着", "おっぱい", "魅惑の谷間", "レゾナンス二次創作募集", "美脚", "裸足裏", "亚莉奈"],
+  "author": { "id": "5271609", "name": "MeioN", "handle": "1053378452", "url": "https://www.pixiv.net/users/5271609" },
+  "media": [{
+    "index": 1,
+    "width": 2560,
+    "height": 1440,
+    "alt": "レゾナンス:無限号列車",
+    "variants": [{ "key": "media/pixiv/123854352/1/original.webp", "format": "webp", "width": 2560, "height": 1440 }]
+  }],
+  "metrics": { "views": 103954, "bookmarks": 14310 }
+}

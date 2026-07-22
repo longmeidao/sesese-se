@@ -1,0 +1,20 @@
+{
+  "schema_version": 2,
+  "id": "pixiv-128255980",
+  "display_image_index": 1,
+  "source": { "type": "pixiv", "id": "128255980", "url": "https://www.pixiv.net/artworks/128255980" },
+  "title": "Castorice",
+  "description": "",
+  "published_at": "2025-03-16T01:13:11+09:00",
+  "collected_at": "2025-03-17T18:48:32Z",
+  "tags": ["崩壊:スターレイル", "キャストリス", "崩壊:スターレイル5000users入り", "トレンカ", "足", "崩壊:スターレイル10000users入り"],
+  "author": { "id": "6662895", "name": "ATDAN-", "handle": "atdan86", "url": "https://www.pixiv.net/users/6662895" },
+  "media": [{
+    "index": 1,
+    "width": 1448,
+    "height": 2300,
+    "alt": "Castorice",
+    "variants": [{ "key": "media/pixiv/128255980/1/original.webp", "format": "webp", "width": 1448, "height": 2300 }]
+  }],
+  "metrics": { "views": 50625, "bookmarks": 10900 }
+}

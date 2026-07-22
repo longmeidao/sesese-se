@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "id": "pixiv-128265340",
+  "display_image_index": 1,
+  "source": { "type": "pixiv", "id": "128265340", "url": "https://www.pixiv.net/artworks/128265340" },
+  "title": "ホワイトデーに遅れたお詫びに（キサキ・ヒナ）＜全5枚＞",
+  "description": "激務ゆえにホワイトデーのことを忘れていた先生。キサキとヒナへのお返しに、3人でカラオケへ行くことにした。",
+  "published_at": "2025-03-16T10:00:10+09:00",
+  "collected_at": "2025-03-18T06:17:25Z",
+  "tags": ["ブルーアーカイブ", "竜華キサキ", "空崎ヒナ", "バニーガール"],
+  "author": { "id": "24222104", "name": "HOURAKU", "handle": "sayuten111", "url": "https://www.pixiv.net/users/24222104" },
+  "media": [
+    { "index": 1, "width": 832, "height": 1177, "alt": "ホワイトデーに遅れたお詫びに · 1/5", "variants": [{ "key": "media/pixiv/128265340/1/original.webp", "format": "webp", "width": 832, "height": 1177 }] }
+  ],
+  "metrics": { "views": 44915, "bookmarks": 9144 }
+}

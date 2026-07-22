@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "id": "pixiv-128409880",
+  "display_image_index": 1,
+  "source": { "type": "pixiv", "id": "128409880", "url": "https://www.pixiv.net/artworks/128409880" },
+  "title": "Switch",
+  "description": "",
+  "published_at": "2025-03-20T15:11:11+09:00",
+  "collected_at": "2025-03-21T19:05:04Z",
+  "tags": ["ブルーアーカイブ", "BlueArchive", "一之瀬アスナ(制服)", "角楯カリン(制服)", "衣装交換", "褐色化", "色白", "性格入れ替え", "一之瀬アスナ"],
+  "author": { "id": "13408193", "name": "D.I.S.H", "handle": "dishwasher1910", "url": "https://www.pixiv.net/users/13408193" },
+  "media": [
+    { "index": 1, "width": 4058, "height": 5554, "alt": "Switch · 1/2", "variants": [{ "key": "media/pixiv/128409880/1/original.webp", "format": "webp", "width": 4058, "height": 5554 }] }
+  ],
+  "metrics": { "views": 28541, "bookmarks": 6033 }
+}
