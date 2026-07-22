@@ -12,6 +12,7 @@ const variantSchema = z.object({
 const artworkSchema = z.object({
   schema_version: z.literal(2),
   id: z.string(),
+  sequence: z.number().int().positive(),
   content_hash: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
   display_image_index: z.number().int().positive().default(1),
   source: z.object({

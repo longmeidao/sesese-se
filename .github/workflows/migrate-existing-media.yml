@@ -34,16 +34,16 @@ jobs:
           for file in src/content/artworks/pixiv-*.json; do
             artwork_id=$(jq -r '.source.id' "$file")
             display_image=$(jq -r '.display_image_index // 1' "$file")
-            python scripts/ingest.py --source pixiv --id "$artwork_id" --display-image "$display_image"
+            python scripts/ingest.py --source pixiv --id "$artwork_id" --display-image "$display_image" --force
           done
       - name: Commit refreshed metadata
         run: |
-          if git diff --quiet -- src/content/artworks; then
+          if git diff --quiet -- src/content/artworks src/content/artwork-sequences.json; then
             echo "Metadata is already current"
             exit 0
           fi
           git config user.name "sesese-se bot"
           git config user.email "actions@users.noreply.github.com"
-          git add src/content/artworks
+          git add src/content/artworks src/content/artwork-sequences.json
           git commit -m "content: migrate existing media to R2"
           git push

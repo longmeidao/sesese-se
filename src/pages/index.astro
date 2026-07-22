@@ -6,6 +6,7 @@ import { getArtworks, plainText } from '../lib/artworks';
 
 const artworks = await getArtworks();
 const artwork = artworks.at(-1);
+const olderArtwork = artworks.at(-2);
 ---
 
 <Layout
@@ -14,7 +15,7 @@ const artwork = artworks.at(-1);
 >
   <SiteHeader />
   {artwork ? (
-    <ArtworkViewer artwork={artwork} total={artworks.length} />
+    <ArtworkViewer artwork={artwork} olderHref={olderArtwork ? `/${olderArtwork.sequence}/` : null} />
   ) : (
     <main id="main-content" class="empty-state">
       <p>藏品室正在布置</p>

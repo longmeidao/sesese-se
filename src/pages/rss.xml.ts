@@ -4,11 +4,12 @@ import { fallbackVariant, mediaUrl } from '../lib/media';
 
 export const GET: APIRoute = async () => {
   const artworks = (await getArtworks()).reverse();
+  const latestSequence = artworks[0]?.sequence;
   const latestDate = artworks[0]?.collected_at ?? new Date(0).toISOString();
   const items = artworks.map((artwork) => {
     const media = artwork.media.find((item) => item.index === artwork.display_image_index) || artwork.media[0];
     const image = mediaUrl(fallbackVariant(media).key);
-    const link = artwork.order === artworks.length ? 'https://sesese.se/' : `https://sesese.se/${artwork.order}/`;
+    const link = artwork.sequence === latestSequence ? 'https://sesese.se/' : `https://sesese.se/${artwork.sequence}/`;
     const description = plainText(artwork.description);
     return `
       <item>

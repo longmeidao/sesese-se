@@ -21,6 +21,7 @@ function normalizeLegacyArtwork(legacy: LegacyPixivArtwork): Artwork {
   return {
     schema_version: 2,
     id: `pixiv-${id}`,
+    sequence: 0,
     display_image_index: 1,
     source: {
       type: 'pixiv',
@@ -66,7 +67,19 @@ export async function getArtworks(): Promise<OrderedArtwork[]> {
     })
     .sort((a, b) => Date.parse(a.collected_at) - Date.parse(b.collected_at));
 
-  return artworks.map((artwork, index) => ({ ...artwork, order: index + 1 }));
+  const assignedSequences = artworks
+    .map((artwork) => artwork.sequence)
+    .filter((sequence) => Number.isInteger(sequence) && sequence > 0);
+  if (new Set(assignedSequences).size !== assignedSequences.length) {
+    throw new Error('Artwork sequence values must be unique');
+  }
+
+  let nextFallbackSequence = Math.max(0, ...assignedSequences);
+  return artworks.map((artwork, index) => ({
+    ...artwork,
+    sequence: artwork.sequence > 0 ? artwork.sequence : ++nextFallbackSequence,
+    position: index + 1,
+  }));
 }
 
 export function plainText(value: string): string {

@@ -28,6 +28,7 @@ import requests
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT_DIR = ROOT / "src" / "content" / "artworks"
+SEQUENCE_REGISTRY_PATH = ROOT / "src" / "content" / "artwork-sequences.json"
 VARIANT_WIDTHS = (640, 960, 1600, 2400)
 MAX_DOWNLOAD_BYTES = 100 * 1024 * 1024
 
@@ -380,7 +381,7 @@ def encode_variants(raw: bytes, source_type: str, source_id: str, page: int) -> 
         for index, (width, height) in enumerate(dimensions):
             resized = image if (width, height) == image.size else image.resize((width, height), Image.Resampling.LANCZOS)
             output = io.BytesIO()
-            resized.save(output, format="WEBP", quality=84, method=6, optimize=True)
+            resized.save(output, format="WEBP", quality=88, method=6, optimize=True)
             payload = output.getvalue()
             filename = "original.webp" if index == len(dimensions) - 1 else f"{width}w.webp"
             key = f"media/{source_type}/{safe_identifier(source_id)}/{page}/{filename}"
@@ -397,13 +398,68 @@ def encode_variants(raw: bytes, source_type: str, source_id: str, page: int) -> 
         return display_width, display_height, content_hash, variants, uploads
 
 
-def existing_collected_at(path: Path) -> str | None:
+def existing_metadata(path: Path) -> dict:
     if not path.exists():
-        return None
+        return {}
     try:
-        return json.loads(path.read_text(encoding="utf-8")).get("collected_at")
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else {}
     except (json.JSONDecodeError, OSError):
-        return None
+        return {}
+
+
+def load_sequence_registry() -> dict:
+    if not SEQUENCE_REGISTRY_PATH.exists():
+        return {"next_sequence": 1, "assignments": {}}
+    try:
+        registry = json.loads(SEQUENCE_REGISTRY_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as error:
+        raise RuntimeError(f"could not read {SEQUENCE_REGISTRY_PATH.relative_to(ROOT)}") from error
+    assignments = registry.get("assignments")
+    next_value = registry.get("next_sequence")
+    if not isinstance(assignments, dict) or not isinstance(next_value, int) or next_value < 1:
+        raise RuntimeError(f"invalid sequence registry: {SEQUENCE_REGISTRY_PATH.relative_to(ROOT)}")
+    values = list(assignments.values())
+    if any(not isinstance(value, int) or isinstance(value, bool) or value < 1 for value in values):
+        raise RuntimeError("sequence registry values must be positive integers")
+    if len(set(values)) != len(values):
+        raise RuntimeError("sequence registry contains duplicate values")
+    return {"next_sequence": next_value, "assignments": assignments}
+
+
+def reserve_sequence(content_id: str, existing_sequence: object) -> int:
+    registry = load_sequence_registry()
+    assignments: dict[str, int] = registry["assignments"]
+    registered = assignments.get(content_id)
+    if registered is not None:
+        if (
+            isinstance(existing_sequence, int)
+            and not isinstance(existing_sequence, bool)
+            and existing_sequence > 0
+            and existing_sequence != registered
+        ):
+            raise RuntimeError(
+                f"sequence mismatch for {content_id}: metadata={existing_sequence}, registry={registered}"
+            )
+        return registered
+
+    used = set(assignments.values())
+    if isinstance(existing_sequence, int) and not isinstance(existing_sequence, bool) and existing_sequence > 0:
+        sequence = existing_sequence
+    else:
+        sequence = max(registry["next_sequence"], max(used, default=0) + 1)
+    if sequence in used:
+        owner = next(key for key, value in assignments.items() if value == sequence)
+        raise RuntimeError(f"sequence {sequence} is already reserved by {owner}")
+
+    assignments[content_id] = sequence
+    registry["next_sequence"] = max(registry["next_sequence"], sequence + 1)
+    SEQUENCE_REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    SEQUENCE_REGISTRY_PATH.write_text(
+        json.dumps(registry, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return sequence
 
 
 def find_duplicate(content_hash: str, content_id: str) -> Path | None:
@@ -421,14 +477,17 @@ def find_duplicate(content_hash: str, content_id: str) -> Path | None:
 def write_metadata(artwork: FetchedArtwork, media: list[dict], content_hash: str, allow_duplicate: bool) -> Path:
     content_id = f"{artwork.source_type}-{safe_identifier(artwork.source_id)}"
     output_path = CONTENT_DIR / f"{content_id}.json"
-    collected_at = existing_collected_at(output_path) or datetime.now(timezone.utc).isoformat()
+    existing = existing_metadata(output_path)
+    collected_at = existing.get("collected_at") or datetime.now(timezone.utc).isoformat()
     duplicate = find_duplicate(content_hash, content_id)
     if duplicate and not allow_duplicate:
         raise RuntimeError(f"duplicate media set already exists in {duplicate.relative_to(ROOT)}")
+    sequence = reserve_sequence(content_id, existing.get("sequence"))
     raw_author_name = artwork.author_name.strip()
     metadata = {
         "schema_version": 2,
         "id": content_id,
+        "sequence": sequence,
         "content_hash": content_hash,
         "display_image_index": artwork.display_image_index,
         "source": {

@@ -10,7 +10,7 @@ export const GET: APIRoute = async () => {
   ] as const;
   const urls = [
     ...staticPages.map(([url, date]) => ({ url, date })),
-    ...artworks.map((artwork) => ({ url: `https://sesese.se/${artwork.order}/`, date: artwork.collected_at })),
+    ...artworks.map((artwork) => ({ url: `https://sesese.se/${artwork.sequence}/`, date: artwork.collected_at })),
   ];
 
   return new Response(`<?xml version="1.0" encoding="UTF-8"?>

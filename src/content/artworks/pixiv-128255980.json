@@ -1,6 +1,7 @@
 {
   "schema_version": 2,
   "id": "pixiv-128255980",
+  "sequence": 1,
   "content_hash": "sha256:4bc340c500a5260f84643f1c27fbd4345825f5d94cca42236ec7c977233b672a",
   "display_image_index": 1,
   "source": {

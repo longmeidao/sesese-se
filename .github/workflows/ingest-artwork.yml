@@ -108,12 +108,12 @@ jobs:
           python scripts/ingest.py "${args[@]}"
       - name: Commit metadata
         run: |
-          if git diff --quiet -- src/content/artworks; then
+          if git diff --quiet -- src/content/artworks src/content/artwork-sequences.json; then
             echo "Metadata is already current"
             exit 0
           fi
           git config user.name "sesese-se bot"
           git config user.email "actions@users.noreply.github.com"
-          git add src/content/artworks
+          git add src/content/artworks src/content/artwork-sequences.json
           git commit -m "content: ingest ${{ inputs.source }} ${{ inputs.artwork_id }}"
           git push

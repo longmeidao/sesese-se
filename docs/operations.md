@@ -9,7 +9,7 @@
 5. 创建 Workers API Token，只授予部署 `sesese-se` Worker 所需权限。
 6. 在 GitHub 添加 README 中列出的 Secrets 与 Variables；`X_BEARER_TOKEN` 不填即使用免费的 FxTwitter 兜底。
 7. 为 Worker 添加 `GITHUB_TOKEN` 和 `INGEST_WEBHOOK_SECRET` 两个加密 Secret。
-8. 运行 `Migrate existing media to R2`。
+8. 运行 `Migrate existing media to R2`。该工作流会强制重建已有响应式图片，以便压缩参数升级后真正替换旧文件。
 9. 运行 `Deploy to Cloudflare Workers`。
 10. 在 Workers 设置中连接 `sesese.se` 和 `www.sesese.se` 自定义域名。
 
@@ -76,7 +76,7 @@ curl --request POST https://sesese.se/api/ingest \
 - 更新元数据：直接修改对应 JSON。
 - 重新抓图：运行采集工作流并打开 `force`；由于对象 URL 可能已缓存，生产环境应在上传后清除对应路径缓存。
 - 更换多图作品的展示页：重新运行采集工作流并填写新的 `display_image`；元数据中只保留新选中的页。
-- 删除作品：删除 JSON 后部署；R2 对象先保留 30 天观察，再手动删除。
+- 删除作品：只删除作品 JSON，不要移除 `src/content/artwork-sequences.json` 中的登记；该作品的永久 `sequence` 留空且不复用，其他作品 URL 不变。R2 对象先保留 30 天观察，再手动删除。
 
 ## 备份
 

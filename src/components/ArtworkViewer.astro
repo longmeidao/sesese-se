@@ -5,16 +5,15 @@ import { plainText } from '../lib/artworks';
 
 interface Props {
   artwork: OrderedArtwork;
-  total: number;
+  newerHref?: string | null;
+  olderHref?: string | null;
 }
 
-const { artwork, total } = Astro.props;
+const { artwork, newerHref = null, olderHref = null } = Astro.props;
 const displayedMedia = artwork.media.find((item) => item.index === artwork.display_image_index) || artwork.media[0];
 const fallback = fallbackVariant(displayedMedia);
-const previousOrder = artwork.order < total ? artwork.order + 1 : null;
-const nextOrder = artwork.order > 1 ? artwork.order - 1 : null;
-const previousHref = previousOrder === total ? '/' : `/${previousOrder}/`;
-const nextHref = nextOrder ? `/${nextOrder}/` : null;
+const visibleTags = artwork.tags.slice(0, 2);
+const hiddenTagCount = Math.max(0, artwork.tags.length - visibleTags.length);
 ---
 
 <main id="main-content" class="viewer">
@@ -44,23 +43,41 @@ const nextHref = nextOrder ? `/${nextOrder}/` : null;
   <aside class="artwork-card" transition:name="artwork-details" transition:animate="fade">
     <div class="artwork-card__eyebrow">
       <span>{artwork.source.type}</span>
-      <span>{String(artwork.order).padStart(3, '0')} / {String(total).padStart(3, '0')}</span>
+      <span>No. {String(artwork.sequence).padStart(3, '0')}</span>
     </div>
-    <h1><a href={artwork.source.url} target="_blank" rel="noopener noreferrer">{artwork.title}</a></h1>
+    <h1><a href={artwork.source.url} target="_blank" rel="noopener noreferrer" title={artwork.title}>{artwork.title}</a></h1>
     <p class="artwork-card__author">
       <span>作者</span>
-      <a href={artwork.author.url} target="_blank" rel="noopener noreferrer">{artwork.author.name}</a>
+      <a href={artwork.author.url} target="_blank" rel="noopener noreferrer" title={artwork.author.name}>{artwork.author.name}</a>
     </p>
     {plainText(artwork.description) && <p class="artwork-card__description">{plainText(artwork.description)}</p>}
     <div class="artwork-card__tags" aria-label="标签">
-      {artwork.tags.slice(0, 6).map((tag) => <span>#{tag}</span>)}
+      {visibleTags.map((tag) => <span title={tag}>#{tag}</span>)}
+      {hiddenTagCount > 0 && <span class="artwork-card__tag-count" title={artwork.tags.slice(visibleTags.length).join('、')}>+{hiddenTagCount}</span>}
     </div>
     <a class="source-link" href={artwork.source.url} target="_blank" rel="noopener noreferrer">查看原作 ↗</a>
   </aside>
 
   <nav class="collection-nav" aria-label="藏品导航">
-    {previousOrder ? <a class="collection-nav__previous" href={previousHref} rel="prev" data-astro-prefetch><span>较新</span>←</a> : <span></span>}
+    {newerHref ? <a class="collection-nav__previous" href={newerHref} rel="prev" aria-label="较新的作品" title="较新（键盘 ←）" data-astro-prefetch><span>较新</span>←</a> : <span></span>}
     <a class="collection-nav__archive" href="/archive/" data-astro-prefetch>全部藏品</a>
-    {nextHref ? <a class="collection-nav__next" href={nextHref} rel="next" data-astro-prefetch><span>较早</span>→</a> : <span></span>}
+    {olderHref ? <a class="collection-nav__next" href={olderHref} rel="next" aria-label="较早的作品" title="较早（键盘 →）" data-astro-prefetch><span>较早</span>→</a> : <span></span>}
   </nav>
 </main>
+
+<script>
+  document.addEventListener('keydown', (event) => {
+    if (event.defaultPrevented || event.repeat || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+
+    const target = event.target;
+    if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
+
+    const selector = event.key === 'ArrowLeft' ? '.collection-nav__previous' : '.collection-nav__next';
+    const link = document.querySelector<HTMLAnchorElement>(selector);
+    if (!link) return;
+
+    event.preventDefault();
+    link.click();
+  });
+</script>

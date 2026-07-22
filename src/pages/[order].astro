@@ -8,25 +8,37 @@ import type { OrderedArtwork } from '../types/artwork';
 
 export const getStaticPaths = (async () => {
   const artworks = await getArtworks();
-  return artworks.map((artwork) => ({
-    params: { order: String(artwork.order) },
-    props: { artwork, total: artworks.length },
-  }));
+  return artworks.map((artwork, index) => {
+    const newerArtwork = artworks[index + 1];
+    const olderArtwork = artworks[index - 1];
+    const newerHref = newerArtwork
+      ? (index + 1 === artworks.length - 1 ? '/' : `/${newerArtwork.sequence}/`)
+      : null;
+    return {
+      params: { order: String(artwork.sequence) },
+      props: {
+        artwork,
+        newerHref,
+        olderHref: olderArtwork ? `/${olderArtwork.sequence}/` : null,
+      },
+    };
+  });
 }) satisfies GetStaticPaths;
 
 interface Props {
   artwork: OrderedArtwork;
-  total: number;
+  newerHref: string | null;
+  olderHref: string | null;
 }
 
-const { artwork, total } = Astro.props;
+const { artwork, newerHref, olderHref } = Astro.props;
 ---
 
 <Layout
   title={artwork.title}
   description={plainText(artwork.description) || `来自 ${artwork.author.name} 的作品`}
-  canonical={`/${artwork.order}/`}
+  canonical={`/${artwork.sequence}/`}
 >
   <SiteHeader />
-  <ArtworkViewer artwork={artwork} total={total} />
+  <ArtworkViewer artwork={artwork} newerHref={newerHref} olderHref={olderHref} />
 </Layout>

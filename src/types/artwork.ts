@@ -20,6 +20,7 @@ export interface ArtworkMedia {
 export interface Artwork {
   schema_version: 2;
   id: string;
+  sequence: number;
   content_hash?: string;
   display_image_index: number;
   source: {
@@ -48,7 +49,7 @@ export interface Artwork {
 }
 
 export interface OrderedArtwork extends Artwork {
-  order: number;
+  position: number;
 }
 
 export interface LegacyPixivArtwork {

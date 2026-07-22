@@ -5,6 +5,7 @@ import { getArtworks } from '../lib/artworks';
 import { fallbackVariant, mediaUrl, srcset } from '../lib/media';
 
 const artworks = (await getArtworks()).reverse();
+const latestSequence = artworks[0]?.sequence;
 ---
 
 <Layout title="藏品" description={`色览现有 ${artworks.length} 件藏品，按收录时间排列。`} canonical="/archive/">
@@ -13,26 +14,30 @@ const artworks = (await getArtworks()).reverse();
     <header class="page-intro">
       <p class="kicker">COLLECTION</p>
       <h1>藏品</h1>
-      <p>{artworks.length} 件作品，按收录时间由近及远排列。</p>
     </header>
     <ol class="archive-grid">
       {artworks.map((artwork) => {
         const media = artwork.media.find((item) => item.index === artwork.display_image_index) || artwork.media[0];
         const fallback = fallbackVariant(media);
-        const href = artwork.order === artworks.length ? '/' : `/${artwork.order}/`;
+        const href = artwork.sequence === latestSequence ? '/' : `/${artwork.sequence}/`;
         return (
           <li>
             <a href={href} data-astro-prefetch>
               <div class="archive-grid__image">
                 <picture>
-                  {srcset(media, 'avif') && <source type="image/avif" srcset={srcset(media, 'avif')} sizes="(max-width: 640px) 50vw, 25vw" />}
-                  {srcset(media, 'webp') && <source type="image/webp" srcset={srcset(media, 'webp')} sizes="(max-width: 640px) 50vw, 25vw" />}
-                  <img src={mediaUrl(fallback.key)} width={media.width} height={media.height} alt="" loading="lazy" decoding="async" />
+                  {srcset(media, 'avif') && <source type="image/avif" srcset={srcset(media, 'avif')} sizes="(max-width: 640px) calc((100vw - 3rem) / 2), (max-width: 1600px) calc((100vw - 8rem) / 3), 28rem" />}
+                  {srcset(media, 'webp') && <source type="image/webp" srcset={srcset(media, 'webp')} sizes="(max-width: 640px) calc((100vw - 3rem) / 2), (max-width: 1600px) calc((100vw - 8rem) / 3), 28rem" />}
+                  <img
+                    src={mediaUrl(fallback.key)}
+                    width={media.width}
+                    height={media.height}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </picture>
-                <span>{String(artwork.order).padStart(3, '0')}</span>
+                <span>{String(artwork.sequence).padStart(3, '0')}</span>
               </div>
-              <h2>{artwork.title}</h2>
-              <p>{artwork.author.name} · {artwork.source.type}</p>
             </a>
           </li>
         );
