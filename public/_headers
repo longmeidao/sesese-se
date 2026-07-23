@@ -4,6 +4,10 @@
 /assets/*
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
+/admin/*
+  Cache-Control: private, no-store
+  X-Robots-Tag: noindex, nofollow, noarchive
+
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

@@ -1,0 +1,569 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getAdminArtworks, plainText } from '../lib/artworks';
+import { fallbackVariant, mediaUrl } from '../lib/media';
+import '../styles/admin.css';
+
+const artworks = (await getAdminArtworks())
+  .reverse()
+  .map((artwork) => {
+    const media = artwork.media.find((item) => item.index === artwork.display_image_index) || artwork.media[0];
+    const overrides = artwork.overrides ?? {};
+    return {
+      id: artwork.id,
+      sequence: artwork.sequence,
+      status: artwork.status ?? 'active',
+      deleted_at: artwork.deleted_at,
+      source_type: artwork.source.type,
+      source_url: artwork.source.url,
+      display_image_index: artwork.display_image_index,
+      image: mediaUrl(fallbackVariant(media).key),
+      source: {
+        title: artwork.title,
+        description: plainText(artwork.description),
+        tags: artwork.tags,
+        author_name: artwork.author.name,
+      },
+      overrides,
+      effective: {
+        title: overrides.title ?? artwork.title,
+        description: overrides.description ?? plainText(artwork.description),
+        tags: overrides.tags ?? artwork.tags,
+        author_name: overrides.author_name ?? artwork.author.name,
+      },
+    };
+  });
+const serializedArtworks = JSON.stringify(artworks).replace(/</g, '\\u003c');
+const counts = {
+  active: artworks.filter((artwork) => artwork.status === 'active').length,
+  hidden: artworks.filter((artwork) => artwork.status === 'hidden').length,
+  deleted: artworks.filter((artwork) => artwork.status === 'deleted').length,
+};
+---
+
+<Layout
+  title="藏品管理"
+  description="色览的私人藏品管理台"
+  canonical="/admin/"
+  robots="noindex, nofollow, noarchive"
+>
+  <main id="main-content" class="admin-shell">
+    <header class="admin-header">
+      <div>
+        <a href="/" class="admin-header__back">← 返回展厅</a>
+        <p class="admin-kicker">PRIVATE COLLECTION DESK</p>
+        <h1>藏品管理</h1>
+      </div>
+      <div class="admin-summary" aria-label="藏品状态统计">
+        <span><strong>{counts.active}</strong> 展示中</span>
+        <span><strong>{counts.hidden}</strong> 已隐藏</span>
+        <span><strong>{counts.deleted}</strong> 待清理</span>
+      </div>
+    </header>
+
+    <section class="admin-auth admin-panel" aria-labelledby="admin-auth-title">
+      <div>
+        <p class="admin-panel__eyebrow">身份验证</p>
+        <h2 id="admin-auth-title">连接管理接口</h2>
+        <p>输入 Worker 中已经设置的 <code>INGEST_WEBHOOK_SECRET</code>。默认只保留到当前标签页关闭。</p>
+      </div>
+      <form id="admin-auth-form" class="admin-auth__form">
+        <label>
+          <span>管理密钥</span>
+          <input id="admin-secret" name="secret" type="password" autocomplete="current-password" required />
+        </label>
+        <label class="admin-checkbox">
+          <input id="remember-secret" type="checkbox" />
+          <span>记住在这台设备上</span>
+        </label>
+        <button type="submit" class="admin-button admin-button--primary">连接</button>
+        <button type="button" id="forget-secret" class="admin-button admin-button--quiet">清除</button>
+        <output id="auth-status" aria-live="polite">尚未连接</output>
+      </form>
+    </section>
+
+    <div class="admin-workspace">
+      <section class="admin-panel admin-ingest" aria-labelledby="admin-ingest-title">
+        <div class="admin-panel__heading">
+          <div>
+            <p class="admin-panel__eyebrow">添加</p>
+            <h2 id="admin-ingest-title">收录新作品</h2>
+          </div>
+          <a href="https://github.com/longmeidao/sesese-se/actions/workflows/ingest-artwork.yml" target="_blank" rel="noopener noreferrer">打开 Actions ↗</a>
+        </div>
+        <form id="ingest-form" class="admin-form">
+          <label class="admin-field admin-field--wide">
+            <span>Pixiv、X 或其他来源链接</span>
+            <input name="url" type="url" inputmode="url" placeholder="https://www.pixiv.net/artworks/..." required />
+          </label>
+          <label class="admin-field">
+            <span>展示第几张</span>
+            <input name="display_image" type="number" min="1" max="100" value="1" required />
+          </label>
+          <details class="admin-advanced">
+            <summary>其他网站或手动信息</summary>
+            <div class="admin-advanced__grid">
+              <label class="admin-field">
+                <span>标题</span>
+                <input name="title" type="text" maxlength="300" />
+              </label>
+              <label class="admin-field">
+                <span>作者名</span>
+                <input name="author_name" type="text" maxlength="300" />
+              </label>
+              <label class="admin-field admin-field--wide">
+                <span>作者页面</span>
+                <input name="author_url" type="url" inputmode="url" />
+              </label>
+              <label class="admin-field admin-field--wide">
+                <span>图片直链，每行一个</span>
+                <textarea name="image_urls" rows="3"></textarea>
+              </label>
+              <label class="admin-field admin-field--wide">
+                <span>描述</span>
+                <textarea name="description" rows="3"></textarea>
+              </label>
+              <label class="admin-field admin-field--wide">
+                <span>标签，以逗号分隔</span>
+                <input name="tags" type="text" />
+              </label>
+            </div>
+          </details>
+          <button type="submit" class="admin-button admin-button--primary">提交采集</button>
+          <output id="ingest-status" aria-live="polite"></output>
+        </form>
+      </section>
+
+      <aside class="admin-panel admin-runs" aria-labelledby="admin-runs-title">
+        <div class="admin-panel__heading">
+          <div>
+            <p class="admin-panel__eyebrow">任务</p>
+            <h2 id="admin-runs-title">最近采集</h2>
+          </div>
+          <button id="refresh-runs" type="button" class="admin-button admin-button--quiet">刷新</button>
+        </div>
+        <ol id="admin-runs-list">
+          <li class="admin-runs__empty">连接后显示最近任务。</li>
+        </ol>
+      </aside>
+    </div>
+
+    <section class="admin-collection" aria-labelledby="admin-collection-title">
+      <div class="admin-collection__heading">
+        <div>
+          <p class="admin-panel__eyebrow">馆藏</p>
+          <h2 id="admin-collection-title">管理作品</h2>
+        </div>
+        <div class="admin-filters">
+          <label>
+            <span class="visually-hidden">搜索藏品</span>
+            <input id="artwork-search" type="search" placeholder="搜索编号、标题、作者或标签" />
+          </label>
+          <label>
+            <span class="visually-hidden">筛选状态</span>
+            <select id="artwork-status-filter">
+              <option value="all">全部状态</option>
+              <option value="active">展示中</option>
+              <option value="hidden">已隐藏</option>
+              <option value="deleted">待清理</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div id="admin-artwork-grid" class="admin-artwork-grid">
+        {artworks.map((artwork) => (
+          <article
+            class="admin-artwork"
+            data-artwork-id={artwork.id}
+            data-status={artwork.status}
+            data-search={`${artwork.sequence} ${artwork.effective.title} ${artwork.effective.author_name} ${artwork.effective.tags.join(' ')}`.toLowerCase()}
+          >
+            <img src={artwork.image} width="180" height="180" alt="" loading="lazy" decoding="async" />
+            <div class="admin-artwork__body">
+              <div class="admin-artwork__meta">
+                <span>No. {String(artwork.sequence).padStart(3, '0')}</span>
+                <span class={`admin-status admin-status--${artwork.status}`}>
+                  {artwork.status === 'active' ? '展示中' : artwork.status === 'hidden' ? '已隐藏' : '待清理'}
+                </span>
+              </div>
+              <h3>{artwork.effective.title}</h3>
+              <p>{artwork.effective.author_name} · {artwork.source_type}</p>
+              <div class="admin-artwork__tags">
+                {artwork.effective.tags.slice(0, 3).map((tag) => <span>#{tag}</span>)}
+              </div>
+              <div class="admin-artwork__actions">
+                <button type="button" data-action="edit" class="admin-button admin-button--small">编辑</button>
+                {['pixiv', 'x'].includes(artwork.source_type) && (
+                  <button type="button" data-action="reingest" class="admin-button admin-button--small">重新抓取</button>
+                )}
+                {artwork.status === 'active' && (
+                  <button type="button" data-status-change="hidden" class="admin-button admin-button--small">隐藏</button>
+                )}
+                {artwork.status === 'hidden' && (
+                  <button type="button" data-status-change="active" class="admin-button admin-button--small">恢复展示</button>
+                )}
+                {artwork.status !== 'deleted' ? (
+                  <button type="button" data-status-change="deleted" class="admin-button admin-button--small admin-button--danger">软删除</button>
+                ) : (
+                  <button type="button" data-status-change="active" class="admin-button admin-button--small">撤销删除</button>
+                )}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+      <p id="admin-empty-filter" class="admin-empty" hidden>没有符合条件的藏品。</p>
+    </section>
+  </main>
+
+  <dialog id="edit-artwork-dialog" class="admin-dialog">
+    <form id="edit-artwork-form" method="dialog">
+      <div class="admin-dialog__heading">
+        <div>
+          <p class="admin-panel__eyebrow">人工覆盖</p>
+          <h2 id="edit-artwork-title">编辑藏品</h2>
+        </div>
+        <button type="button" data-close-dialog class="admin-dialog__close" aria-label="关闭">×</button>
+      </div>
+      <input name="id" type="hidden" />
+      <div class="admin-override">
+        <label class="admin-checkbox">
+          <input name="title_auto" type="checkbox" />
+          <span>标题沿用自动抓取</span>
+        </label>
+        <input name="title" type="text" maxlength="300" />
+        <small data-source-field="title"></small>
+      </div>
+      <div class="admin-override">
+        <label class="admin-checkbox">
+          <input name="author_name_auto" type="checkbox" />
+          <span>作者名沿用自动抓取</span>
+        </label>
+        <input name="author_name" type="text" maxlength="300" />
+        <small data-source-field="author_name"></small>
+      </div>
+      <div class="admin-override">
+        <label class="admin-checkbox">
+          <input name="description_auto" type="checkbox" />
+          <span>描述沿用自动抓取</span>
+        </label>
+        <textarea name="description" rows="5"></textarea>
+        <small data-source-field="description"></small>
+      </div>
+      <div class="admin-override">
+        <label class="admin-checkbox">
+          <input name="tags_auto" type="checkbox" />
+          <span>标签沿用自动抓取</span>
+        </label>
+        <input name="tags" type="text" />
+        <small data-source-field="tags"></small>
+      </div>
+      <div class="admin-dialog__actions">
+        <button type="button" data-close-dialog class="admin-button admin-button--quiet">取消</button>
+        <button type="submit" class="admin-button admin-button--primary">保存并部署</button>
+      </div>
+      <output id="edit-status" aria-live="polite"></output>
+    </form>
+  </dialog>
+
+  <div id="admin-toast" class="admin-toast" role="status" aria-live="polite" hidden></div>
+  <script id="admin-artworks-data" type="application/json" set:html={serializedArtworks}></script>
+
+<script>
+  type AdminArtwork = {
+    id: string;
+    sequence: number;
+    status: 'active' | 'hidden' | 'deleted';
+    source_type: string;
+    display_image_index: number;
+    source: { title: string; description: string; tags: string[]; author_name: string };
+    overrides: { title?: string; description?: string; tags?: string[]; author_name?: string };
+    effective: { title: string; description: string; tags: string[]; author_name: string };
+  };
+
+  const dataElement = document.querySelector<HTMLScriptElement>('#admin-artworks-data');
+  const artworks: AdminArtwork[] = dataElement?.textContent ? JSON.parse(dataElement.textContent) : [];
+  const artworkById = new Map(artworks.map((artwork) => [artwork.id, artwork]));
+  const sessionKey = 'sesese-admin-secret';
+  const rememberedKey = 'sesese-admin-secret-remembered';
+
+  const authForm = document.querySelector<HTMLFormElement>('#admin-auth-form')!;
+  const secretInput = document.querySelector<HTMLInputElement>('#admin-secret')!;
+  const rememberInput = document.querySelector<HTMLInputElement>('#remember-secret')!;
+  const authStatus = document.querySelector<HTMLOutputElement>('#auth-status')!;
+  const runsList = document.querySelector<HTMLOListElement>('#admin-runs-list')!;
+  const dialog = document.querySelector<HTMLDialogElement>('#edit-artwork-dialog')!;
+  const editForm = document.querySelector<HTMLFormElement>('#edit-artwork-form')!;
+  const toast = document.querySelector<HTMLDivElement>('#admin-toast')!;
+
+  let secret = sessionStorage.getItem(sessionKey) || localStorage.getItem(rememberedKey) || '';
+  secretInput.value = secret;
+  rememberInput.checked = Boolean(localStorage.getItem(rememberedKey));
+
+  function showToast(message: string, error = false) {
+    toast.textContent = message;
+    toast.dataset.error = String(error);
+    toast.hidden = false;
+    window.setTimeout(() => { toast.hidden = true; }, 4200);
+  }
+
+  async function api(path: string, init: RequestInit = {}) {
+    if (!secret) throw new Error('请先输入管理密钥并连接。');
+    const response = await fetch(path, {
+      ...init,
+      headers: {
+        authorization: `Bearer ${secret}`,
+        'content-type': 'application/json',
+        ...init.headers,
+      },
+    });
+    const body = await response.json().catch(() => ({})) as { error?: string; detail?: unknown };
+    if (!response.ok) throw new Error(body.error || `请求失败（${response.status}）`);
+    return body as Record<string, unknown>;
+  }
+
+  function formatRunState(status: string, conclusion?: string | null) {
+    if (status !== 'completed') return '进行中';
+    if (conclusion === 'success') return '成功';
+    if (conclusion === 'cancelled') return '已取消';
+    return '失败';
+  }
+
+  async function loadRuns() {
+    runsList.innerHTML = '<li class="admin-runs__empty">正在读取…</li>';
+    try {
+      const result = await api('/api/admin/runs');
+      const runs = (result.runs ?? []) as Array<{
+        id: number;
+        status: string;
+        conclusion: string | null;
+        title: string;
+        url: string;
+        created_at: string;
+      }>;
+      runsList.innerHTML = '';
+      if (runs.length === 0) {
+        runsList.innerHTML = '<li class="admin-runs__empty">还没有采集任务。</li>';
+        return;
+      }
+      for (const run of runs) {
+        const item = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = run.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        const title = document.createElement('span');
+        title.textContent = run.title;
+        const meta = document.createElement('small');
+        meta.textContent = `${formatRunState(run.status, run.conclusion)} · ${new Date(run.created_at).toLocaleString('zh-CN')}`;
+        link.append(title, meta);
+        item.append(link);
+        runsList.append(item);
+      }
+      authStatus.textContent = '已连接';
+      authStatus.dataset.connected = 'true';
+    } catch (error) {
+      runsList.innerHTML = '<li class="admin-runs__empty">读取失败，请检查密钥。</li>';
+      authStatus.textContent = error instanceof Error ? error.message : '连接失败';
+      authStatus.dataset.connected = 'false';
+      throw error;
+    }
+  }
+
+  authForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    secret = secretInput.value.trim();
+    sessionStorage.setItem(sessionKey, secret);
+    if (rememberInput.checked) localStorage.setItem(rememberedKey, secret);
+    else localStorage.removeItem(rememberedKey);
+    try {
+      await loadRuns();
+      showToast('管理接口已连接。');
+    } catch {
+      showToast('连接失败，请检查管理密钥。', true);
+    }
+  });
+
+  document.querySelector('#forget-secret')?.addEventListener('click', () => {
+    secret = '';
+    secretInput.value = '';
+    sessionStorage.removeItem(sessionKey);
+    localStorage.removeItem(rememberedKey);
+    authStatus.textContent = '已清除';
+    authStatus.dataset.connected = 'false';
+  });
+
+  document.querySelector('#refresh-runs')?.addEventListener('click', () => {
+    loadRuns().catch((error) => showToast(error instanceof Error ? error.message : '读取失败', true));
+  });
+
+  document.querySelector<HTMLFormElement>('#ingest-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const output = document.querySelector<HTMLOutputElement>('#ingest-status')!;
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(
+      [...formData.entries()]
+        .map(([key, value]) => [key, typeof value === 'string' ? value.trim() : value])
+        .filter(([, value]) => value !== ''),
+    );
+    payload.display_image = Number(payload.display_image || 1);
+    output.textContent = '正在提交…';
+    try {
+      await api('/api/ingest', { method: 'POST', body: JSON.stringify(payload) });
+      output.textContent = '已进入采集队列，可在右侧查看进度。';
+      form.reset();
+      const displayInput = form.elements.namedItem('display_image') as HTMLInputElement | null;
+      if (displayInput) displayInput.value = '1';
+      window.setTimeout(() => loadRuns().catch(() => {}), 1800);
+    } catch (error) {
+      output.textContent = error instanceof Error ? error.message : '提交失败';
+    }
+  });
+
+  function setAutomaticState(field: string) {
+    const automatic = editForm.elements.namedItem(`${field}_auto`) as HTMLInputElement;
+    const control = editForm.elements.namedItem(field) as HTMLInputElement | HTMLTextAreaElement;
+    control.disabled = automatic.checked;
+  }
+
+  for (const field of ['title', 'author_name', 'description', 'tags']) {
+    const automatic = editForm.elements.namedItem(`${field}_auto`) as HTMLInputElement;
+    automatic.addEventListener('change', () => setAutomaticState(field));
+  }
+
+  function openEditor(artwork: AdminArtwork) {
+    (editForm.elements.namedItem('id') as HTMLInputElement).value = artwork.id;
+    document.querySelector('#edit-artwork-title')!.textContent = `编辑 No. ${String(artwork.sequence).padStart(3, '0')}`;
+    const values: Record<string, string> = {
+      title: artwork.overrides.title ?? artwork.source.title,
+      author_name: artwork.overrides.author_name ?? artwork.source.author_name,
+      description: artwork.overrides.description ?? artwork.source.description,
+      tags: (artwork.overrides.tags ?? artwork.source.tags).join(', '),
+    };
+    for (const field of ['title', 'author_name', 'description', 'tags']) {
+      const automatic = editForm.elements.namedItem(`${field}_auto`) as HTMLInputElement;
+      const control = editForm.elements.namedItem(field) as HTMLInputElement | HTMLTextAreaElement;
+      automatic.checked = !Object.prototype.hasOwnProperty.call(artwork.overrides, field);
+      control.value = values[field];
+      setAutomaticState(field);
+      const source = document.querySelector<HTMLElement>(`[data-source-field="${field}"]`);
+      if (source) {
+        const sourceValue = field === 'tags'
+          ? artwork.source.tags.join(', ')
+          : artwork.source[field as keyof typeof artwork.source];
+        source.textContent = `自动内容：${sourceValue || '（空）'}`;
+      }
+    }
+    document.querySelector<HTMLOutputElement>('#edit-status')!.textContent = '';
+    dialog.showModal();
+  }
+
+  for (const closeButton of document.querySelectorAll('[data-close-dialog]')) {
+    closeButton.addEventListener('click', () => dialog.close());
+  }
+
+  editForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const id = (editForm.elements.namedItem('id') as HTMLInputElement).value;
+    const output = document.querySelector<HTMLOutputElement>('#edit-status')!;
+    const overrides: Record<string, string | string[] | null> = {};
+    for (const field of ['title', 'author_name', 'description', 'tags']) {
+      const automatic = editForm.elements.namedItem(`${field}_auto`) as HTMLInputElement;
+      const control = editForm.elements.namedItem(field) as HTMLInputElement | HTMLTextAreaElement;
+      overrides[field] = automatic.checked
+        ? null
+        : field === 'tags'
+          ? control.value.split(',').map((tag) => tag.trim().replace(/^#/, '')).filter(Boolean)
+          : control.value;
+    }
+    output.textContent = '正在保存…';
+    try {
+      await api(`/api/admin/artworks/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ overrides }),
+      });
+      output.textContent = '已提交到 GitHub，部署完成后页面会更新。';
+      showToast('修改已保存，正在等待部署。');
+      window.setTimeout(() => dialog.close(), 900);
+    } catch (error) {
+      output.textContent = error instanceof Error ? error.message : '保存失败';
+    }
+  });
+
+  document.querySelector('#admin-artwork-grid')?.addEventListener('click', async (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
+    const card = button?.closest<HTMLElement>('[data-artwork-id]');
+    if (!button || !card) return;
+    const id = card.dataset.artworkId!;
+    const artwork = artworkById.get(id);
+    if (!artwork) return;
+
+    if (button.dataset.action === 'edit') {
+      openEditor(artwork);
+      return;
+    }
+
+    if (button.dataset.action === 'reingest') {
+      const input = window.prompt('重新抓取并展示原作中的第几张？', String(artwork.display_image_index));
+      if (input === null) return;
+      const displayImage = Number(input);
+      if (!Number.isInteger(displayImage) || displayImage < 1 || displayImage > 100) {
+        showToast('请输入 1–100 之间的整数。', true);
+        return;
+      }
+      button.disabled = true;
+      try {
+        await api('/api/admin/reingest', {
+          method: 'POST',
+          body: JSON.stringify({ id, display_image: displayImage }),
+        });
+        showToast('已提交重新抓取任务。');
+        window.setTimeout(() => loadRuns().catch(() => {}), 1800);
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : '重新抓取失败', true);
+      } finally {
+        button.disabled = false;
+      }
+      return;
+    }
+
+    const nextStatus = button.dataset.statusChange as AdminArtwork['status'] | undefined;
+    if (!nextStatus) return;
+    if (nextStatus === 'deleted' && !window.confirm('这会让作品退出公开页面，但暂时保留 R2 图片。确认软删除？')) return;
+    button.disabled = true;
+    try {
+      await api(`/api/admin/artworks/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      showToast('状态已提交，部署完成后生效。');
+      card.dataset.status = nextStatus;
+      card.classList.add('admin-artwork--pending');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '状态修改失败', true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  function filterArtworks() {
+    const query = document.querySelector<HTMLInputElement>('#artwork-search')!.value.trim().toLowerCase();
+    const status = document.querySelector<HTMLSelectElement>('#artwork-status-filter')!.value;
+    let visible = 0;
+    for (const card of document.querySelectorAll<HTMLElement>('[data-artwork-id]')) {
+      const matchesQuery = !query || card.dataset.search?.includes(query);
+      const matchesStatus = status === 'all' || card.dataset.status === status;
+      card.hidden = !(matchesQuery && matchesStatus);
+      if (!card.hidden) visible += 1;
+    }
+    document.querySelector<HTMLElement>('#admin-empty-filter')!.hidden = visible > 0;
+  }
+
+  document.querySelector('#artwork-search')?.addEventListener('input', filterArtworks);
+  document.querySelector('#artwork-status-filter')?.addEventListener('change', filterArtworks);
+
+  if (secret) loadRuns().catch(() => {});
+</script>
+</Layout>

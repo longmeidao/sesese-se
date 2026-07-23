@@ -73,10 +73,26 @@ curl --request POST https://sesese.se/api/ingest \
 
 ## 更新与删除
 
-- 更新元数据：直接修改对应 JSON。
+- 管理入口：部署后访问 `https://sesese.se/admin/`，输入 Worker 的 `INGEST_WEBHOOK_SECRET`。密钥默认只保存在当前标签页；勾选“记住”后才写入该设备的浏览器存储。
+- 更新元数据：在管理台填写人工覆盖字段；空白内容也可作为显式覆盖，勾选“沿用自动抓取”则删除覆盖。重新抓取只更新来源数据，不会覆盖人工字段。
 - 重新抓图：运行采集工作流并打开 `force`；由于对象 URL 可能已缓存，生产环境应在上传后清除对应路径缓存。
 - 更换多图作品的展示页：重新运行采集工作流并填写新的 `display_image`；元数据中只保留新选中的页。
-- 删除作品：只删除作品 JSON，不要移除 `src/content/artwork-sequences.json` 中的登记；该作品的永久 `sequence` 留空且不复用，其他作品 URL 不变。R2 对象先保留 30 天观察，再手动删除。
+- 隐藏作品：状态改为 `hidden`，公开页面不再生成该作品，但可以随时恢复。
+- 删除作品：管理台先将状态改为 `deleted`；公开页面立即移除，R2 对象和元数据保留 30 天。每周一运行的 `Cleanup deleted media` 会删除过期 R2 变体和作品 JSON，但不会移除 `src/content/artwork-sequences.json` 中的登记，因此永久 `sequence` 不复用。
+
+## 管理台部署后设置
+
+管理 API 继续复用 Worker 中已有的 `GITHUB_TOKEN` 和 `INGEST_WEBHOOK_SECRET`，不需要新建 Secret。`GITHUB_TOKEN` 需要目标仓库的 Actions 写入和 Contents 读写权限。
+
+建议再给管理页面增加一层 Cloudflare Access：
+
+1. 在 Cloudflare Zero Trust → Access controls → Applications 创建 Self-hosted 应用；
+2. 添加两个 public hostname path：`sesese.se/admin/*` 与 `sesese.se/api/admin/*`；
+3. Allow policy 只填写自己的邮箱或 Cloudflare 账号；
+4. `/api/ingest` 仍保留现有 Bearer Secret，供 iOS/macOS 快捷指令使用；
+5. Access 负责挡住管理页面，Worker 的 Bearer Secret 继续负责所有写操作。
+
+本地 `astro dev` 只预览静态管理界面，不运行 Worker API；需要联调接口时先执行 `npm run build`，再使用 `wrangler dev`。
 
 ## 备份
 

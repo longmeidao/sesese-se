@@ -5,7 +5,7 @@ on:
     branches: [main]
   workflow_dispatch:
   workflow_run:
-    workflows: [Ingest artwork, Migrate existing media to R2]
+    workflows: [Ingest artwork, Migrate existing media to R2, Cleanup deleted media]
     types: [completed]
 
 permissions:

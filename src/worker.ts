@@ -16,6 +16,25 @@ interface IngestRequest {
   author_name?: string;
   author_url?: string;
   image_urls?: string;
+  force?: boolean;
+}
+
+interface GitHubContent {
+  sha: string;
+  content: string;
+  encoding: 'base64';
+}
+
+type ArtworkStatus = 'active' | 'hidden' | 'deleted';
+
+class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status = 400,
+    readonly detail?: unknown,
+  ) {
+    super(message);
+  }
 }
 
 function json(body: unknown, status = 200): Response {
@@ -41,16 +60,138 @@ function safeEqual(left: string, right: string): boolean {
   return difference === 0;
 }
 
+function requireAdmin(request: Request, env: Env): void {
+  if (!env.INGEST_WEBHOOK_SECRET || !env.GITHUB_TOKEN) {
+    throw new ApiError('Worker secrets are not configured', 503);
+  }
+
+  const authorization = request.headers.get('authorization') ?? '';
+  const suppliedSecret = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+  if (!safeEqual(suppliedSecret, env.INGEST_WEBHOOK_SECRET)) {
+    throw new ApiError('Unauthorized', 401);
+  }
+}
+
+async function readJson<T>(request: Request): Promise<T> {
+  try {
+    return await request.json() as T;
+  } catch {
+    throw new ApiError('Request body must be JSON');
+  }
+}
+
+function repository(env: Env) {
+  return {
+    owner: env.GITHUB_OWNER || 'longmeidao',
+    repo: env.GITHUB_REPO || 'sesese-se',
+    ref: env.GITHUB_REF || 'main',
+  };
+}
+
+function githubHeaders(env: Env): HeadersInit {
+  return {
+    accept: 'application/vnd.github+json',
+    authorization: `Bearer ${env.GITHUB_TOKEN}`,
+    'content-type': 'application/json',
+    'user-agent': 'sesese-se-admin-worker',
+    'x-github-api-version': '2022-11-28',
+  };
+}
+
+function decodeBase64(value: string): string {
+  const binary = atob(value.replace(/\s/g, ''));
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function encodeBase64(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function validateArtworkId(value: string): string {
+  if (!/^(pixiv|x|danbooru|other)-[a-zA-Z0-9._-]{1,180}$/.test(value)) {
+    throw new ApiError('Invalid artwork id');
+  }
+  return value;
+}
+
+async function githubContent(id: string, env: Env): Promise<{ file: GitHubContent; artwork: Record<string, unknown> }> {
+  const safeId = validateArtworkId(id);
+  const { owner, repo, ref } = repository(env);
+  const path = `src/content/artworks/${safeId}.json`;
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(ref)}`,
+    { headers: githubHeaders(env) },
+  );
+
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 500);
+    throw new ApiError('Unable to read artwork metadata from GitHub', response.status === 404 ? 404 : 502, detail);
+  }
+
+  const file = await response.json() as GitHubContent;
+  if (file.encoding !== 'base64' || !file.content || !file.sha) {
+    throw new ApiError('GitHub returned an unsupported content response', 502);
+  }
+
+  let artwork: Record<string, unknown>;
+  try {
+    artwork = JSON.parse(decodeBase64(file.content)) as Record<string, unknown>;
+  } catch {
+    throw new ApiError('Artwork metadata is not valid JSON', 502);
+  }
+  if (artwork.schema_version !== 2 || artwork.id !== safeId) {
+    throw new ApiError('Artwork metadata does not match the requested id', 409);
+  }
+
+  return { file, artwork };
+}
+
+async function commitArtwork(
+  id: string,
+  file: GitHubContent,
+  artwork: Record<string, unknown>,
+  message: string,
+  env: Env,
+): Promise<{ commitSha?: string }> {
+  const { owner, repo, ref } = repository(env);
+  const path = `src/content/artworks/${validateArtworkId(id)}.json`;
+  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+    method: 'PUT',
+    headers: githubHeaders(env),
+    body: JSON.stringify({
+      message,
+      branch: ref,
+      sha: file.sha,
+      content: encodeBase64(`${JSON.stringify(artwork, null, 2)}\n`),
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 500);
+    if (response.status === 409) {
+      throw new ApiError('Metadata changed while you were editing. Refresh and try again.', 409, detail);
+    }
+    throw new ApiError('GitHub metadata update failed', 502, detail);
+  }
+
+  const result = await response.json() as { commit?: { sha?: string } };
+  return { commitSha: result.commit?.sha };
+}
+
 function classifySource(input: string): { source: 'pixiv' | 'x' | 'other'; artworkId: string; sourceUrl: string } {
   let url: URL;
   try {
     url = new URL(input);
   } catch {
-    throw new Error('url 必须是完整的 http(s) 链接');
+    throw new ApiError('url 必须是完整的 http(s) 链接');
   }
 
   if (!['http:', 'https:'].includes(url.protocol)) {
-    throw new Error('只接受 http(s) 链接');
+    throw new ApiError('只接受 http(s) 链接');
   }
 
   const host = url.hostname.toLowerCase().replace(/^www\./, '');
@@ -79,59 +220,34 @@ function classifySource(input: string): { source: 'pixiv' | 'x' | 'other'; artwo
   };
 }
 
-async function dispatchIngest(request: Request, env: Env): Promise<Response> {
-  if (!env.INGEST_WEBHOOK_SECRET || !env.GITHUB_TOKEN) {
-    return json({ error: 'Worker secrets are not configured' }, 503);
-  }
-
-  const authorization = request.headers.get('authorization') ?? '';
-  const suppliedSecret = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-  if (!safeEqual(suppliedSecret, env.INGEST_WEBHOOK_SECRET)) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
-
-  let input: IngestRequest;
-  try {
-    input = await request.json() as IngestRequest;
-  } catch {
-    return json({ error: 'Request body must be JSON' }, 400);
-  }
-
+function validateIngest(input: IngestRequest): {
+  parsed: ReturnType<typeof classifySource>;
+  displayImage: number;
+} {
   if (typeof input.url !== 'string' || input.url.length > 2048) {
-    return json({ error: 'url is required and must be shorter than 2048 characters' }, 400);
+    throw new ApiError('url is required and must be shorter than 2048 characters');
   }
 
   const displayImage = input.display_image ?? 1;
   if (!Number.isInteger(displayImage) || displayImage < 1 || displayImage > 100) {
-    return json({ error: 'display_image must be an integer between 1 and 100' }, 400);
+    throw new ApiError('display_image must be an integer between 1 and 100');
   }
 
-  let parsed: ReturnType<typeof classifySource>;
-  try {
-    parsed = classifySource(input.url);
-  } catch (error) {
-    return json({ error: error instanceof Error ? error.message : 'Invalid URL' }, 400);
-  }
-
+  const parsed = classifySource(input.url);
   if (parsed.source === 'other' && (!input.image_urls || !input.title || !input.author_name)) {
-    return json({
-      error: '任意网站目前还需要 image_urls、title 和 author_name；Pixiv 与 X 只需分享作品链接',
-    }, 400);
+    throw new ApiError('任意网站目前还需要 image_urls、title 和 author_name；Pixiv 与 X 只需分享作品链接');
   }
 
-  const owner = env.GITHUB_OWNER || 'longmeidao';
-  const repo = env.GITHUB_REPO || 'sesese-se';
-  const ref = env.GITHUB_REF || 'main';
+  return { parsed, displayImage };
+}
+
+async function dispatchIngest(input: IngestRequest, env: Env): Promise<Response> {
+  const { parsed, displayImage } = validateIngest(input);
+  const { owner, repo, ref } = repository(env);
   const workflowUrl = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/ingest-artwork.yml/dispatches`;
   const response = await fetch(workflowUrl, {
     method: 'POST',
-    headers: {
-      accept: 'application/vnd.github+json',
-      authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      'content-type': 'application/json',
-      'user-agent': 'sesese-se-ingest-worker',
-      'x-github-api-version': '2022-11-28',
-    },
+    headers: githubHeaders(env),
     body: JSON.stringify({
       ref,
       inputs: {
@@ -145,14 +261,14 @@ async function dispatchIngest(request: Request, env: Env): Promise<Response> {
         tags: input.tags ?? '',
         author_name: input.author_name ?? '',
         author_url: input.author_url ?? '',
-        force: 'false',
+        force: input.force ? 'true' : 'false',
       },
     }),
   });
 
   if (!response.ok) {
     const detail = (await response.text()).slice(0, 500);
-    return json({ error: 'GitHub workflow dispatch failed', status: response.status, detail }, 502);
+    throw new ApiError('GitHub workflow dispatch failed', 502, { status: response.status, detail });
   }
 
   return json({
@@ -164,20 +280,180 @@ async function dispatchIngest(request: Request, env: Env): Promise<Response> {
   }, 202);
 }
 
+function sanitizeString(value: unknown, label: string, maximum: number): string | null {
+  if (value === null) return null;
+  if (typeof value !== 'string') throw new ApiError(`${label} must be a string or null`);
+  if (value.length > maximum) throw new ApiError(`${label} is too long`);
+  return value;
+}
+
+function sanitizeTags(value: unknown): string[] | null {
+  if (value === null) return null;
+  if (!Array.isArray(value) || value.length > 50) throw new ApiError('tags must be an array with at most 50 items');
+  const tags = value.map((item) => {
+    if (typeof item !== 'string') throw new ApiError('every tag must be a string');
+    const tag = item.trim().replace(/^#/, '');
+    if (!tag || tag.length > 100) throw new ApiError('tags must be between 1 and 100 characters');
+    return tag;
+  });
+  return [...new Set(tags)];
+}
+
+async function updateArtwork(request: Request, id: string, env: Env): Promise<Response> {
+  const input = await readJson<{
+    overrides?: {
+      title?: string | null;
+      description?: string | null;
+      tags?: string[] | null;
+      author_name?: string | null;
+    };
+    status?: ArtworkStatus;
+  }>(request);
+  if (!input.overrides && !input.status) throw new ApiError('No editable fields were supplied');
+  if (
+    input.overrides
+    && (typeof input.overrides !== 'object' || Array.isArray(input.overrides))
+  ) {
+    throw new ApiError('overrides must be an object');
+  }
+
+  const { file, artwork } = await githubContent(id, env);
+  const current = (
+    typeof artwork.overrides === 'object' && artwork.overrides !== null && !Array.isArray(artwork.overrides)
+      ? { ...artwork.overrides as Record<string, unknown> }
+      : {}
+  );
+
+  if (input.overrides) {
+    const allowed = ['title', 'description', 'tags', 'author_name'] as const;
+    for (const key of allowed) {
+      if (!Object.prototype.hasOwnProperty.call(input.overrides, key)) continue;
+      const value = key === 'tags'
+        ? sanitizeTags(input.overrides[key])
+        : sanitizeString(input.overrides[key], key, key === 'description' ? 10_000 : 300);
+      if (value === null) delete current[key];
+      else current[key] = value;
+    }
+    if (Object.keys(current).length > 0) artwork.overrides = current;
+    else delete artwork.overrides;
+  }
+
+  if (input.status) {
+    if (!['active', 'hidden', 'deleted'].includes(input.status)) throw new ApiError('Invalid artwork status');
+    artwork.status = input.status;
+    if (input.status === 'deleted') artwork.deleted_at = new Date().toISOString();
+    else delete artwork.deleted_at;
+  }
+
+  const action = input.status ? `set ${id} ${input.status}` : `edit ${id}`;
+  const committed = await commitArtwork(id, file, artwork, `content: ${action}`, env);
+  return json({
+    updated: true,
+    id,
+    status: artwork.status ?? 'active',
+    commit_sha: committed.commitSha,
+    deployment_pending: true,
+  });
+}
+
+async function reingestArtwork(request: Request, env: Env): Promise<Response> {
+  const input = await readJson<{ id?: string; display_image?: number }>(request);
+  if (!input.id) throw new ApiError('id is required');
+  const { artwork } = await githubContent(input.id, env);
+  const source = artwork.source as { type?: string; url?: string } | undefined;
+  if (!source?.url || !['pixiv', 'x'].includes(source.type ?? '')) {
+    throw new ApiError('Only Pixiv and X artworks can currently be automatically re-fetched');
+  }
+
+  return dispatchIngest({
+    url: source.url,
+    display_image: input.display_image ?? Number(artwork.display_image_index ?? 1),
+    force: true,
+  }, env);
+}
+
+async function recentRuns(env: Env): Promise<Response> {
+  const { owner, repo } = repository(env);
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/actions/workflows/ingest-artwork.yml/runs?per_page=8`,
+    { headers: githubHeaders(env) },
+  );
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 500);
+    throw new ApiError('Unable to read recent ingestion runs', 502, detail);
+  }
+
+  const result = await response.json() as {
+    workflow_runs?: Array<{
+      id: number;
+      status: string;
+      conclusion: string | null;
+      event: string;
+      display_title: string;
+      html_url: string;
+      created_at: string;
+      updated_at: string;
+    }>;
+  };
+  return json({
+    runs: (result.workflow_runs ?? []).map((run) => ({
+      id: run.id,
+      status: run.status,
+      conclusion: run.conclusion,
+      event: run.event,
+      title: run.display_title,
+      url: run.html_url,
+      created_at: run.created_at,
+      updated_at: run.updated_at,
+    })),
+  });
+}
+
+async function handleApi(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+
+  if (url.pathname === '/api/ingest') {
+    if (request.method !== 'POST') throw new ApiError('Method not allowed', 405);
+    requireAdmin(request, env);
+    return dispatchIngest(await readJson<IngestRequest>(request), env);
+  }
+
+  if (url.pathname.startsWith('/api/admin/')) {
+    requireAdmin(request, env);
+
+    if (url.pathname === '/api/admin/runs') {
+      if (request.method !== 'GET') throw new ApiError('Method not allowed', 405);
+      return recentRuns(env);
+    }
+
+    if (url.pathname === '/api/admin/reingest') {
+      if (request.method !== 'POST') throw new ApiError('Method not allowed', 405);
+      return reingestArtwork(request, env);
+    }
+
+    const match = url.pathname.match(/^\/api\/admin\/artworks\/([^/]+)$/);
+    if (match) {
+      if (request.method !== 'PATCH') throw new ApiError('Method not allowed', 405);
+      return updateArtwork(request, decodeURIComponent(match[1]), env);
+    }
+  }
+
+  throw new ApiError('Not found', 404);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === '/api/ingest') {
-      if (request.method !== 'POST') {
-        return json({ error: 'Method not allowed' }, 405);
+    if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+
+    try {
+      return await handleApi(request, env);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return json({ error: error.message, detail: error.detail }, error.status);
       }
-      return dispatchIngest(request, env);
+      console.error(error);
+      return json({ error: 'Internal server error' }, 500);
     }
-
-    if (url.pathname.startsWith('/api/')) {
-      return json({ error: 'Not found' }, 404);
-    }
-
-    return env.ASSETS.fetch(request);
   },
 };

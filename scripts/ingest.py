@@ -488,6 +488,9 @@ def write_metadata(artwork: FetchedArtwork, media: list[dict], content_hash: str
         "schema_version": 2,
         "id": content_id,
         "sequence": sequence,
+        **({"status": existing["status"]} if existing.get("status") in {"active", "hidden", "deleted"} else {}),
+        **({"deleted_at": existing["deleted_at"]} if existing.get("deleted_at") else {}),
+        **({"overrides": existing["overrides"]} if isinstance(existing.get("overrides"), dict) and existing["overrides"] else {}),
         "content_hash": content_hash,
         "display_image_index": artwork.display_image_index,
         "source": {

@@ -58,16 +58,35 @@ function normalizeLegacyArtwork(legacy: LegacyPixivArtwork): Artwork {
   };
 }
 
-export async function getArtworks(): Promise<OrderedArtwork[]> {
+function resolveArtworkOverrides(artwork: Artwork): Artwork {
+  const overrides = artwork.overrides;
+  if (!overrides) return artwork;
+
+  return {
+    ...artwork,
+    title: overrides.title ?? artwork.title,
+    description: overrides.description ?? artwork.description,
+    tags: overrides.tags ?? artwork.tags,
+    author: {
+      ...artwork.author,
+      name: overrides.author_name ?? artwork.author.name,
+    },
+  };
+}
+
+async function loadArtworks(): Promise<Artwork[]> {
   const entries = await getCollection('artworks');
-  const artworks = entries
+  return entries
     .map((entry) => {
       const data = entry.data as Artwork | LegacyPixivArtwork;
       return isLegacyArtwork(data) ? normalizeLegacyArtwork(data) : data;
-    })
-    .sort((a, b) => Date.parse(a.collected_at) - Date.parse(b.collected_at));
+    });
+}
 
-  const assignedSequences = artworks
+function orderArtworks(artworks: Artwork[]): OrderedArtwork[] {
+  const ordered = artworks.sort((a, b) => Date.parse(a.collected_at) - Date.parse(b.collected_at));
+
+  const assignedSequences = ordered
     .map((artwork) => artwork.sequence)
     .filter((sequence) => Number.isInteger(sequence) && sequence > 0);
   if (new Set(assignedSequences).size !== assignedSequences.length) {
@@ -75,11 +94,24 @@ export async function getArtworks(): Promise<OrderedArtwork[]> {
   }
 
   let nextFallbackSequence = Math.max(0, ...assignedSequences);
-  return artworks.map((artwork, index) => ({
+  return ordered.map((artwork, index) => ({
     ...artwork,
     sequence: artwork.sequence > 0 ? artwork.sequence : ++nextFallbackSequence,
     position: index + 1,
   }));
+}
+
+export async function getArtworks(): Promise<OrderedArtwork[]> {
+  const artworks = await loadArtworks();
+  return orderArtworks(
+    artworks
+      .filter((artwork) => (artwork.status ?? 'active') === 'active')
+      .map(resolveArtworkOverrides),
+  );
+}
+
+export async function getAdminArtworks(): Promise<OrderedArtwork[]> {
+  return orderArtworks(await loadArtworks());
 }
 
 export function plainText(value: string): string {

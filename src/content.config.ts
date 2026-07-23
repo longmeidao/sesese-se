@@ -13,6 +13,14 @@ const artworkSchema = z.object({
   schema_version: z.literal(2),
   id: z.string(),
   sequence: z.number().int().positive(),
+  status: z.enum(['active', 'hidden', 'deleted']).default('active'),
+  deleted_at: z.string().optional(),
+  overrides: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    author_name: z.string().optional(),
+  }).optional(),
   content_hash: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
   display_image_index: z.number().int().positive().default(1),
   source: z.object({

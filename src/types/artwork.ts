@@ -1,4 +1,12 @@
 export type ArtworkSource = 'pixiv' | 'danbooru' | 'x' | 'other';
+export type ArtworkStatus = 'active' | 'hidden' | 'deleted';
+
+export interface ArtworkOverrides {
+  title?: string;
+  description?: string;
+  tags?: string[];
+  author_name?: string;
+}
 
 export interface MediaVariant {
   key: string;
@@ -21,6 +29,9 @@ export interface Artwork {
   schema_version: 2;
   id: string;
   sequence: number;
+  status?: ArtworkStatus;
+  deleted_at?: string;
+  overrides?: ArtworkOverrides;
   content_hash?: string;
   display_image_index: number;
   source: {
