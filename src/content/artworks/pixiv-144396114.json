@@ -1,0 +1,77 @@
+{
+  "schema_version": 2,
+  "id": "pixiv-144396114",
+  "sequence": 7,
+  "content_hash": "sha256:b3e163567edf391c52c5c5de9888cc4eb67e8fbfb07170ee0074499a5b72cad5",
+  "display_image_index": 1,
+  "source": {
+    "type": "pixiv",
+    "id": "144396114",
+    "url": "https://www.pixiv.net/artworks/144396114"
+  },
+  "title": "人間、あなたは何が好きなの？",
+  "description": "",
+  "published_at": "2026-05-05T16:28:42+09:00",
+  "collected_at": "2026-07-23T14:26:40.842533+00:00",
+  "tags": [
+    "リバーレリオ(勝利の女神:NIKKE)",
+    "黑スト",
+    "足指",
+    "腋",
+    "パンチラ",
+    "ぱんつ",
+    "勝利の女神:NIKKE",
+    "リバーレリオ:ドリーミングレイク",
+    "ペディキュア",
+    "すじ"
+  ],
+  "author": {
+    "id": "11967987",
+    "name": "ベルム",
+    "handle": "alone_belm",
+    "url": "https://www.pixiv.net/users/11967987"
+  },
+  "media": [
+    {
+      "index": 1,
+      "width": 1697,
+      "height": 2400,
+      "alt": "人間、あなたは何が好きなの？",
+      "content_hash": "sha256:5a532cac8903d99742cfd2af326e07ea41a3fb12034125be6d23fdf3145400d2",
+      "variants": [
+        {
+          "key": "media/pixiv/144396114/1/453w.webp",
+          "format": "webp",
+          "width": 453,
+          "height": 640,
+          "bytes": 41468
+        },
+        {
+          "key": "media/pixiv/144396114/1/679w.webp",
+          "format": "webp",
+          "width": 679,
+          "height": 960,
+          "bytes": 74496
+        },
+        {
+          "key": "media/pixiv/144396114/1/1131w.webp",
+          "format": "webp",
+          "width": 1131,
+          "height": 1600,
+          "bytes": 153584
+        },
+        {
+          "key": "media/pixiv/144396114/1/original.webp",
+          "format": "webp",
+          "width": 1697,
+          "height": 2400,
+          "bytes": 271890
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "views": 15373,
+    "bookmarks": 3923
+  }
+}

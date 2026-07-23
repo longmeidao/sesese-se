@@ -1,11 +1,12 @@
 {
-  "next_sequence": 7,
+  "next_sequence": 8,
   "assignments": {
     "pixiv-128255980": 1,
     "pixiv-128265340": 2,
     "pixiv-128378150": 3,
     "pixiv-128409880": 4,
     "pixiv-123854352": 5,
-    "pixiv-128700071": 6
+    "pixiv-128700071": 6,
+    "pixiv-144396114": 7
   }
 }
