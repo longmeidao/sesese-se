@@ -27,7 +27,10 @@ import '../styles/admin.css';
             <span>保持登录</span>
           </label>
           <small>不勾选时，关闭当前标签页后需要重新登录。</small>
-          <button type="submit" class="admin-button admin-button--primary">进入管理台</button>
+          <button type="submit" class="admin-button admin-button--primary">
+            <span class="admin-button__icon" aria-hidden="true">→</span>
+            <span>进入管理台</span>
+          </button>
           <output id="login-status" aria-live="polite"></output>
         </form>
       </div>
@@ -46,7 +49,10 @@ import '../styles/admin.css';
             <span><strong id="hidden-count">0</strong> 已隐藏</span>
             <span><strong id="deleted-count">0</strong> 回收站</span>
           </div>
-          <button id="admin-logout" type="button" class="admin-button admin-button--quiet">退出管理</button>
+          <button id="admin-logout" type="button" class="admin-button admin-button--logout">
+            <span class="admin-button__icon" aria-hidden="true">↪</span>
+            <span>退出管理</span>
+          </button>
         </div>
       </header>
 
@@ -57,7 +63,9 @@ import '../styles/admin.css';
               <p class="admin-panel__eyebrow">添加</p>
               <h2 id="admin-ingest-title">收录新作品</h2>
             </div>
-            <a href="https://github.com/longmeidao/sesese-se/actions/workflows/ingest-artwork.yml" target="_blank" rel="noopener noreferrer">查看采集任务 ↗</a>
+            <a href="https://github.com/longmeidao/sesese-se/actions/workflows/ingest-artwork.yml" target="_blank" rel="noopener noreferrer">
+              查看采集任务 <span aria-hidden="true">↗</span>
+            </a>
           </div>
           <form id="ingest-form" class="admin-form">
             <label class="admin-field admin-field--wide">
@@ -97,7 +105,10 @@ import '../styles/admin.css';
                 </label>
               </div>
             </details>
-            <button type="submit" class="admin-button admin-button--primary">开始采集</button>
+            <button type="submit" class="admin-button admin-button--primary">
+              <span class="admin-button__icon" aria-hidden="true">＋</span>
+              <span>开始采集</span>
+            </button>
             <output id="ingest-status" aria-live="polite"></output>
           </form>
         </section>
@@ -108,7 +119,15 @@ import '../styles/admin.css';
               <p class="admin-panel__eyebrow">任务</p>
               <h2 id="admin-runs-title">最近采集</h2>
             </div>
-            <button id="refresh-runs" type="button" class="admin-button admin-button--quiet">刷新</button>
+            <button
+              id="refresh-runs"
+              type="button"
+              class="admin-button admin-button--icon admin-button--refresh"
+              aria-label="刷新采集记录"
+              title="刷新采集记录"
+            >
+              <span class="admin-button__icon" aria-hidden="true">↻</span>
+            </button>
           </div>
           <ol id="admin-runs-list">
             <li class="admin-runs__empty">正在读取采集记录…</li>
@@ -123,7 +142,7 @@ import '../styles/admin.css';
             <h2 id="admin-collection-title">管理作品</h2>
           </div>
           <div class="admin-filters">
-            <label>
+            <label class="admin-search">
               <span class="visually-hidden">搜索藏品</span>
               <input id="artwork-search" type="search" placeholder="搜索编号、标题、作者或标签" />
             </label>
@@ -188,7 +207,10 @@ import '../styles/admin.css';
           </div>
           <div class="admin-dialog__actions">
             <button type="button" data-close-dialog class="admin-button admin-button--quiet">取消</button>
-            <button type="submit" class="admin-button admin-button--primary">保存更改</button>
+            <button type="submit" class="admin-button admin-button--primary">
+              <span class="admin-button__icon" aria-hidden="true">✓</span>
+              <span>保存更改</span>
+            </button>
           </div>
           <output id="edit-status" aria-live="polite"></output>
         </form>
@@ -237,6 +259,9 @@ import '../styles/admin.css';
     const keepSignedIn = document.querySelector<HTMLInputElement>('#keep-signed-in')!;
     const loginStatus = document.querySelector<HTMLOutputElement>('#login-status')!;
     const loginButton = loginForm.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    const loginButtonIcon = loginButton.querySelector<HTMLElement>('.admin-button__icon')!;
+    const loginButtonLabel = loginButton.querySelector<HTMLElement>('span:last-child')!;
+    const refreshRunsButton = document.querySelector<HTMLButtonElement>('#refresh-runs')!;
     const runsList = document.querySelector<HTMLOListElement>('#admin-runs-list')!;
     const artworkGrid = document.querySelector<HTMLElement>('#admin-artwork-grid')!;
     const dialog = document.querySelector<HTMLDialogElement>('#edit-artwork-dialog')!;
@@ -313,7 +338,9 @@ import '../styles/admin.css';
       secretInput.disabled = busy;
       keepSignedIn.disabled = busy;
       loginButton.disabled = busy;
-      loginButton.textContent = busy ? '正在验证…' : '进入管理台';
+      loginButton.classList.toggle('is-loading', busy);
+      loginButtonIcon.textContent = busy ? '↻' : '→';
+      loginButtonLabel.textContent = busy ? '正在验证…' : '进入管理台';
       loginStatus.textContent = message;
     }
 
@@ -373,19 +400,34 @@ import '../styles/admin.css';
       return '回收站';
     }
 
-    function actionButton(label: string, options: { action?: string; status?: AdminArtwork['status']; danger?: boolean } = {}) {
+    function actionButton(
+      label: string,
+      icon: string,
+      options: {
+        action?: string;
+        status?: AdminArtwork['status'];
+        tone?: 'edit' | 'sync' | 'visibility' | 'restore' | 'danger';
+      } = {},
+    ) {
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = label;
-      button.className = `admin-button admin-button--small${options.danger ? ' admin-button--danger' : ''}`;
+      button.className = `admin-button admin-button--small${options.tone ? ` admin-button--${options.tone}` : ''}`;
+      const iconElement = document.createElement('span');
+      iconElement.className = 'admin-button__icon';
+      iconElement.setAttribute('aria-hidden', 'true');
+      iconElement.textContent = icon;
+      const labelElement = document.createElement('span');
+      labelElement.textContent = label;
+      button.append(iconElement, labelElement);
       if (options.action) button.dataset.action = options.action;
       if (options.status) button.dataset.statusChange = options.status;
       return button;
     }
 
-    function renderArtworkCard(artwork: AdminArtwork) {
+    function renderArtworkCard(artwork: AdminArtwork, index: number) {
       const card = document.createElement('article');
       card.className = 'admin-artwork';
+      card.style.setProperty('--admin-card-index', String(Math.min(index, 12)));
       card.dataset.artworkId = artwork.id;
       card.dataset.status = artwork.status;
       card.dataset.search = `${artwork.sequence} ${artwork.effective.title} ${artwork.effective.author_name} ${artwork.effective.tags.join(' ')}`.toLowerCase();
@@ -423,16 +465,20 @@ import '../styles/admin.css';
 
       const actions = document.createElement('div');
       actions.className = 'admin-artwork__actions';
-      actions.append(actionButton('编辑', { action: 'edit' }));
+      actions.append(actionButton('编辑', '✎', { action: 'edit', tone: 'edit' }));
       if (['pixiv', 'x'].includes(artwork.source_type)) {
-        actions.append(actionButton('重新抓取', { action: 'reingest' }));
+        actions.append(actionButton('重新抓取', '↻', { action: 'reingest', tone: 'sync' }));
       }
-      if (artwork.status === 'active') actions.append(actionButton('隐藏', { status: 'hidden' }));
-      if (artwork.status === 'hidden') actions.append(actionButton('恢复展出', { status: 'active' }));
+      if (artwork.status === 'active') {
+        actions.append(actionButton('隐藏', '◐', { status: 'hidden', tone: 'visibility' }));
+      }
+      if (artwork.status === 'hidden') {
+        actions.append(actionButton('恢复展出', '↺', { status: 'active', tone: 'restore' }));
+      }
       if (artwork.status !== 'deleted') {
-        actions.append(actionButton('移入回收站', { status: 'deleted', danger: true }));
+        actions.append(actionButton('移入回收站', '×', { status: 'deleted', tone: 'danger' }));
       } else {
-        actions.append(actionButton('恢复', { status: 'active' }));
+        actions.append(actionButton('恢复', '↺', { status: 'active', tone: 'restore' }));
       }
 
       body.append(meta, title, author, tags, actions);
@@ -497,8 +543,18 @@ import '../styles/admin.css';
       secretInput.focus();
     });
 
-    document.querySelector('#refresh-runs')?.addEventListener('click', () => {
-      loadRuns().catch((error) => showToast(error instanceof Error ? error.message : '无法刷新采集记录', true));
+    refreshRunsButton.addEventListener('click', async () => {
+      refreshRunsButton.disabled = true;
+      refreshRunsButton.classList.add('is-loading');
+      try {
+        await loadRuns();
+        showToast('采集记录已刷新。');
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : '无法刷新采集记录', true);
+      } finally {
+        refreshRunsButton.disabled = false;
+        refreshRunsButton.classList.remove('is-loading');
+      }
     });
 
     document.querySelector<HTMLFormElement>('#ingest-form')?.addEventListener('submit', async (event) => {
