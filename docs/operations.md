@@ -74,7 +74,7 @@ curl --request POST https://sesese.se/api/ingest \
 ## 更新与删除
 
 - 管理入口：部署后访问 `https://sesese.se/admin/`，输入 Worker 的 `INGEST_WEBHOOK_SECRET`。验证通过前，页面不会读取藏品资料，也不会显示管理功能。默认只在当前标签页保留登录状态；勾选“保持登录”后，关闭浏览器再打开也能直接进入。
-- 更新元数据：在管理台填写需要手动修改的内容；空白内容也可作为明确的修改结果。勾选“使用原站内容”会删除对应的手动修改。重新抓取只更新来源数据，不会覆盖手动修改。
+- 更新元数据：在管理台填写需要手动修改的内容；空白内容也可作为明确的修改结果。勾选“使用原站内容”会删除对应的手动修改。重新抓取只更新来源数据，不会覆盖手动修改。保存会立即提交到 GitHub，并自动触发 `Deploy to Cloudflare Workers`，通常约半分钟完成；管理台会一直显示发布状态，直到上线或失败。
 - 重新抓图：运行采集工作流并打开 `force`；由于对象 URL 可能已缓存，生产环境应在上传后清除对应路径缓存。
 - 更换多图作品的展示页：重新运行采集工作流并填写新的 `display_image`；元数据中只保留新选中的页。
 - 隐藏作品：状态改为 `hidden`，公开页面不再生成该作品，但可以随时恢复。
@@ -84,7 +84,7 @@ curl --request POST https://sesese.se/api/ingest \
 
 管理 API 继续复用 Worker 中已有的 `GITHUB_TOKEN` 和 `INGEST_WEBHOOK_SECRET`，不需要新建 Secret。`GITHUB_TOKEN` 需要目标仓库的 Actions 写入和 Contents 读写权限。
 
-如果管理页提示缺少 Secret，请打开 Cloudflare Dashboard → Workers & Pages → `sesese-se` → Settings → Variables and Secrets，确认 Production 环境中存在以下两个加密变量：
+如果管理页提示缺少 Secret，请打开 Cloudflare Dashboard → Workers & Pages → `sesese-se` → Settings → Variables and Secrets，确认 Production 环境中存在以下两个变量，并且类型必须选择 **Secret**，不能选择普通文本变量：
 
 - `INGEST_WEBHOOK_SECRET`：管理页登录使用的访问密钥；
 - `GITHUB_TOKEN`：管理台读取、修改仓库和启动 Actions 使用的 GitHub token。
@@ -97,6 +97,8 @@ npx wrangler secret put GITHUB_TOKEN
 ```
 
 修改 Secret 后不必重新构建网站；刷新管理页即可。接口现在会明确指出缺少哪一个变量。
+
+`wrangler.jsonc` 已把这两个名称声明为必需 Secret：缺少任意一个时，后续部署会直接失败，不再发布一个无法登录管理台的新版本。配置同时启用了 `keep_vars`，避免仓库部署覆盖临时保存在 Cloudflare 控制台中的普通变量；敏感值仍必须使用 Secret。
 
 建议再给管理页面增加一层 Cloudflare Access：
 

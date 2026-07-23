@@ -3,6 +3,13 @@
   "name": "sesese-se",
   "compatibility_date": "2026-07-22",
   "main": "./src/worker.ts",
+  "keep_vars": true,
+  "secrets": {
+    "required": [
+      "GITHUB_TOKEN",
+      "INGEST_WEBHOOK_SECRET"
+    ]
+  },
   "vars": {
     "GITHUB_OWNER": "longmeidao",
     "GITHUB_REPO": "sesese-se",

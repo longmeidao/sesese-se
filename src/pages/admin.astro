@@ -146,10 +146,11 @@ import '../styles/admin.css';
       <dialog id="edit-artwork-dialog" class="admin-dialog">
         <form id="edit-artwork-form" method="dialog">
           <div class="admin-dialog__heading">
-            <div>
-              <p class="admin-panel__eyebrow">手动修改</p>
-              <h2 id="edit-artwork-title">编辑藏品</h2>
-            </div>
+          <div>
+            <p class="admin-panel__eyebrow">手动修改</p>
+            <h2 id="edit-artwork-title">编辑藏品</h2>
+            <p class="admin-dialog__hint">保存后会自动发布，通常半分钟左右可以在展厅看到。</p>
+          </div>
             <button type="button" data-close-dialog class="admin-dialog__close" aria-label="关闭">×</button>
           </div>
           <input name="id" type="hidden" />
@@ -220,6 +221,13 @@ import '../styles/admin.css';
       created_at: string;
     };
 
+    type DeploymentRun = {
+      id: number;
+      status: string;
+      conclusion: string | null;
+      url: string;
+    };
+
     const sessionKey = 'sesese-admin-secret';
     const persistentKey = 'sesese-admin-secret-remembered';
     const login = document.querySelector<HTMLElement>('#admin-login')!;
@@ -238,12 +246,16 @@ import '../styles/admin.css';
     let secret = '';
     let artworks: AdminArtwork[] = [];
     let artworkById = new Map<string, AdminArtwork>();
+    let toastTimer: number | undefined;
 
-    function showToast(message: string, error = false) {
+    function showToast(message: string, error = false, autoHide = true) {
+      if (toastTimer) window.clearTimeout(toastTimer);
       toast.textContent = message;
       toast.dataset.error = String(error);
       toast.hidden = false;
-      window.setTimeout(() => { toast.hidden = true; }, 4200);
+      if (autoHide) {
+        toastTimer = window.setTimeout(() => { toast.hidden = true; }, 5200);
+      }
     }
 
     async function requestApi(secretValue: string, path: string, init: RequestInit = {}) {
@@ -263,6 +275,38 @@ import '../styles/admin.css';
     function api(path: string, init: RequestInit = {}) {
       if (!secret) throw new Error('登录状态已失效，请重新进入管理台。');
       return requestApi(secret, path, init);
+    }
+
+    function wait(milliseconds: number) {
+      return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+    }
+
+    async function watchDeployment(commitSha: string) {
+      if (!/^[a-f0-9]{40}$/.test(commitSha)) {
+        showToast('更改已保存。网站通常会在半分钟左右更新。');
+        return;
+      }
+
+      showToast('更改已保存，正在发布…', false, false);
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        await wait(attempt === 0 ? 1800 : 3000);
+        try {
+          const result = await api(`/api/admin/deployments/${commitSha}`);
+          const deployment = result.deployment as DeploymentRun | null;
+          if (!deployment || deployment.status !== 'completed') continue;
+          if (deployment.conclusion === 'success') {
+            showToast('已经上线，刷新展厅即可看到。');
+          } else {
+            showToast('发布没有完成，请到 GitHub Actions 查看详情。', true, false);
+          }
+          return;
+        } catch {
+          showToast('更改已保存，但暂时无法读取发布状态。请稍后刷新展厅。', true);
+          return;
+        }
+      }
+
+      showToast('发布所需时间比平时更长，请稍后刷新展厅。', true);
     }
 
     function setLoginBusy(busy: boolean, message = '') {
@@ -540,7 +584,7 @@ import '../styles/admin.css';
       }
       output.textContent = '正在保存…';
       try {
-        await api(`/api/admin/artworks/${encodeURIComponent(id)}`, {
+        const result = await api(`/api/admin/artworks/${encodeURIComponent(id)}`, {
           method: 'PATCH',
           body: JSON.stringify({ overrides }),
         });
@@ -556,8 +600,8 @@ import '../styles/admin.css';
           };
           renderArtworks();
         }
-        output.textContent = '更改已保存，网站更新后生效。';
-        showToast('更改已保存。');
+        output.textContent = '已保存到 GitHub，正在发布…';
+        watchDeployment(String(result.commit_sha ?? ''));
         window.setTimeout(() => dialog.close(), 900);
       } catch (error) {
         output.textContent = error instanceof Error ? error.message : '保存失败';
@@ -612,13 +656,13 @@ import '../styles/admin.css';
       card.classList.add('admin-artwork--pending');
       button.disabled = true;
       try {
-        await api(`/api/admin/artworks/${encodeURIComponent(id)}`, {
+        const result = await api(`/api/admin/artworks/${encodeURIComponent(id)}`, {
           method: 'PATCH',
           body: JSON.stringify({ status: nextStatus }),
         });
         artwork.status = nextStatus;
         renderArtworks();
-        showToast('状态已保存，网站更新后生效。');
+        watchDeployment(String(result.commit_sha ?? ''));
       } catch (error) {
         card.classList.remove('admin-artwork--pending');
         button.disabled = false;

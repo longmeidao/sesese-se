@@ -139,6 +139,12 @@ async function githubContent(id: string, env: Env): Promise<{ file: GitHubConten
 
   if (!response.ok) {
     const detail = (await response.text()).slice(0, 500);
+    if (response.status === 401) {
+      throw new ApiError('GITHUB_TOKEN 无效或已经过期', 502, detail);
+    }
+    if (response.status === 403) {
+      throw new ApiError('GITHUB_TOKEN 没有读取仓库 Contents 的权限', 502, detail);
+    }
     throw new ApiError('无法从 GitHub 读取藏品资料', response.status === 404 ? 404 : 502, detail);
   }
 
@@ -301,6 +307,12 @@ async function commitArtwork(
     if (response.status === 409) {
       throw new ApiError('保存期间资料已被其他任务更新，请刷新后重试', 409, detail);
     }
+    if (response.status === 401) {
+      throw new ApiError('GITHUB_TOKEN 无效或已经过期', 502, detail);
+    }
+    if (response.status === 403) {
+      throw new ApiError('GITHUB_TOKEN 没有仓库 Contents 写入权限', 502, detail);
+    }
     throw new ApiError('无法把修改保存到 GitHub', 502, detail);
   }
 
@@ -394,6 +406,12 @@ async function dispatchIngest(input: IngestRequest, env: Env): Promise<Response>
 
   if (!response.ok) {
     const detail = (await response.text()).slice(0, 500);
+    if (response.status === 401) {
+      throw new ApiError('GITHUB_TOKEN 无效或已经过期', 502, detail);
+    }
+    if (response.status === 403) {
+      throw new ApiError('GITHUB_TOKEN 没有启动 GitHub Actions 的权限', 502, detail);
+    }
     throw new ApiError('无法启动 GitHub 采集任务', 502, { status: response.status, detail });
   }
 
@@ -535,6 +553,48 @@ async function recentRuns(env: Env): Promise<Response> {
   });
 }
 
+async function deploymentStatus(commitSha: string, env: Env): Promise<Response> {
+  if (!/^[a-f0-9]{40}$/.test(commitSha)) {
+    throw new ApiError('提交编号格式不正确');
+  }
+
+  const { owner, repo } = repository(env);
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/actions/workflows/deploy.yml/runs?head_sha=${commitSha}&per_page=5`,
+    { headers: githubHeaders(env) },
+  );
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 500);
+    throw new ApiError('无法读取网站发布状态', 502, detail);
+  }
+
+  const result = await response.json() as {
+    workflow_runs?: Array<{
+      id: number;
+      head_sha: string;
+      status: string;
+      conclusion: string | null;
+      html_url: string;
+      created_at: string;
+      updated_at: string;
+    }>;
+  };
+  const run = (result.workflow_runs ?? []).find((item) => item.head_sha === commitSha);
+
+  return json({
+    deployment: run
+      ? {
+          id: run.id,
+          status: run.status,
+          conclusion: run.conclusion,
+          url: run.html_url,
+          created_at: run.created_at,
+          updated_at: run.updated_at,
+        }
+      : null,
+  });
+}
+
 async function handleApi(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
 
@@ -560,6 +620,12 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     if (url.pathname === '/api/admin/reingest') {
       if (request.method !== 'POST') throw new ApiError('不支持这种请求方式', 405);
       return reingestArtwork(request, env);
+    }
+
+    const deploymentMatch = url.pathname.match(/^\/api\/admin\/deployments\/([a-f0-9]{40})$/);
+    if (deploymentMatch) {
+      if (request.method !== 'GET') throw new ApiError('不支持这种请求方式', 405);
+      return deploymentStatus(deploymentMatch[1], env);
     }
 
     const match = url.pathname.match(/^\/api\/admin\/artworks\/([^/]+)$/);

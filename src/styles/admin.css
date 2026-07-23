@@ -563,6 +563,14 @@ body:has(.admin-page) {
   cursor: pointer;
 }
 
+.admin-dialog__hint {
+  max-width: 28rem;
+  margin: 0.45rem 0 0;
+  color: #8d887f;
+  font-size: 0.64rem;
+  line-height: 1.55;
+}
+
 .admin-override {
   display: grid;
   gap: 0.5rem;
