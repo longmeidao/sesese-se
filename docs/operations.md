@@ -8,7 +8,7 @@
 4. 在 Cloudflare Cache Rules 中为 `media.sesese.se/*` 启用缓存，并开启 Smart Tiered Cache。
 5. 创建 Workers API Token，只授予部署 `sesese-se` Worker 所需权限。
 6. 在 GitHub 添加 README 中列出的 Secrets 与 Variables；`X_BEARER_TOKEN` 不填即使用免费的 FxTwitter 兜底。
-7. 为 Worker 添加 `GITHUB_TOKEN` 和 `INGEST_WEBHOOK_SECRET` 两个加密 Secret。
+7. 在 Cloudflare 的 `sesese-se` Worker 中添加 `GITHUB_TOKEN` 和 `INGEST_WEBHOOK_SECRET` 两个加密 Secret。它们是 Worker 运行时变量，不是 GitHub Actions Secret，也不要只设置在 Preview 环境。
 8. 运行 `Migrate existing media to R2`。该工作流会强制重建已有响应式图片，以便压缩参数升级后真正替换旧文件。
 9. 运行 `Deploy to Cloudflare Workers`。
 10. 在 Workers 设置中连接 `sesese.se` 和 `www.sesese.se` 自定义域名。
@@ -73,8 +73,8 @@ curl --request POST https://sesese.se/api/ingest \
 
 ## 更新与删除
 
-- 管理入口：部署后访问 `https://sesese.se/admin/`，输入 Worker 的 `INGEST_WEBHOOK_SECRET`。密钥默认只保存在当前标签页；勾选“记住”后才写入该设备的浏览器存储。
-- 更新元数据：在管理台填写人工覆盖字段；空白内容也可作为显式覆盖，勾选“沿用自动抓取”则删除覆盖。重新抓取只更新来源数据，不会覆盖人工字段。
+- 管理入口：部署后访问 `https://sesese.se/admin/`，输入 Worker 的 `INGEST_WEBHOOK_SECRET`。验证通过前，页面不会读取藏品资料，也不会显示管理功能。默认只在当前标签页保留登录状态；勾选“保持登录”后，关闭浏览器再打开也能直接进入。
+- 更新元数据：在管理台填写需要手动修改的内容；空白内容也可作为明确的修改结果。勾选“使用原站内容”会删除对应的手动修改。重新抓取只更新来源数据，不会覆盖手动修改。
 - 重新抓图：运行采集工作流并打开 `force`；由于对象 URL 可能已缓存，生产环境应在上传后清除对应路径缓存。
 - 更换多图作品的展示页：重新运行采集工作流并填写新的 `display_image`；元数据中只保留新选中的页。
 - 隐藏作品：状态改为 `hidden`，公开页面不再生成该作品，但可以随时恢复。
@@ -83,6 +83,20 @@ curl --request POST https://sesese.se/api/ingest \
 ## 管理台部署后设置
 
 管理 API 继续复用 Worker 中已有的 `GITHUB_TOKEN` 和 `INGEST_WEBHOOK_SECRET`，不需要新建 Secret。`GITHUB_TOKEN` 需要目标仓库的 Actions 写入和 Contents 读写权限。
+
+如果管理页提示缺少 Secret，请打开 Cloudflare Dashboard → Workers & Pages → `sesese-se` → Settings → Variables and Secrets，确认 Production 环境中存在以下两个加密变量：
+
+- `INGEST_WEBHOOK_SECRET`：管理页登录使用的访问密钥；
+- `GITHUB_TOKEN`：管理台读取、修改仓库和启动 Actions 使用的 GitHub token。
+
+也可以在已经设置好 `CLOUDFLARE_API_TOKEN` 的终端中执行：
+
+```bash
+npx wrangler secret put INGEST_WEBHOOK_SECRET
+npx wrangler secret put GITHUB_TOKEN
+```
+
+修改 Secret 后不必重新构建网站；刷新管理页即可。接口现在会明确指出缺少哪一个变量。
 
 建议再给管理页面增加一层 Cloudflare Access：
 

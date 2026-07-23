@@ -25,6 +25,12 @@ interface GitHubContent {
   encoding: 'base64';
 }
 
+interface GitHubDirectoryEntry {
+  name: string;
+  path: string;
+  type: string;
+}
+
 type ArtworkStatus = 'active' | 'hidden' | 'deleted';
 
 class ApiError extends Error {
@@ -61,14 +67,14 @@ function safeEqual(left: string, right: string): boolean {
 }
 
 function requireAdmin(request: Request, env: Env): void {
-  if (!env.INGEST_WEBHOOK_SECRET || !env.GITHUB_TOKEN) {
-    throw new ApiError('Worker secrets are not configured', 503);
+  if (!env.INGEST_WEBHOOK_SECRET) {
+    throw new ApiError('Cloudflare Worker 缺少 INGEST_WEBHOOK_SECRET', 503);
   }
 
   const authorization = request.headers.get('authorization') ?? '';
   const suppliedSecret = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
   if (!safeEqual(suppliedSecret, env.INGEST_WEBHOOK_SECRET)) {
-    throw new ApiError('Unauthorized', 401);
+    throw new ApiError('访问密钥不正确', 401);
   }
 }
 
@@ -76,7 +82,7 @@ async function readJson<T>(request: Request): Promise<T> {
   try {
     return await request.json() as T;
   } catch {
-    throw new ApiError('Request body must be JSON');
+    throw new ApiError('请求内容格式不正确');
   }
 }
 
@@ -89,6 +95,10 @@ function repository(env: Env) {
 }
 
 function githubHeaders(env: Env): HeadersInit {
+  if (!env.GITHUB_TOKEN) {
+    throw new ApiError('Cloudflare Worker 缺少 GITHUB_TOKEN', 503);
+  }
+
   return {
     accept: 'application/vnd.github+json',
     authorization: `Bearer ${env.GITHUB_TOKEN}`,
@@ -113,7 +123,7 @@ function encodeBase64(value: string): string {
 
 function validateArtworkId(value: string): string {
   if (!/^(pixiv|x|danbooru|other)-[a-zA-Z0-9._-]{1,180}$/.test(value)) {
-    throw new ApiError('Invalid artwork id');
+    throw new ApiError('藏品编号格式不正确');
   }
   return value;
 }
@@ -129,25 +139,141 @@ async function githubContent(id: string, env: Env): Promise<{ file: GitHubConten
 
   if (!response.ok) {
     const detail = (await response.text()).slice(0, 500);
-    throw new ApiError('Unable to read artwork metadata from GitHub', response.status === 404 ? 404 : 502, detail);
+    throw new ApiError('无法从 GitHub 读取藏品资料', response.status === 404 ? 404 : 502, detail);
   }
 
   const file = await response.json() as GitHubContent;
   if (file.encoding !== 'base64' || !file.content || !file.sha) {
-    throw new ApiError('GitHub returned an unsupported content response', 502);
+    throw new ApiError('GitHub 返回了无法识别的文件内容', 502);
   }
 
   let artwork: Record<string, unknown>;
   try {
     artwork = JSON.parse(decodeBase64(file.content)) as Record<string, unknown>;
   } catch {
-    throw new ApiError('Artwork metadata is not valid JSON', 502);
+    throw new ApiError('藏品资料不是有效的 JSON', 502);
   }
   if (artwork.schema_version !== 2 || artwork.id !== safeId) {
-    throw new ApiError('Artwork metadata does not match the requested id', 409);
+    throw new ApiError('藏品资料与请求的编号不一致', 409);
   }
 
   return { file, artwork };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function textOnly(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  return value
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .trim();
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+}
+
+function adminArtwork(artwork: Record<string, unknown>) {
+  const id = validateArtworkId(String(artwork.id ?? ''));
+  const source = isRecord(artwork.source) ? artwork.source : {};
+  const author = isRecord(artwork.author) ? artwork.author : {};
+  const overrides = isRecord(artwork.overrides) ? artwork.overrides : {};
+  const displayImageIndex = Number(artwork.display_image_index ?? 1);
+  const mediaItems = Array.isArray(artwork.media) ? artwork.media.filter(isRecord) : [];
+  const selectedMedia = mediaItems.find((item) => Number(item.index) === displayImageIndex) ?? mediaItems[0];
+  if (!selectedMedia) throw new ApiError(`藏品 ${id} 没有可用的图片资料`, 502);
+
+  const variants = Array.isArray(selectedMedia.variants)
+    ? selectedMedia.variants.filter(isRecord)
+    : [];
+  const preferred = variants.filter((variant) => variant.format === 'webp');
+  const candidates = preferred.length > 0 ? preferred : variants;
+  const variant = [...candidates].sort((left, right) => Number(left.width ?? 0) - Number(right.width ?? 0)).at(-1);
+  if (!variant || typeof variant.key !== 'string') {
+    throw new ApiError(`藏品 ${id} 没有可用的图片地址`, 502);
+  }
+
+  const sourceTitle = typeof artwork.title === 'string' ? artwork.title : id;
+  const sourceDescription = textOnly(artwork.description);
+  const sourceTags = stringList(artwork.tags);
+  const sourceAuthorName = typeof author.name === 'string' ? author.name : '';
+  const overrideTitle = typeof overrides.title === 'string' ? overrides.title : undefined;
+  const overrideDescription = typeof overrides.description === 'string' ? overrides.description : undefined;
+  const overrideTags = Array.isArray(overrides.tags) ? stringList(overrides.tags) : undefined;
+  const overrideAuthorName = typeof overrides.author_name === 'string' ? overrides.author_name : undefined;
+  const statusValue = String(artwork.status ?? 'active');
+  const status: ArtworkStatus = ['active', 'hidden', 'deleted'].includes(statusValue)
+    ? statusValue as ArtworkStatus
+    : 'active';
+
+  return {
+    id,
+    sequence: Number(artwork.sequence ?? 0),
+    status,
+    deleted_at: typeof artwork.deleted_at === 'string' ? artwork.deleted_at : undefined,
+    source_type: typeof source.type === 'string' ? source.type : 'other',
+    source_url: typeof source.url === 'string' ? source.url : '',
+    display_image_index: displayImageIndex,
+    image: `https://media.sesese.se/${variant.key.replace(/^\//, '')}`,
+    source: {
+      title: sourceTitle,
+      description: sourceDescription,
+      tags: sourceTags,
+      author_name: sourceAuthorName,
+    },
+    overrides: {
+      ...(overrideTitle !== undefined ? { title: overrideTitle } : {}),
+      ...(overrideDescription !== undefined ? { description: overrideDescription } : {}),
+      ...(overrideTags !== undefined ? { tags: overrideTags } : {}),
+      ...(overrideAuthorName !== undefined ? { author_name: overrideAuthorName } : {}),
+    },
+    effective: {
+      title: overrideTitle ?? sourceTitle,
+      description: overrideDescription ?? sourceDescription,
+      tags: overrideTags ?? sourceTags,
+      author_name: overrideAuthorName ?? sourceAuthorName,
+    },
+  };
+}
+
+async function listAdminArtworks(env: Env): Promise<Response> {
+  const { owner, repo, ref } = repository(env);
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/contents/src/content/artworks?ref=${encodeURIComponent(ref)}`,
+    { headers: githubHeaders(env) },
+  );
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 500);
+    throw new ApiError('无法从 GitHub 读取藏品目录', 502, detail);
+  }
+
+  const entries = await response.json() as GitHubDirectoryEntry[];
+  if (!Array.isArray(entries)) throw new ApiError('GitHub 返回了无法识别的藏品目录', 502);
+  const ids = entries
+    .filter((entry) => entry.type === 'file' && entry.name.endsWith('.json'))
+    .map((entry) => entry.name.slice(0, -5))
+    .filter((id) => /^(pixiv|x|danbooru|other)-/.test(id));
+
+  const artworks: ReturnType<typeof adminArtwork>[] = [];
+  for (let index = 0; index < ids.length; index += 5) {
+    const batch = await Promise.all(
+      ids.slice(index, index + 5).map(async (id) => adminArtwork((await githubContent(id, env)).artwork)),
+    );
+    artworks.push(...batch);
+  }
+
+  artworks.sort((left, right) => right.sequence - left.sequence);
+  return json({ artworks });
 }
 
 async function commitArtwork(
@@ -173,9 +299,9 @@ async function commitArtwork(
   if (!response.ok) {
     const detail = (await response.text()).slice(0, 500);
     if (response.status === 409) {
-      throw new ApiError('Metadata changed while you were editing. Refresh and try again.', 409, detail);
+      throw new ApiError('保存期间资料已被其他任务更新，请刷新后重试', 409, detail);
     }
-    throw new ApiError('GitHub metadata update failed', 502, detail);
+    throw new ApiError('无法把修改保存到 GitHub', 502, detail);
   }
 
   const result = await response.json() as { commit?: { sha?: string } };
@@ -225,12 +351,12 @@ function validateIngest(input: IngestRequest): {
   displayImage: number;
 } {
   if (typeof input.url !== 'string' || input.url.length > 2048) {
-    throw new ApiError('url is required and must be shorter than 2048 characters');
+    throw new ApiError('请填写不超过 2048 个字符的作品链接');
   }
 
   const displayImage = input.display_image ?? 1;
   if (!Number.isInteger(displayImage) || displayImage < 1 || displayImage > 100) {
-    throw new ApiError('display_image must be an integer between 1 and 100');
+    throw new ApiError('展示页码必须是 1 到 100 之间的整数');
   }
 
   const parsed = classifySource(input.url);
@@ -268,7 +394,7 @@ async function dispatchIngest(input: IngestRequest, env: Env): Promise<Response>
 
   if (!response.ok) {
     const detail = (await response.text()).slice(0, 500);
-    throw new ApiError('GitHub workflow dispatch failed', 502, { status: response.status, detail });
+    throw new ApiError('无法启动 GitHub 采集任务', 502, { status: response.status, detail });
   }
 
   return json({
@@ -282,18 +408,18 @@ async function dispatchIngest(input: IngestRequest, env: Env): Promise<Response>
 
 function sanitizeString(value: unknown, label: string, maximum: number): string | null {
   if (value === null) return null;
-  if (typeof value !== 'string') throw new ApiError(`${label} must be a string or null`);
-  if (value.length > maximum) throw new ApiError(`${label} is too long`);
+  if (typeof value !== 'string') throw new ApiError(`${label} 的内容格式不正确`);
+  if (value.length > maximum) throw new ApiError(`${label} 的内容过长`);
   return value;
 }
 
 function sanitizeTags(value: unknown): string[] | null {
   if (value === null) return null;
-  if (!Array.isArray(value) || value.length > 50) throw new ApiError('tags must be an array with at most 50 items');
+  if (!Array.isArray(value) || value.length > 50) throw new ApiError('标签不能超过 50 个');
   const tags = value.map((item) => {
-    if (typeof item !== 'string') throw new ApiError('every tag must be a string');
+    if (typeof item !== 'string') throw new ApiError('标签内容格式不正确');
     const tag = item.trim().replace(/^#/, '');
-    if (!tag || tag.length > 100) throw new ApiError('tags must be between 1 and 100 characters');
+    if (!tag || tag.length > 100) throw new ApiError('每个标签应为 1 到 100 个字符');
     return tag;
   });
   return [...new Set(tags)];
@@ -309,12 +435,12 @@ async function updateArtwork(request: Request, id: string, env: Env): Promise<Re
     };
     status?: ArtworkStatus;
   }>(request);
-  if (!input.overrides && !input.status) throw new ApiError('No editable fields were supplied');
+  if (!input.overrides && !input.status) throw new ApiError('没有需要保存的修改');
   if (
     input.overrides
     && (typeof input.overrides !== 'object' || Array.isArray(input.overrides))
   ) {
-    throw new ApiError('overrides must be an object');
+    throw new ApiError('手动修改的内容格式不正确');
   }
 
   const { file, artwork } = await githubContent(id, env);
@@ -339,7 +465,7 @@ async function updateArtwork(request: Request, id: string, env: Env): Promise<Re
   }
 
   if (input.status) {
-    if (!['active', 'hidden', 'deleted'].includes(input.status)) throw new ApiError('Invalid artwork status');
+    if (!['active', 'hidden', 'deleted'].includes(input.status)) throw new ApiError('藏品状态不正确');
     artwork.status = input.status;
     if (input.status === 'deleted') artwork.deleted_at = new Date().toISOString();
     else delete artwork.deleted_at;
@@ -358,11 +484,11 @@ async function updateArtwork(request: Request, id: string, env: Env): Promise<Re
 
 async function reingestArtwork(request: Request, env: Env): Promise<Response> {
   const input = await readJson<{ id?: string; display_image?: number }>(request);
-  if (!input.id) throw new ApiError('id is required');
+  if (!input.id) throw new ApiError('缺少藏品编号');
   const { artwork } = await githubContent(input.id, env);
   const source = artwork.source as { type?: string; url?: string } | undefined;
   if (!source?.url || !['pixiv', 'x'].includes(source.type ?? '')) {
-    throw new ApiError('Only Pixiv and X artworks can currently be automatically re-fetched');
+    throw new ApiError('目前只有 Pixiv 和 X 作品可以自动重新抓取');
   }
 
   return dispatchIngest({
@@ -380,7 +506,7 @@ async function recentRuns(env: Env): Promise<Response> {
   );
   if (!response.ok) {
     const detail = (await response.text()).slice(0, 500);
-    throw new ApiError('Unable to read recent ingestion runs', 502, detail);
+    throw new ApiError('无法读取最近的采集记录', 502, detail);
   }
 
   const result = await response.json() as {
@@ -413,7 +539,7 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
 
   if (url.pathname === '/api/ingest') {
-    if (request.method !== 'POST') throw new ApiError('Method not allowed', 405);
+    if (request.method !== 'POST') throw new ApiError('不支持这种请求方式', 405);
     requireAdmin(request, env);
     return dispatchIngest(await readJson<IngestRequest>(request), env);
   }
@@ -421,24 +547,29 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
   if (url.pathname.startsWith('/api/admin/')) {
     requireAdmin(request, env);
 
+    if (url.pathname === '/api/admin/artworks') {
+      if (request.method !== 'GET') throw new ApiError('不支持这种请求方式', 405);
+      return listAdminArtworks(env);
+    }
+
     if (url.pathname === '/api/admin/runs') {
-      if (request.method !== 'GET') throw new ApiError('Method not allowed', 405);
+      if (request.method !== 'GET') throw new ApiError('不支持这种请求方式', 405);
       return recentRuns(env);
     }
 
     if (url.pathname === '/api/admin/reingest') {
-      if (request.method !== 'POST') throw new ApiError('Method not allowed', 405);
+      if (request.method !== 'POST') throw new ApiError('不支持这种请求方式', 405);
       return reingestArtwork(request, env);
     }
 
     const match = url.pathname.match(/^\/api\/admin\/artworks\/([^/]+)$/);
     if (match) {
-      if (request.method !== 'PATCH') throw new ApiError('Method not allowed', 405);
+      if (request.method !== 'PATCH') throw new ApiError('不支持这种请求方式', 405);
       return updateArtwork(request, decodeURIComponent(match[1]), env);
     }
   }
 
-  throw new ApiError('Not found', 404);
+  throw new ApiError('请求的管理功能不存在', 404);
 }
 
 export default {
@@ -453,7 +584,7 @@ export default {
         return json({ error: error.message, detail: error.detail }, error.status);
       }
       console.error(error);
-      return json({ error: 'Internal server error' }, 500);
+      return json({ error: '服务器处理请求时出现了问题' }, 500);
     }
   },
 };

@@ -1,8 +1,70 @@
-body:has(.admin-shell) {
+body:has(.admin-page) {
   min-height: 100vh;
   overflow-x: hidden;
   color: #e8e4da;
   background-color: #0d0d0b;
+}
+
+.admin-page {
+  min-height: 100vh;
+}
+
+.admin-page [hidden] {
+  display: none !important;
+}
+
+.admin-login {
+  display: grid;
+  min-height: 100svh;
+  padding: clamp(1rem, 5vw, 4rem);
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(150, 112, 66, 0.14), transparent 34rem),
+    #0d0d0b;
+}
+
+.admin-login__panel {
+  width: min(29rem, 100%);
+  padding: clamp(1.35rem, 5vw, 2.8rem);
+  background: rgba(27, 26, 22, 0.9);
+  border: 1px solid rgba(239, 234, 223, 0.13);
+  box-shadow: 0 2rem 7rem rgba(0, 0, 0, 0.5);
+}
+
+.admin-login h1 {
+  margin: 0;
+  font-family: "Songti SC", "Noto Serif CJK SC", Georgia, serif;
+  font-size: clamp(2.2rem, 9vw, 4rem);
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.admin-login__intro {
+  max-width: 23rem;
+  margin: 1rem 0 0;
+  color: #aaa398;
+  font-size: 0.76rem;
+  line-height: 1.75;
+}
+
+.admin-login__form {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 2rem;
+}
+
+.admin-login__form small {
+  margin-top: -0.45rem;
+  color: #7f7a72;
+  font-size: 0.62rem;
+  line-height: 1.5;
+}
+
+.admin-login__form output {
+  min-height: 1.2rem;
+  color: #d29a8f;
+  font-size: 0.7rem;
+  line-height: 1.5;
 }
 
 .admin-shell {
@@ -18,6 +80,12 @@ body:has(.admin-shell) {
   align-items: end;
   justify-content: space-between;
   margin-bottom: 2rem;
+}
+
+.admin-header__side {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: end;
 }
 
 .admin-header__back,
@@ -149,7 +217,7 @@ body:has(.admin-shell) {
 
 .admin-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 8rem;
+  grid-template-columns: minmax(0, 1fr) max-content;
   gap: 0.85rem;
   margin-top: 1.2rem;
 }
@@ -172,9 +240,14 @@ body:has(.admin-shell) {
   grid-column: 1 / -1;
 }
 
+.admin-field--index {
+  width: 4.75rem;
+}
+
 .admin-shell input,
 .admin-shell textarea,
 .admin-shell select,
+.admin-login input,
 .admin-dialog input,
 .admin-dialog textarea {
   width: 100%;
@@ -188,9 +261,19 @@ body:has(.admin-shell) {
   outline: none;
 }
 
+.admin-shell input:not([type="checkbox"]):not([type="hidden"]),
+.admin-shell select,
+.admin-login input:not([type="checkbox"]),
+.admin-dialog input:not([type="checkbox"]):not([type="hidden"]) {
+  box-sizing: border-box;
+  height: 2.75rem;
+  line-height: 1.2;
+}
+
 .admin-shell input:focus,
 .admin-shell textarea:focus,
 .admin-shell select:focus,
+.admin-login input:focus,
 .admin-dialog input:focus,
 .admin-dialog textarea:focus {
   border-color: rgba(213, 168, 103, 0.66);
@@ -221,7 +304,7 @@ body:has(.admin-shell) {
 }
 
 .admin-button {
-  min-height: 2.45rem;
+  min-height: 2.75rem;
   padding: 0 0.9rem;
   color: #d8d2c7;
   font: inherit;
@@ -335,6 +418,10 @@ body:has(.admin-shell) {
   display: grid;
   grid-template-columns: minmax(14rem, 22rem) 9rem;
   gap: 0.7rem;
+}
+
+.admin-filters label {
+  display: grid;
 }
 
 .admin-artwork-grid {
@@ -551,6 +638,10 @@ body:has(.admin-shell) {
     justify-content: flex-start;
   }
 
+  .admin-header__side {
+    justify-items: start;
+  }
+
   .admin-auth,
   .admin-workspace {
     grid-template-columns: 1fr;
@@ -558,6 +649,14 @@ body:has(.admin-shell) {
 }
 
 @media (max-width: 640px) {
+  .admin-login {
+    padding: 0.75rem;
+  }
+
+  .admin-login__panel {
+    padding: 1.4rem;
+  }
+
   .admin-shell {
     padding-top: 1.25rem;
   }
