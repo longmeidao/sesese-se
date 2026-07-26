@@ -43,20 +43,6 @@ import '../styles/admin.css';
           <p class="admin-kicker">PRIVATE COLLECTION DESK</p>
           <h1>藏品管理</h1>
         </div>
-        <div class="admin-summary" aria-label="藏品状态统计">
-          <span>
-            <small>展出中</small>
-            <strong id="active-count">0</strong>
-          </span>
-          <span>
-            <small>已隐藏</small>
-            <strong id="hidden-count">0</strong>
-          </span>
-          <span>
-            <small>回收站</small>
-            <strong id="deleted-count">0</strong>
-          </span>
-        </div>
         <div class="admin-header__side">
           <button id="admin-logout" type="button" class="admin-button admin-button--logout">
             <span class="admin-button__icon" aria-hidden="true">↪</span>
@@ -67,59 +53,77 @@ import '../styles/admin.css';
 
       <div class="admin-workspace">
         <section class="admin-panel admin-ingest" aria-labelledby="admin-ingest-title">
-          <div class="admin-panel__heading">
-            <div>
-              <p class="admin-panel__eyebrow">添加</p>
-              <h2 id="admin-ingest-title">收录新作品</h2>
-            </div>
-            <a href="https://github.com/longmeidao/sesese-se/actions/workflows/ingest-artwork.yml" target="_blank" rel="noopener noreferrer">
-              查看采集任务 <span aria-hidden="true">↗</span>
-            </a>
-          </div>
-          <form id="ingest-form" class="admin-form">
-            <label class="admin-field">
-              <span>Pixiv、X 或其他来源链接</span>
-              <input name="url" type="url" inputmode="url" placeholder="https://www.pixiv.net/artworks/..." required />
-            </label>
-            <label class="admin-field admin-field--index">
-              <span>展示第几张</span>
-              <input name="display_image" type="number" min="1" max="100" value="1" required />
-            </label>
-            <details class="admin-advanced">
-              <summary>补充作品信息</summary>
-              <div class="admin-advanced__grid">
-                <label class="admin-field">
-                  <span>标题</span>
-                  <input name="title" type="text" maxlength="300" />
-                </label>
-                <label class="admin-field">
-                  <span>作者名</span>
-                  <input name="author_name" type="text" maxlength="300" />
-                </label>
-                <label class="admin-field admin-field--wide">
-                  <span>作者页面</span>
-                  <input name="author_url" type="url" inputmode="url" />
-                </label>
-                <label class="admin-field admin-field--wide">
-                  <span>图片直链，每行一个</span>
-                  <textarea name="image_urls" rows="3"></textarea>
-                </label>
-                <label class="admin-field admin-field--wide">
-                  <span>作品说明</span>
-                  <textarea name="description" rows="3"></textarea>
-                </label>
-                <label class="admin-field admin-field--wide">
-                  <span>标签，以逗号分隔</span>
-                  <input name="tags" type="text" />
-                </label>
+          <div class="admin-ingest__main">
+            <div class="admin-panel__heading">
+              <div>
+                <p class="admin-panel__eyebrow">添加</p>
+                <h2 id="admin-ingest-title">收录新作品</h2>
               </div>
-            </details>
-            <button type="submit" class="admin-button admin-button--primary">
-              <span class="admin-button__icon" aria-hidden="true">＋</span>
-              <span>开始采集</span>
-            </button>
-            <output id="ingest-status" aria-live="polite"></output>
-          </form>
+              <a href="https://github.com/longmeidao/sesese-se/actions/workflows/ingest-artwork.yml" target="_blank" rel="noopener noreferrer">
+                查看采集任务 <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+            <form id="ingest-form" class="admin-form">
+              <label class="admin-field">
+                <span>Pixiv、X 或其他来源链接</span>
+                <input name="url" type="url" inputmode="url" placeholder="https://www.pixiv.net/artworks/..." required />
+              </label>
+              <label class="admin-field admin-field--index">
+                <span>展示第几张</span>
+                <input name="display_image" type="number" min="1" max="100" value="1" required />
+              </label>
+              <details class="admin-advanced">
+                <summary>补充作品信息</summary>
+                <div class="admin-advanced__grid">
+                  <label class="admin-field">
+                    <span>标题</span>
+                    <input name="title" type="text" maxlength="300" />
+                  </label>
+                  <label class="admin-field">
+                    <span>作者名</span>
+                    <input name="author_name" type="text" maxlength="300" />
+                  </label>
+                  <label class="admin-field admin-field--wide">
+                    <span>作者页面</span>
+                    <input name="author_url" type="url" inputmode="url" />
+                  </label>
+                  <label class="admin-field admin-field--wide">
+                    <span>图片直链，每行一个</span>
+                    <textarea name="image_urls" rows="3"></textarea>
+                  </label>
+                  <label class="admin-field admin-field--wide">
+                    <span>作品说明</span>
+                    <textarea name="description" rows="3"></textarea>
+                  </label>
+                  <label class="admin-field admin-field--wide">
+                    <span>标签，以逗号分隔</span>
+                    <input name="tags" type="text" />
+                  </label>
+                </div>
+              </details>
+              <button type="submit" class="admin-button admin-button--primary">
+                <span class="admin-button__icon" aria-hidden="true">＋</span>
+                <span>开始采集</span>
+              </button>
+              <output id="ingest-status" aria-live="polite"></output>
+            </form>
+          </div>
+
+          <div class="admin-summary" aria-label="藏品状态统计">
+            <p>藏品状态</p>
+            <span>
+              <small>展出中</small>
+              <strong id="active-count">0</strong>
+            </span>
+            <span>
+              <small>已隐藏</small>
+              <strong id="hidden-count">0</strong>
+            </span>
+            <span>
+              <small>回收站</small>
+              <strong id="deleted-count">0</strong>
+            </span>
+          </div>
         </section>
 
         <aside class="admin-panel admin-runs" aria-labelledby="admin-runs-title">
