@@ -43,12 +43,21 @@ import '../styles/admin.css';
           <p class="admin-kicker">PRIVATE COLLECTION DESK</p>
           <h1>藏品管理</h1>
         </div>
+        <div class="admin-summary" aria-label="藏品状态统计">
+          <span>
+            <small>展出中</small>
+            <strong id="active-count">0</strong>
+          </span>
+          <span>
+            <small>已隐藏</small>
+            <strong id="hidden-count">0</strong>
+          </span>
+          <span>
+            <small>回收站</small>
+            <strong id="deleted-count">0</strong>
+          </span>
+        </div>
         <div class="admin-header__side">
-          <div class="admin-summary" aria-label="藏品状态统计">
-            <span><strong id="active-count">0</strong> 展出中</span>
-            <span><strong id="hidden-count">0</strong> 已隐藏</span>
-            <span><strong id="deleted-count">0</strong> 回收站</span>
-          </div>
           <button id="admin-logout" type="button" class="admin-button admin-button--logout">
             <span class="admin-button__icon" aria-hidden="true">↪</span>
             <span>退出管理</span>
@@ -68,7 +77,7 @@ import '../styles/admin.css';
             </a>
           </div>
           <form id="ingest-form" class="admin-form">
-            <label class="admin-field admin-field--wide">
+            <label class="admin-field">
               <span>Pixiv、X 或其他来源链接</span>
               <input name="url" type="url" inputmode="url" placeholder="https://www.pixiv.net/artworks/..." required />
             </label>
@@ -146,15 +155,12 @@ import '../styles/admin.css';
               <span class="visually-hidden">搜索藏品</span>
               <input id="artwork-search" type="search" placeholder="搜索编号、标题、作者或标签" />
             </label>
-            <label>
-              <span class="visually-hidden">筛选状态</span>
-              <select id="artwork-status-filter">
-                <option value="all">全部状态</option>
-                <option value="active">展出中</option>
-                <option value="hidden">已隐藏</option>
-                <option value="deleted">回收站</option>
-              </select>
-            </label>
+            <div class="admin-status-filters" role="group" aria-label="筛选藏品状态">
+              <button type="button" data-status-filter="all" aria-pressed="true">全部</button>
+              <button type="button" data-status-filter="active" aria-pressed="false">展出中</button>
+              <button type="button" data-status-filter="hidden" aria-pressed="false">已隐藏</button>
+              <button type="button" data-status-filter="deleted" aria-pressed="false">回收站</button>
+            </div>
           </div>
         </div>
 
@@ -271,6 +277,7 @@ import '../styles/admin.css';
     let secret = '';
     let artworks: AdminArtwork[] = [];
     let artworkById = new Map<string, AdminArtwork>();
+    let selectedStatus = 'all';
     let toastTimer: number | undefined;
 
     function showToast(message: string, error = false, autoHide = true) {
@@ -406,12 +413,12 @@ import '../styles/admin.css';
       options: {
         action?: string;
         status?: AdminArtwork['status'];
-        tone?: 'edit' | 'sync' | 'visibility' | 'restore' | 'danger';
+        danger?: boolean;
       } = {},
     ) {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = `admin-button admin-button--small${options.tone ? ` admin-button--${options.tone}` : ''}`;
+      button.className = `admin-button admin-button--small${options.danger ? ' admin-button--danger' : ''}`;
       const iconElement = document.createElement('span');
       iconElement.className = 'admin-button__icon';
       iconElement.setAttribute('aria-hidden', 'true');
@@ -465,20 +472,20 @@ import '../styles/admin.css';
 
       const actions = document.createElement('div');
       actions.className = 'admin-artwork__actions';
-      actions.append(actionButton('编辑', '✎', { action: 'edit', tone: 'edit' }));
+      actions.append(actionButton('编辑', '✎', { action: 'edit' }));
       if (['pixiv', 'x'].includes(artwork.source_type)) {
-        actions.append(actionButton('重新抓取', '↻', { action: 'reingest', tone: 'sync' }));
+        actions.append(actionButton('重新抓取', '↻', { action: 'reingest' }));
       }
       if (artwork.status === 'active') {
-        actions.append(actionButton('隐藏', '◐', { status: 'hidden', tone: 'visibility' }));
+        actions.append(actionButton('隐藏', '◐', { status: 'hidden' }));
       }
       if (artwork.status === 'hidden') {
-        actions.append(actionButton('恢复展出', '↺', { status: 'active', tone: 'restore' }));
+        actions.append(actionButton('恢复展出', '↺', { status: 'active' }));
       }
       if (artwork.status !== 'deleted') {
-        actions.append(actionButton('移入回收站', '×', { status: 'deleted', tone: 'danger' }));
+        actions.append(actionButton('移入回收站', '×', { status: 'deleted', danger: true }));
       } else {
-        actions.append(actionButton('恢复', '↺', { status: 'active', tone: 'restore' }));
+        actions.append(actionButton('恢复', '↺', { status: 'active' }));
       }
 
       body.append(meta, title, author, tags, actions);
@@ -728,11 +735,10 @@ import '../styles/admin.css';
 
     function filterArtworks() {
       const query = (document.querySelector<HTMLInputElement>('#artwork-search')?.value ?? '').trim().toLowerCase();
-      const status = document.querySelector<HTMLSelectElement>('#artwork-status-filter')?.value ?? 'all';
       let visible = 0;
       for (const card of document.querySelectorAll<HTMLElement>('[data-artwork-id]')) {
         const matchesQuery = !query || (card.dataset.search ?? '').includes(query);
-        const matchesStatus = status === 'all' || card.dataset.status === status;
+        const matchesStatus = selectedStatus === 'all' || card.dataset.status === selectedStatus;
         card.hidden = !(matchesQuery && matchesStatus);
         if (!card.hidden) visible += 1;
       }
@@ -740,7 +746,15 @@ import '../styles/admin.css';
     }
 
     document.querySelector('#artwork-search')?.addEventListener('input', filterArtworks);
-    document.querySelector('#artwork-status-filter')?.addEventListener('change', filterArtworks);
+    for (const filterButton of document.querySelectorAll<HTMLButtonElement>('[data-status-filter]')) {
+      filterButton.addEventListener('click', () => {
+        selectedStatus = filterButton.dataset.statusFilter ?? 'all';
+        for (const button of document.querySelectorAll<HTMLButtonElement>('[data-status-filter]')) {
+          button.setAttribute('aria-pressed', String(button === filterButton));
+        }
+        filterArtworks();
+      });
+    }
 
     const storedSecret = sessionStorage.getItem(sessionKey) || localStorage.getItem(persistentKey) || '';
     if (storedSecret) {

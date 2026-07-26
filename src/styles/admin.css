@@ -81,17 +81,15 @@ body:has(.admin-page) {
 }
 
 .admin-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) auto minmax(12rem, 1fr);
   gap: 2rem;
   align-items: end;
-  justify-content: space-between;
   margin-bottom: 2rem;
 }
 
 .admin-header__side {
-  display: grid;
-  gap: 0.75rem;
-  justify-items: end;
+  justify-self: end;
 }
 
 .admin-header__back,
@@ -126,21 +124,29 @@ body:has(.admin-page) {
 
 .admin-summary {
   display: flex;
-  gap: 0.7rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-self: center;
+  overflow: hidden;
+  background: rgba(14, 14, 12, 0.62);
+  border: 1px solid rgba(240, 236, 226, 0.1);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.025),
+    0 0.8rem 2.4rem rgba(0, 0, 0, 0.2);
 }
 
 .admin-summary span {
   position: relative;
   display: grid;
-  min-width: 5.4rem;
-  padding: 0.7rem 0.8rem;
+  min-width: 6.2rem;
+  padding: 0.7rem 1rem 0.8rem;
   color: #aaa398;
   font-size: 0.62rem;
-  background: rgba(240, 236, 226, 0.055);
-  border: 1px solid rgba(240, 236, 226, 0.1);
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent);
   transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.admin-summary span + span {
+  border-left: 1px solid rgba(240, 236, 226, 0.09);
 }
 
 .admin-summary span::before {
@@ -165,16 +171,24 @@ body:has(.admin-page) {
 }
 
 .admin-summary span:hover {
-  background: rgba(240, 236, 226, 0.085);
-  border-color: rgba(240, 236, 226, 0.18);
-  transform: translateY(-2px);
+  background-color: rgba(240, 236, 226, 0.045);
 }
 
 .admin-summary strong {
-  margin-bottom: 0.2rem;
+  margin-top: 0.18rem;
   color: #eee9df;
-  font-size: 1.2rem;
-  font-weight: 500;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 1.65rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.admin-summary small {
+  color: #807b72;
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
 }
 
 .admin-panel {
@@ -253,8 +267,9 @@ body:has(.admin-page) {
 
 .admin-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(17rem, 0.65fr);
+  grid-template-columns: minmax(0, 48rem) minmax(17rem, 22rem);
   gap: 1rem;
+  justify-content: center;
 }
 
 .admin-form {
@@ -495,34 +510,6 @@ body:has(.admin-page) {
   border-color: rgba(196, 105, 92, 0.36);
 }
 
-.admin-button--edit {
-  color: #b8cede;
-  background: rgba(88, 123, 151, 0.12);
-  border-color: rgba(123, 157, 182, 0.3);
-}
-
-.admin-button--sync {
-  color: #e1c28e;
-  background: rgba(162, 119, 58, 0.12);
-  border-color: rgba(196, 151, 86, 0.3);
-}
-
-.admin-button--visibility {
-  color: #c5b7da;
-  background: rgba(113, 91, 143, 0.12);
-  border-color: rgba(146, 122, 178, 0.3);
-}
-
-.admin-button--restore {
-  color: #b7d2b4;
-  background: rgba(83, 127, 80, 0.12);
-  border-color: rgba(115, 157, 111, 0.3);
-}
-
-.admin-button--edit:hover,
-.admin-button--sync:hover,
-.admin-button--visibility:hover,
-.admin-button--restore:hover,
 .admin-button--danger:hover {
   background-color: rgba(238, 233, 222, 0.11);
   border-color: currentColor;
@@ -595,7 +582,7 @@ body:has(.admin-page) {
 
 .admin-filters {
   display: grid;
-  grid-template-columns: minmax(14rem, 22rem) 9rem;
+  grid-template-columns: minmax(14rem, 22rem) auto;
   gap: 0.7rem;
 }
 
@@ -622,6 +609,46 @@ body:has(.admin-page) {
 
 .admin-search input {
   padding-left: 2.15rem;
+}
+
+.admin-status-filters {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(239, 234, 223, 0.16);
+}
+
+.admin-status-filters button {
+  min-height: 2.75rem;
+  padding: 0 0.7rem;
+  color: #8f8a81;
+  font: inherit;
+  font-size: 0.64rem;
+  white-space: nowrap;
+  background: rgba(8, 8, 7, 0.42);
+  border: 0;
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.admin-status-filters button + button {
+  border-left: 1px solid rgba(239, 234, 223, 0.1);
+}
+
+.admin-status-filters button:hover {
+  color: #d8d2c7;
+  background: rgba(239, 234, 223, 0.055);
+}
+
+.admin-status-filters button[aria-pressed="true"] {
+  color: #211e18;
+  background: #cab995;
+}
+
+.admin-status-filters button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid rgba(213, 168, 103, 0.72);
+  outline-offset: -2px;
 }
 
 .admin-artwork-grid {
@@ -957,18 +984,23 @@ body:has(.admin-page) {
 }
 
 @media (max-width: 900px) {
-  .admin-header,
+  .admin-header {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
   .admin-collection__heading {
+    display: flex;
     align-items: start;
     flex-direction: column;
   }
 
   .admin-summary {
-    justify-content: flex-start;
+    justify-self: center;
   }
 
   .admin-header__side {
-    justify-items: start;
+    justify-self: end;
   }
 
   .admin-auth,
@@ -997,6 +1029,7 @@ body:has(.admin-page) {
   .admin-summary {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    justify-self: stretch;
     width: 100%;
   }
 
@@ -1005,16 +1038,19 @@ body:has(.admin-page) {
   }
 
   .admin-auth__form,
-  .admin-form,
   .admin-advanced__grid,
   .admin-filters {
     grid-template-columns: 1fr;
   }
 
   .admin-auth__form > *,
-  .admin-form > *,
   .admin-advanced__grid > * {
     grid-column: 1;
+  }
+
+  .admin-status-filters {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .admin-artwork {

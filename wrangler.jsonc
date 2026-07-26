@@ -10,6 +10,12 @@
       "INGEST_WEBHOOK_SECRET"
     ]
   },
+  "routes": [
+    {
+      "pattern": "sesese.se",
+      "custom_domain": true
+    }
+  ],
   "vars": {
     "GITHUB_OWNER": "longmeidao",
     "GITHUB_REPO": "sesese-se",
