@@ -54,3 +54,4 @@ src/content/images/pixiv/
 *.log
 *.tmp
 *.temp
+history/
