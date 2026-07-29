@@ -26,7 +26,7 @@ import '../styles/admin.css';
             <input id="keep-signed-in" type="checkbox" />
             <span>保持登录</span>
           </label>
-          <small>不勾选时，关闭当前标签页后需要重新登录。</small>
+          <small>勾选后，访问密钥会明文保存在这台设备的浏览器里，直到你点「退出管理」。共用设备请不要勾选。不勾选时，关闭当前标签页即失效。</small>
           <button type="submit" class="admin-button admin-button--primary">
             <span class="admin-button__icon" aria-hidden="true">→</span>
             <span>进入管理台</span>
@@ -110,19 +110,24 @@ import '../styles/admin.css';
           </div>
 
           <div class="admin-summary" aria-label="藏品状态统计">
-            <p>藏品状态</p>
-            <span>
+            <p>藏品状态 <b id="total-count">0</b></p>
+            <span data-state="active">
               <small>展出中</small>
               <strong id="active-count">0</strong>
             </span>
-            <span>
+            <span data-state="hidden">
               <small>已隐藏</small>
               <strong id="hidden-count">0</strong>
             </span>
-            <span>
+            <span data-state="deleted">
               <small>回收站</small>
               <strong id="deleted-count">0</strong>
             </span>
+            <div class="admin-summary__bar" aria-hidden="true">
+              <i data-state="active"></i>
+              <i data-state="hidden"></i>
+              <i data-state="deleted"></i>
+            </div>
           </div>
         </section>
 
@@ -226,6 +231,31 @@ import '../styles/admin.css';
         </form>
       </dialog>
 
+      <dialog id="admin-confirm-dialog" class="admin-dialog admin-dialog--confirm">
+        <form id="admin-confirm-form" method="dialog">
+          <div class="admin-dialog__heading">
+            <div>
+              <p class="admin-panel__eyebrow" id="admin-confirm-eyebrow">确认</p>
+              <h2 id="admin-confirm-title">确认操作</h2>
+              <p class="admin-dialog__hint" id="admin-confirm-message"></p>
+            </div>
+            <button type="button" data-close-confirm class="admin-dialog__close" aria-label="关闭">×</button>
+          </div>
+          <label class="admin-field admin-field--index" id="admin-confirm-field" hidden>
+            <span>展示第几张</span>
+            <input id="admin-confirm-input" type="number" min="1" max="100" value="1" />
+          </label>
+          <p class="admin-dialog__error" id="admin-confirm-error" role="alert"></p>
+          <div class="admin-dialog__actions">
+            <button type="button" data-close-confirm class="admin-button admin-button--quiet">取消</button>
+            <button type="button" id="admin-confirm-accept" class="admin-button admin-button--primary">
+              <span class="admin-button__icon" aria-hidden="true">✓</span>
+              <span>确认</span>
+            </button>
+          </div>
+        </form>
+      </dialog>
+
       <div id="admin-toast" class="admin-toast" role="status" aria-live="polite" hidden></div>
     </section>
   </main>
@@ -317,13 +347,106 @@ import '../styles/admin.css';
       return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
     }
 
+    const confirmDialog = document.querySelector<HTMLDialogElement>('#admin-confirm-dialog')!;
+    const confirmTitle = document.querySelector<HTMLElement>('#admin-confirm-title')!;
+    const confirmEyebrow = document.querySelector<HTMLElement>('#admin-confirm-eyebrow')!;
+    const confirmMessage = document.querySelector<HTMLElement>('#admin-confirm-message')!;
+    const confirmField = document.querySelector<HTMLElement>('#admin-confirm-field')!;
+    const confirmInput = document.querySelector<HTMLInputElement>('#admin-confirm-input')!;
+    const confirmError = document.querySelector<HTMLElement>('#admin-confirm-error')!;
+    const confirmAccept = document.querySelector<HTMLButtonElement>('#admin-confirm-accept')!;
+    const closeConfirmButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-close-confirm]')];
+
+    type ConfirmOptions = {
+      eyebrow?: string;
+      title: string;
+      message: string;
+      acceptLabel?: string;
+      danger?: boolean;
+      number?: { value: number; min: number; max: number; invalid: string };
+    };
+
+    /** 站内确认框，替代 window.confirm / window.prompt。
+     *  无数字输入时返回 true/false；有数字输入时返回该数字或 null。 */
+    function askConfirm(options: ConfirmOptions): Promise<boolean | number | null> {
+      confirmEyebrow.textContent = options.eyebrow ?? '确认';
+      confirmTitle.textContent = options.title;
+      confirmMessage.textContent = options.message;
+      confirmError.textContent = '';
+      confirmAccept.querySelector('span:last-child')!.textContent = options.acceptLabel ?? '确认';
+      confirmAccept.classList.toggle('admin-button--danger', Boolean(options.danger));
+      confirmField.hidden = !options.number;
+      if (options.number) {
+        confirmInput.min = String(options.number.min);
+        confirmInput.max = String(options.number.max);
+        confirmInput.value = String(options.number.value);
+      }
+
+      return new Promise((resolve) => {
+        const settle = (result: boolean | number | null) => {
+          confirmAccept.removeEventListener('click', onAccept);
+          confirmDialog.removeEventListener('close', onClose);
+          for (const button of closeConfirmButtons) button.removeEventListener('click', onCancel);
+          resolve(result);
+        };
+        const onAccept = () => {
+          if (!options.number) {
+            confirmDialog.close();
+            settle(true);
+            return;
+          }
+          const value = Number(confirmInput.value);
+          if (!Number.isInteger(value) || value < options.number.min || value > options.number.max) {
+            confirmError.textContent = options.number.invalid;
+            confirmInput.focus();
+            return;
+          }
+          confirmDialog.close();
+          settle(value);
+        };
+        const onCancel = () => confirmDialog.close();
+        const onClose = () => settle(options.number ? null : false);
+
+        confirmAccept.addEventListener('click', onAccept);
+        confirmDialog.addEventListener('close', onClose);
+        for (const button of closeConfirmButtons) button.addEventListener('click', onCancel);
+        confirmDialog.showModal();
+        if (options.number) confirmInput.focus();
+        else confirmAccept.focus();
+      });
+    }
+
+    // 同时可能有多个发布在轮询，共用一个 toast，所以按"进行中的数量"聚合提示，
+    // 避免后一个 watchDeployment 覆盖掉前一个的状态。
+    let pendingDeployments = 0;
+
+    function reportDeploymentProgress() {
+      if (pendingDeployments <= 0) return;
+      const message = pendingDeployments === 1
+        ? '更改已保存，正在发布…'
+        : `更改已保存，正在发布 ${pendingDeployments} 项…`;
+      showToast(message, false, false);
+    }
+
+    function reportDeploymentSettled(message: string, error = false) {
+      pendingDeployments = Math.max(0, pendingDeployments - 1);
+      if (pendingDeployments > 0) {
+        // 还有别的发布没结束，失败信息优先，成功信息不打断进度提示
+        if (error) showToast(message, true, false);
+        else reportDeploymentProgress();
+        return;
+      }
+      showToast(message, error, !error);
+    }
+
     async function watchDeployment(commitSha: string) {
       if (!/^[a-f0-9]{40}$/.test(commitSha)) {
         showToast('更改已保存。网站通常会在半分钟左右更新。');
         return;
       }
 
-      showToast('更改已保存，正在发布…', false, false);
+      pendingDeployments += 1;
+      reportDeploymentProgress();
       for (let attempt = 0; attempt < 30; attempt += 1) {
         await wait(attempt === 0 ? 1800 : 3000);
         try {
@@ -331,18 +454,18 @@ import '../styles/admin.css';
           const deployment = result.deployment as DeploymentRun | null;
           if (!deployment || deployment.status !== 'completed') continue;
           if (deployment.conclusion === 'success') {
-            showToast('已经上线，刷新展厅即可看到。');
+            reportDeploymentSettled('已经上线，刷新展厅即可看到。');
           } else {
-            showToast('发布没有完成，请到 GitHub Actions 查看详情。', true, false);
+            reportDeploymentSettled('发布没有完成，请到 GitHub Actions 查看详情。', true);
           }
           return;
         } catch {
-          showToast('更改已保存，但暂时无法读取发布状态。请稍后刷新展厅。', true);
+          reportDeploymentSettled('更改已保存，但暂时无法读取发布状态。请稍后刷新展厅。', true);
           return;
         }
       }
 
-      showToast('发布所需时间比平时更长，请稍后刷新展厅。', true);
+      reportDeploymentSettled('发布所需时间比平时更长，请稍后刷新展厅。', true);
     }
 
     function setLoginBusy(busy: boolean, message = '') {
@@ -498,9 +621,25 @@ import '../styles/admin.css';
     }
 
     function updateSummary() {
-      document.querySelector('#active-count')!.textContent = String(artworks.filter((item) => item.status === 'active').length);
-      document.querySelector('#hidden-count')!.textContent = String(artworks.filter((item) => item.status === 'hidden').length);
-      document.querySelector('#deleted-count')!.textContent = String(artworks.filter((item) => item.status === 'deleted').length);
+      const counts = {
+        active: artworks.filter((item) => item.status === 'active').length,
+        hidden: artworks.filter((item) => item.status === 'hidden').length,
+        deleted: artworks.filter((item) => item.status === 'deleted').length,
+      };
+      document.querySelector('#total-count')!.textContent = String(artworks.length);
+      document.querySelector('#active-count')!.textContent = String(counts.active);
+      document.querySelector('#hidden-count')!.textContent = String(counts.hidden);
+      document.querySelector('#deleted-count')!.textContent = String(counts.deleted);
+
+      // 数字为 0 的行压暗，让视线跳过；构成条按比例分段，
+      // 三个孤立数字只是数字，加上比例才读得出藏品的结构。
+      for (const [state, value] of Object.entries(counts)) {
+        const row = document.querySelector<HTMLElement>(`.admin-summary span[data-state="${state}"]`);
+        if (row) row.dataset.zero = String(value === 0);
+        const segment = document.querySelector<HTMLElement>(`.admin-summary__bar i[data-state="${state}"]`);
+        if (segment) segment.style.flexGrow = String(value);
+      }
+      document.querySelector<HTMLElement>('.admin-summary__bar')!.dataset.empty = String(artworks.length === 0);
     }
 
     function renderArtworks() {
@@ -689,13 +828,19 @@ import '../styles/admin.css';
       }
 
       if (button.dataset.action === 'reingest') {
-        const input = window.prompt('要展示原作中的第几张图片？', String(artwork.display_image_index));
-        if (input === null) return;
-        const displayImage = Number(input);
-        if (!Number.isInteger(displayImage) || displayImage < 1 || displayImage > 100) {
-          showToast('请输入 1 到 100 之间的整数。', true);
-          return;
-        }
+        const displayImage = await askConfirm({
+          eyebrow: '重新抓取',
+          title: `重新抓取 No. ${String(artwork.sequence).padStart(3, '0')}`,
+          message: '会重新从原站获取这件藏品的图片与信息。',
+          acceptLabel: '开始抓取',
+          number: {
+            value: artwork.display_image_index,
+            min: 1,
+            max: 100,
+            invalid: '请输入 1 到 100 之间的整数。',
+          },
+        }) as number | null;
+        if (displayImage === null) return;
         button.disabled = true;
         try {
           await api('/api/admin/reingest', {
@@ -714,12 +859,13 @@ import '../styles/admin.css';
 
       const nextStatus = button.dataset.statusChange as AdminArtwork['status'] | undefined;
       if (!nextStatus) return;
-      const prompt = nextStatus === 'deleted'
-        ? '要把这件藏品移入回收站吗？30 天内仍可恢复。'
+      const label = `No. ${String(artwork.sequence).padStart(3, '0')}`;
+      const copy = nextStatus === 'deleted'
+        ? { eyebrow: '移入回收站', title: `把 ${label} 移入回收站`, message: '藏品会从展厅下架，30 天内仍可恢复。', acceptLabel: '移入回收站', danger: true }
         : nextStatus === 'hidden'
-          ? '要暂时隐藏这件藏品吗？'
-          : '要恢复这件藏品吗？';
-      if (!window.confirm(prompt)) return;
+          ? { eyebrow: '隐藏', title: `隐藏 ${label}`, message: '藏品会暂时从展厅下架，随时可以恢复展出。', acceptLabel: '隐藏' }
+          : { eyebrow: '恢复', title: `恢复 ${label}`, message: '藏品会重新出现在展厅中。', acceptLabel: '恢复展出' };
+      if (!(await askConfirm(copy))) return;
       card.classList.add('admin-artwork--pending');
       button.disabled = true;
       try {
@@ -760,8 +906,46 @@ import '../styles/admin.css';
       });
     }
 
+    // 样式预览模式。/api/admin/* 由 Worker 提供，astro dev 下这些路由不存在，
+    // 所以本地永远登录不进来、也就看不到管理台的样式。
+    // 这段只在开发环境、且显式带 ?preview 时生效：
+    // import.meta.env.DEV 在生产构建中为 false，整段会被摇掉，不会进产物。
+    function startStylePreview() {
+      const sample: AdminArtwork[] = [
+        ['人間、あなたは何が好きなの？', 'ベルム', 'pixiv', 'active', 7],
+        ['お姉さんとプール', 'あきしま', 'pixiv', 'active', 6],
+        ['レゾナンス:無限号列車 — 一个刻意很长的标题用来测试截断行为', 'a_rather_long_author_handle', 'x', 'hidden', 5],
+        ['Castorice', 'なつめ', 'pixiv', 'deleted', 1],
+      ].map(([title, author, type, status, sequence]) => ({
+        id: `sample-${sequence}`,
+        sequence: sequence as number,
+        status: status as AdminArtwork['status'],
+        source_type: type as string,
+        source_url: 'https://example.invalid/',
+        display_image_index: 1,
+        image: '/assets/se.png',
+        source: { title: title as string, description: '样例说明文字。', tags: ['黑スト', 'リバーレリオ', '制服'], author_name: author as string },
+        overrides: {},
+        effective: { title: title as string, description: '样例说明文字。', tags: ['黑スト', 'リバーレリオ', '制服'], author_name: author as string },
+      }));
+
+      artworks = sample;
+      artworkById = new Map(artworks.map((artwork) => [artwork.id, artwork]));
+      renderArtworks();
+      renderRuns([
+        { id: 1, status: 'completed', conclusion: 'success', title: '采集 pixiv/144396114', url: '#', created_at: '2026-07-29T02:22:31.000Z' },
+        { id: 2, status: 'in_progress', conclusion: null, title: '采集 x/1889302…', url: '#', created_at: '2026-07-29T02:10:04.000Z' },
+        { id: 3, status: 'completed', conclusion: 'failure', title: '采集 pixiv/128700071', url: '#', created_at: '2026-07-28T23:47:12.000Z' },
+      ]);
+      login.hidden = true;
+      app.hidden = false;
+      showToast('样式预览模式：数据是假的，任何操作都不会生效。', false, false);
+    }
+
     const storedSecret = sessionStorage.getItem(sessionKey) || localStorage.getItem(persistentKey) || '';
-    if (storedSecret) {
+    if (import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')) {
+      startStylePreview();
+    } else if (storedSecret) {
       secretInput.value = storedSecret;
       keepSignedIn.checked = Boolean(localStorage.getItem(persistentKey));
       enterAdmin(storedSecret);

@@ -1,3 +1,9 @@
+/* 管理台不复用展厅的墙面照 bg.jpg。
+   原图局部动态范围有 166 级，被 rgba(5,5,4,.8)~rgba(3,3,3,.91) 的遮罩
+   压到只剩约 24 级，JPEG 的块状量化噪点（源图仅 0.21 字节/像素）
+   因此被放大成肉眼可见的糊斑；Retina 下 2560px 源图还要铺满 2880 设备像素，
+   再叠一层放大模糊。管理台是工具页，改用纯 CSS 生成的底色：
+   没有压缩伪影，顺带省掉 890KB 的图片请求。 */
 body:has(.admin-page) {
   --admin-gold: #c9a36d;
   --admin-blue: #8fa8be;
@@ -7,6 +13,10 @@ body:has(.admin-page) {
   overflow-x: hidden;
   color: #e8e4da;
   background-color: #0d0d0b;
+  background-image:
+    radial-gradient(115% 75% at 50% -8%, rgba(150, 112, 66, 0.07), transparent 62%),
+    linear-gradient(180deg, #131211 0%, #0d0d0b 45%);
+  background-attachment: fixed;
 }
 
 .admin-page {
@@ -30,7 +40,7 @@ body:has(.admin-page) {
 .admin-login__panel {
   width: min(29rem, 100%);
   padding: clamp(1.35rem, 5vw, 2.8rem);
-  background: rgba(27, 26, 22, 0.9);
+  background: #1a1915;
   border: 1px solid rgba(239, 234, 223, 0.13);
   box-shadow: 0 2rem 7rem rgba(0, 0, 0, 0.5);
   animation: admin-rise 520ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
@@ -39,16 +49,16 @@ body:has(.admin-page) {
 .admin-login h1 {
   margin: 0;
   font-family: "Songti SC", "Noto Serif CJK SC", Georgia, serif;
-  font-size: clamp(2.2rem, 9vw, 4rem);
+  font-size: clamp(1.9rem, 6vw, 2.6rem);
   font-weight: 400;
-  line-height: 1.05;
+  line-height: 1.15;
 }
 
 .admin-login__intro {
   max-width: 23rem;
   margin: 1rem 0 0;
   color: #aaa398;
-  font-size: 0.76rem;
+  font-size: 0.82rem;
   line-height: 1.75;
 }
 
@@ -60,15 +70,15 @@ body:has(.admin-page) {
 
 .admin-login__form small {
   margin-top: -0.45rem;
-  color: #7f7a72;
-  font-size: 0.62rem;
+  color: #a09a90;
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 
 .admin-login__form output {
   min-height: 1.2rem;
-  color: #d29a8f;
-  font-size: 0.7rem;
+  color: #e0aca1;
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 
@@ -95,7 +105,7 @@ body:has(.admin-page) {
 .admin-header__back,
 .admin-panel a {
   color: #b8b1a4;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   text-decoration: none;
   transition: color 160ms ease, transform 160ms ease;
 }
@@ -109,22 +119,26 @@ body:has(.admin-page) {
 .admin-panel__eyebrow {
   margin: 1.3rem 0 0.45rem;
   color: #c59a60;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
+/* 管理台是每天用的工具，不是展厅门面：
+   标题收到工具级尺寸，把纵向空间还给工作区 */
 .admin-header h1 {
   margin: 0;
   font-family: "Songti SC", "Noto Serif CJK SC", Georgia, serif;
-  font-size: clamp(2.4rem, 7vw, 5rem);
-  font-weight: 400;
-  line-height: 1;
+  font-size: clamp(1.5rem, 2.6vw, 1.9rem);
+  font-weight: 500;
+  line-height: 1.2;
 }
 
+/* 监控式指标：等宽 tabular 数字 + 左侧色标，放在采集面板右侧。
+   它同时起到约束中间栏宽度的作用，不要挪走。 */
 .admin-summary {
   display: grid;
-  grid-template-rows: auto repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto repeat(3, minmax(0, 1fr)) auto;
   min-width: 10rem;
   padding-left: clamp(1rem, 2vw, 1.5rem);
   border-left: 1px solid rgba(240, 236, 226, 0.1);
@@ -139,7 +153,7 @@ body:has(.admin-page) {
   align-items: center;
   justify-content: space-between;
   color: #aaa398;
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   transition: color 180ms ease;
 }
 
@@ -159,11 +173,11 @@ body:has(.admin-page) {
   transform: translateY(-50%);
 }
 
-.admin-summary span:nth-child(2)::before {
+.admin-summary span[data-state="hidden"]::before {
   background: var(--admin-gold);
 }
 
-.admin-summary span:nth-child(3)::before {
+.admin-summary span[data-state="deleted"]::before {
   background: var(--admin-red);
 }
 
@@ -183,22 +197,73 @@ body:has(.admin-page) {
 
 .admin-summary small {
   padding-left: 0.75rem;
-  color: #807b72;
-  font-size: 0.55rem;
+  color: #a09a90;
+  font-size: 0.72rem;
   letter-spacing: 0.12em;
 }
 
 .admin-summary > p {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  justify-content: space-between;
   margin: 0 0 0.45rem;
-  color: #746f67;
-  font-size: 0.55rem;
+  color: #a09a90;
+  font-size: 0.68rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
+.admin-summary > p b {
+  color: #d8d2c7;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* 计数为 0 的行压暗，视线自动跳过 */
+.admin-summary span[data-zero="true"] {
+  opacity: 0.4;
+}
+
+/* 构成条：按三种状态的数量成比例分段。
+   三个孤立数字只是数字，有了比例才看得出藏品的结构。 */
+.admin-summary__bar {
+  display: flex;
+  gap: 2px;
+  height: 0.28rem;
+  margin-top: 0.9rem;
+  overflow: hidden;
+  background: rgba(240, 236, 226, 0.08);
+}
+
+.admin-summary__bar i {
+  min-width: 0;
+  flex: 0 1 0;
+  transition: flex-grow 320ms cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+.admin-summary__bar i[data-state="active"] {
+  background: var(--admin-green);
+}
+
+.admin-summary__bar i[data-state="hidden"] {
+  background: var(--admin-gold);
+}
+
+.admin-summary__bar i[data-state="deleted"] {
+  background: var(--admin-red);
+}
+
+.admin-summary__bar[data-empty="true"] i {
+  flex-grow: 0 !important;
+}
+
 .admin-panel {
   padding: clamp(1rem, 2vw, 1.5rem);
-  background: rgba(28, 27, 23, 0.86);
+  background: #1a1915;
   border: 1px solid rgba(239, 234, 223, 0.12);
   box-shadow: 0 1rem 2.6rem rgba(0, 0, 0, 0.24);
   animation: admin-rise 440ms 80ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
@@ -301,7 +366,7 @@ body:has(.admin-page) {
 .admin-field span,
 .admin-override > label span {
   color: #bbb4a8;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 
 .admin-field--wide,
@@ -325,8 +390,8 @@ body:has(.admin-page) {
   padding: 0.72rem 0.8rem;
   color: #eee9df;
   font: inherit;
-  font-size: 0.82rem;
-  background: rgba(8, 8, 7, 0.56);
+  font-size: 0.875rem;
+  background: #100f0d;
   border: 1px solid rgba(239, 234, 223, 0.16);
   border-radius: 0;
   outline: none;
@@ -368,7 +433,7 @@ body:has(.admin-page) {
 .admin-advanced {
   padding: 0.7rem 0;
   color: #aaa398;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   border-block: 1px solid rgba(239, 234, 223, 0.09);
 }
 
@@ -412,7 +477,7 @@ body:has(.admin-page) {
   padding: 0 0.9rem;
   color: #d8d2c7;
   font: inherit;
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   background: rgba(238, 233, 222, 0.06);
   border: 1px solid rgba(238, 233, 222, 0.16);
   cursor: pointer;
@@ -499,23 +564,33 @@ body:has(.admin-page) {
   transform: rotate(42deg) scale(1.08);
 }
 
+/* 退出是"离场"，不是危险操作，也不是主操作。
+   用虚线边框 + 偏冷的文字色把它和实心的操作按钮区分开：
+   一眼看得出不是同一类动作，但不会像填充酒红那样抢走视觉焦点。
+   悬停时才透出警示色，提示这一步会结束当前会话。 */
 .admin-button--logout {
-  color: #ffe9e5;
-  background: rgba(142, 64, 55, 0.76);
-  border-color: rgba(220, 132, 119, 0.52);
-  box-shadow: 0 0.45rem 1.4rem rgba(99, 32, 27, 0.2);
+  color: #a8a196;
+  background: transparent;
+  border-style: dashed;
+  border-color: rgba(238, 233, 222, 0.26);
+  letter-spacing: 0.04em;
 }
 
 .admin-button--logout:hover {
-  color: #fff;
-  background: rgba(166, 72, 62, 0.9);
-  border-color: rgba(237, 155, 142, 0.72);
+  color: #e8b3a8;
+  background: rgba(160, 74, 63, 0.12);
+  border-style: solid;
+  border-color: rgba(201, 126, 114, 0.5);
+}
+
+.admin-button--logout:focus-visible {
+  outline-color: rgba(201, 126, 114, 0.75);
 }
 
 .admin-button--small {
   min-height: 2rem;
   padding: 0 0.65rem;
-  font-size: 0.62rem;
+  font-size: 0.75rem;
 }
 
 .admin-button--danger {
@@ -545,14 +620,14 @@ body:has(.admin-page) {
 
 .admin-checkbox span {
   color: #aaa398;
-  font-size: 0.66rem;
+  font-size: 0.75rem;
 }
 
 .admin-form output,
 .admin-dialog output {
   min-height: 1.1rem;
   color: #cdb48d;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .admin-runs ol {
@@ -574,15 +649,15 @@ body:has(.admin-page) {
 .admin-runs li span {
   overflow: hidden;
   color: #d7d1c6;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .admin-runs li small,
 .admin-runs__empty {
-  color: #89847a;
-  font-size: 0.62rem;
+  color: #a09a90;
+  font-size: 0.75rem;
 }
 
 .admin-collection {
@@ -598,6 +673,7 @@ body:has(.admin-page) {
   display: grid;
   grid-template-columns: minmax(14rem, 22rem) auto;
   gap: 0.7rem;
+  align-items: center;
 }
 
 .admin-filters label {
@@ -625,20 +701,26 @@ body:has(.admin-page) {
   padding-left: 2.15rem;
 }
 
+/* 高度对齐：组的 1px 边框会让总高变成 46px，而搜索框是 44px，
+   底边会差 2px。box-sizing 已是 border-box，所以这里定死 2.75rem，
+   按钮撑满内部高度，两者总高都是 44px。 */
 .admin-status-filters {
   display: flex;
+  height: 2.75rem;
   overflow: hidden;
   border: 1px solid rgba(239, 234, 223, 0.16);
 }
 
 .admin-status-filters button {
-  min-height: 2.75rem;
-  padding: 0 0.7rem;
-  color: #8f8a81;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 0.9rem;
+  color: #a49e94;
   font: inherit;
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   white-space: nowrap;
-  background: rgba(8, 8, 7, 0.42);
+  background: #0b0b09;
   border: 0;
   cursor: pointer;
   transition: color 150ms ease, background-color 150ms ease;
@@ -676,7 +758,7 @@ body:has(.admin-page) {
   grid-template-columns: 8.5rem minmax(0, 1fr);
   min-height: 10.5rem;
   overflow: hidden;
-  background: rgba(28, 27, 23, 0.82);
+  background: #191815;
   border: 1px solid rgba(239, 234, 223, 0.1);
   animation: admin-card-in 420ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
   animation-delay: calc(var(--admin-card-index, 0) * 35ms);
@@ -703,12 +785,13 @@ body:has(.admin-page) {
   animation: admin-pulse 1.2s ease-in-out infinite;
 }
 
+/* contain 而非 cover：管理画作靠构图认图，裁掉就认不出了 */
 .admin-artwork > img {
   width: 100%;
   height: 100%;
   min-height: 10.5rem;
-  object-fit: cover;
-  background: #181714;
+  object-fit: contain;
+  background: #131210;
 }
 
 .admin-artwork__body {
@@ -722,8 +805,8 @@ body:has(.admin-page) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #918b81;
-  font-size: 0.58rem;
+  color: #a49e94;
+  font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -760,7 +843,7 @@ body:has(.admin-page) {
   margin: 0.35rem 0 0;
   overflow: hidden;
   color: #aaa398;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -770,8 +853,8 @@ body:has(.admin-page) {
   gap: 0.4rem;
   margin-top: 0.55rem;
   overflow: hidden;
-  color: #89847a;
-  font-size: 0.58rem;
+  color: #a09a90;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 
@@ -781,6 +864,28 @@ body:has(.admin-page) {
   margin-top: auto;
   padding-top: 0.75rem;
   flex-wrap: wrap;
+}
+
+/* 有悬停能力的设备上，次要操作平时收起来。
+   藏品一多，常驻按钮的数量会盖过内容本身。
+   用 opacity 而非 display:none，保证不产生布局跳动；
+   :focus-within 保证键盘可达。触屏设备不套用此规则。 */
+@media (hover: hover) and (pointer: fine) {
+  .admin-artwork__actions {
+    opacity: 0;
+    transition: opacity 160ms ease;
+  }
+
+  .admin-artwork:hover .admin-artwork__actions,
+  .admin-artwork:focus-within .admin-artwork__actions {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: reduce) {
+  .admin-artwork__actions {
+    transition: none;
+  }
 }
 
 .admin-empty {
@@ -824,8 +929,8 @@ body:has(.admin-page) {
 .admin-dialog__hint {
   max-width: 28rem;
   margin: 0.45rem 0 0;
-  color: #8d887f;
-  font-size: 0.64rem;
+  color: #a09a90;
+  font-size: 0.75rem;
   line-height: 1.55;
 }
 
@@ -838,8 +943,8 @@ body:has(.admin-page) {
 .admin-override small {
   display: -webkit-box;
   overflow: hidden;
-  color: #7f7a72;
-  font-size: 0.62rem;
+  color: #a09a90;
+  font-size: 0.75rem;
   line-height: 1.5;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -849,6 +954,18 @@ body:has(.admin-page) {
 .admin-override textarea:disabled {
   color: #8d887f;
   opacity: 0.58;
+}
+
+.admin-dialog--confirm {
+  width: min(26rem, calc(100% - 2rem));
+}
+
+.admin-dialog__error {
+  min-height: 1.1rem;
+  margin: 0.7rem 0 0;
+  color: #e0aca1;
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
 
 .admin-dialog__actions {
@@ -875,7 +992,7 @@ body:has(.admin-page) {
   align-items: center;
   padding: 0.8rem 1rem;
   color: #211e18;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   background: #d8caae;
   box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.45);
   animation: admin-toast-in 240ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
@@ -889,7 +1006,7 @@ body:has(.admin-page) {
   background: rgba(43, 80, 44, 0.78);
   border-radius: 50%;
   content: "✓";
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   flex: 0 0 auto;
   place-items: center;
 }
@@ -991,8 +1108,7 @@ body:has(.admin-page) {
 
   .admin-button,
   .admin-button__icon,
-  .admin-artwork,
-  .admin-summary span {
+  .admin-artwork {
     transition: none;
   }
 }
@@ -1015,10 +1131,6 @@ body:has(.admin-page) {
   .admin-auth,
   .admin-workspace {
     grid-template-columns: 1fr;
-  }
-
-  .admin-ingest {
-    grid-template-columns: minmax(0, 1fr) minmax(9rem, 11rem);
   }
 }
 
@@ -1043,21 +1155,23 @@ body:has(.admin-page) {
     align-self: end;
   }
 
+  /* 窄屏下采集表单必须独占整宽，否则会被右侧的统计栏挤成一条 */
   .admin-ingest {
     grid-template-columns: 1fr;
   }
 
+  /* 统计从竖排改为横排三格，压到表单下方 */
   .admin-summary {
-    display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto 1fr auto;
     width: 100%;
     padding: 1rem 0 0;
     border-top: 1px solid rgba(240, 236, 226, 0.1);
     border-left: 0;
   }
 
-  .admin-summary > p {
+  .admin-summary > p,
+  .admin-summary__bar {
     grid-column: 1 / -1;
   }
 
@@ -1065,7 +1179,7 @@ body:has(.admin-page) {
     min-width: 0;
     padding: 0.5rem 0.7rem 0;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.4rem;
     align-items: start;
   }
 
@@ -1084,6 +1198,11 @@ body:has(.admin-page) {
 
   .admin-summary small {
     padding-left: 0.55rem;
+  }
+
+  .admin-summary strong {
+    padding-left: 0.55rem;
+    font-size: 1.3rem;
   }
 
   .admin-auth__form,

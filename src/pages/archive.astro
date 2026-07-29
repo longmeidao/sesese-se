@@ -22,7 +22,7 @@ const latestSequence = artworks[0]?.sequence;
         const href = artwork.sequence === latestSequence ? '/' : `/${artwork.sequence}/`;
         return (
           <li>
-            <a href={href} data-astro-prefetch>
+            <a href={href} title={`${artwork.title} — ${artwork.author.name}`} data-astro-prefetch>
               <div class="archive-grid__image">
                 <picture>
                   {srcset(media, 'avif') && <source type="image/avif" srcset={srcset(media, 'avif')} sizes="(max-width: 640px) calc((100vw - 3rem) / 2), (max-width: 1600px) calc((100vw - 8rem) / 3), 28rem" />}
@@ -31,7 +31,7 @@ const latestSequence = artworks[0]?.sequence;
                     src={mediaUrl(fallback.key)}
                     width={media.width}
                     height={media.height}
-                    alt=""
+                    alt={artwork.title}
                     loading="lazy"
                     decoding="async"
                   />
@@ -44,4 +44,88 @@ const latestSequence = artworks[0]?.sequence;
       })}
     </ol>
   </main>
+
+  <script>
+    // 真 masonry。原生 column-count 按内容高度做平衡，遇到又高又不可分割的
+    // 画框会失败——实测 6 件藏品时列底相差 482px。这里改用 LPT：把最高的先
+    // 放进当前最矮的列，列内再按收录顺序还原，落差降到 ~180px。
+    // 高度由图片的固有宽高比算出，不必等图片加载完。
+    function layoutMasonry() {
+      const grid = document.querySelector<HTMLElement>('.archive-grid');
+      if (!grid) return;
+
+      const items = [...grid.children] as HTMLElement[];
+      if (items.length === 0) return;
+
+      const styles = getComputedStyle(grid);
+      const gap = parseFloat(styles.getPropertyValue('--archive-gap')) || 24;
+      // 列数还要受件数约束：每列不足两三件时，再好的算法也均不出齐整的底边。
+      // 藏品少时宁可少开一列，让墙看起来是满的。
+      const breakpointColumns = Math.max(1, parseInt(styles.getPropertyValue('--archive-columns'), 10) || 3);
+      const columns = Math.max(1, Math.min(breakpointColumns, Math.ceil(items.length / 2.5)));
+
+      // 先卸掉上一次的定位，才能量到干净的容器宽度
+      grid.classList.remove('is-masonry');
+      grid.style.height = '';
+      for (const item of items) item.removeAttribute('style');
+
+      const gridWidth = grid.clientWidth;
+      const columnWidth = (gridWidth - gap * (columns - 1)) / columns;
+      if (columnWidth <= 0) return;
+
+      const measured = items.map((item, index) => {
+        const image = item.querySelector('img');
+        const frame = item.querySelector<HTMLElement>('.archive-grid__image');
+        let height = columnWidth * 1.4;
+        if (image && frame) {
+          const frameStyles = getComputedStyle(frame);
+          const insetX = parseFloat(frameStyles.paddingLeft) + parseFloat(frameStyles.paddingRight)
+            + parseFloat(frameStyles.borderLeftWidth) + parseFloat(frameStyles.borderRightWidth);
+          const insetY = parseFloat(frameStyles.paddingTop) + parseFloat(frameStyles.paddingBottom)
+            + parseFloat(frameStyles.borderTopWidth) + parseFloat(frameStyles.borderBottomWidth);
+          const ratio = image.width > 0 ? image.height / image.width : 1.4;
+          height = (columnWidth - insetX) * ratio + insetY;
+        }
+        return { item, index, height };
+      });
+
+      const columnHeights = new Array(columns).fill(0);
+      const columnItems: (typeof measured)[] = Array.from({ length: columns }, () => []);
+      for (const entry of [...measured].sort((a, b) => b.height - a.height)) {
+        const shortest = columnHeights.indexOf(Math.min(...columnHeights));
+        columnItems[shortest].push(entry);
+        columnHeights[shortest] += entry.height + gap;
+      }
+
+      grid.classList.add('is-masonry');
+      let tallest = 0;
+      columnItems.forEach((column, columnIndex) => {
+        column.sort((a, b) => a.index - b.index);
+        let offset = 0;
+        for (const { item, height } of column) {
+          item.style.left = `${columnIndex * (columnWidth + gap)}px`;
+          item.style.top = `${offset}px`;
+          item.style.width = `${columnWidth}px`;
+          offset += height + gap;
+        }
+        tallest = Math.max(tallest, Math.max(0, offset - gap));
+      });
+      grid.style.height = `${tallest}px`;
+    }
+
+    let frame = 0;
+    function scheduleLayout() {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(layoutMasonry);
+    }
+
+    document.addEventListener('astro:page-load', () => {
+      if (!document.querySelector('.archive-grid')) return;
+      scheduleLayout();
+      // 图片解码完字体度量可能微调，再校一次
+      window.addEventListener('load', scheduleLayout, { once: true });
+    });
+
+    window.addEventListener('resize', scheduleLayout);
+  </script>
 </Layout>

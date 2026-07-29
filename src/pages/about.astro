@@ -6,27 +6,34 @@ import SiteHeader from '../components/SiteHeader.astro';
 <Layout title="导览册" description="「色览」是一个展示笔者心水之画作的网站。" canonical="/about/">
   <SiteHeader />
   <main id="main-content" class="about-page">
-    <header class="page-intro">
-      <p class="kicker">ABOUT</p>
-      <h1>导览册</h1>
-    </header>
-    <div class="about-grid">
-      <section>
-        <span>01</span>
-        <p>「色览」是一个展示笔者心水之画作的网站。</p>
-      </section>
-      <section>
-        <span>02</span>
-        <p>本站使用 Astro 构建，通过 GitHub Actions 自动获取 Pixiv、X、Danbooru 等图片。样式参考 <a href="https://github.com/get-artab/artab" target="_blank" rel="noopener noreferrer">Artab</a>，一个展示世界名画的浏览器新标签页扩展。大部分的代码编写工作由 <a href="https://openai.com/codex/" target="_blank" rel="noopener noreferrer">Codex</a> 完成。</p>
-      </section>
-      <section>
-        <span>03</span>
-        <p>本站所有作品均来自网络，仅供学习交流使用。如有侵权，请联系笔者删除。</p>
-      </section>
-      <section>
-        <span>04</span>
-        <p><a href="mailto:se@sesese.se">se@sesese.se</a></p>
-      </section>
-    </div>
+    <article class="about-label">
+      <p class="about-label__eyebrow">
+        <span>色览</span>
+        <span>SÈSÈSÈ</span>
+      </p>
+
+      <h1>「色览」是一个展示笔者心水之画作的网站。</h1>
+
+      <dl class="about-label__meta">
+        <div>
+          <dt>来源</dt>
+          <dd>Pixiv、X、Danbooru，经 GitHub Actions 自动采集</dd>
+        </div>
+        <div>
+          <dt>构建</dt>
+          <dd>Astro，部署于 Cloudflare Workers 与 R2，代码大部分由 <a href="https://openai.com/codex/" target="_blank" rel="noopener noreferrer">Codex</a> 编写</dd>
+        </div>
+        <div>
+          <dt>设计</dt>
+          <dd>样式参考 <a href="https://github.com/get-artab/artab" target="_blank" rel="noopener noreferrer">Artab</a>，一个展示世界名画的浏览器新标签页扩展；版面与细节由 <a href="https://claude.com/claude-code" target="_blank" rel="noopener noreferrer">Claude</a> 打磨</dd>
+        </div>
+        <div>
+          <dt>联系</dt>
+          <dd><a href="mailto:se@sesese.se">se@sesese.se</a></dd>
+        </div>
+      </dl>
+
+      <p class="about-label__note">本站所有作品均来自网络，仅供学习交流使用。如有侵权，请联系笔者删除。</p>
+    </article>
   </main>
 </Layout>
