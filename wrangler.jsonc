@@ -19,7 +19,13 @@
   "vars": {
     "GITHUB_OWNER": "longmeidao",
     "GITHUB_REPO": "sesese-se",
-    "GITHUB_REF": "main"
+    "GITHUB_REF": "main",
+
+    // 浏览器后台（/admin/ 与 /api/admin/*）的登录由 Cloudflare Access 负责。
+    // 这两个值来自 Zero Trust 里的 Self-hosted 应用，填法见 docs/operations.md。
+    // AUD 是应用标识不是密钥，可以进仓库；真正的凭据是 Access 签发的 JWT。
+    "ACCESS_TEAM_DOMAIN": "https://longmeidao.cloudflareaccess.com",
+    "ACCESS_AUD": "dba8bbdd332ba46c9a71800ad58e89c631b8633d0951215f4cc03d0df27adde2"
   },
   "assets": {
     "directory": "./dist",

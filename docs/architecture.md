@@ -73,7 +73,11 @@ GitHub 建议仓库理想情况下小于 1 GB，并明确建议把生成文件�
 
 `/api/ingest` 是快捷采集入口。它验证共享链接和 webhook secret，再调用 GitHub workflow dispatch；抓取、Pillow 压缩、R2 上传和 Git 提交仍在 Actions 中完成。这样手机不保存 GitHub token，普通页面也不消耗 Worker 动态请求或 CPU 配额。部署工作流监听采集工作流成功完成事件，不依赖机器人提交再次触发 `push`，因此从快捷指令到静态站更新是闭环的。
 
-`/admin/` 是静态生成的私人管理界面，`/api/admin/*` 是同一个 Worker 上的薄管理 API。管理 API 使用 GitHub Contents API 串行修改作品 JSON，Git 历史仍是元数据的唯一事实来源；没有为少量管理操作引入 D1。添加与重新抓取仍调度 Actions，Worker 不承担图片解码。管理页密钥只保存在浏览器会话或由用户显式选择的设备存储中，生产环境再由 Cloudflare Access 限制页面访问。
+`/admin/` 是静态生成的私人管理界面，`/api/admin/*` 是同一个 Worker 上的薄管理 API。管理 API 使用 GitHub Contents API 串行修改作品 JSON，Git 历史仍是元数据的唯一事实来源；没有为少量管理操作引入 D1。添加与重新抓取仍调度 Actions，Worker 不承担图片解码。
+
+后台身份由 Cloudflare Access 验证，浏览器端不再持有任何密钥。Worker 自己校验 Access 签发的 JWT（RS256 签名、`aud`、`exp`），而不是只依赖边缘拦截——Access 绑在 zone 上，绕过自定义域名直接打 `*.workers.dev` 就没有拦截。JWKS 缓存在模块级变量里：公钥对所有请求都一样，不是请求态，跨请求复用不会串数据。
+
+`/api/ingest` 是唯一仍用共享密钥的入口，因为快捷指令做不了交互式登录。两套凭据因此各管一段：Access 管人（浏览器精挑细选），Bearer 密钥管机器（快捷指令随手分享）。
 
 人工编辑写入 `overrides`，来源抓取结果继续保留在顶层字段。展示层以 `overrides` 为优先，重新抓取器则保留整个覆盖对象，因此更新图片、作者资料或来源标签不会冲掉人工标题、简介和标签。`hidden` 与 `deleted` 都不会进入公开页面；后者记录 `deleted_at`，定时清理工作流在 30 天后删除 R2 变体和作品 JSON，同时保留永久序号注册表。
 

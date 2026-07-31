@@ -7,7 +7,8 @@
 - Astro 生成纯静态页面；Astro ClientRouter 负责无刷新切换和 View Transitions。
 - 图片存放在对象存储中，默认方案是 Cloudflare R2；仓库只提交 JSON 元数据。
 - GitHub Actions 抓取、压缩、上传图片并提交元数据。
-- Cloudflare Workers Static Assets 分发静态构建产物；仅 `/api/ingest` 调用动态 Worker。
+- Cloudflare Workers Static Assets 分发静态构建产物；仅 `/api/*` 调用动态 Worker。
+- 后台 `/admin/` 由 Cloudflare Access 登录，Worker 自己校验 Access JWT；`/api/ingest` 保留共享密钥供快捷指令使用。
 - OSS 不在默认链路中，只保留为付费灾备或中国大陆加速的最后选项。
 
 完整取舍见 [架构说明](docs/architecture.md)，日常操作见 [运维手册](docs/operations.md)。
@@ -54,7 +55,12 @@ GitHub Secrets：
 Cloudflare Worker Secrets：
 
 - `GITHUB_TOKEN`（仅限本仓库，Actions read/write）
-- `INGEST_WEBHOOK_SECRET`（自行生成的长随机值）
+- `INGEST_WEBHOOK_SECRET`（自行生成的长随机值，只用于 `/api/ingest` 快捷指令）
+
+Cloudflare Worker 变量（`wrangler.jsonc` 的 `vars`，值来自 Zero Trust 里的 Access 应用，见[运维手册](docs/operations.md#身份验证cloudflare-access)）：
+
+- `ACCESS_TEAM_DOMAIN`
+- `ACCESS_AUD`
 
 GitHub Variables：
 

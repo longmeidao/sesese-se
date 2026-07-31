@@ -1,7 +1,12 @@
 interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> };
   GITHUB_TOKEN: string;
+  /** 只给快捷指令用的共享密钥，见 requireIngestSecret */
   INGEST_WEBHOOK_SECRET: string;
+  /** 形如 https://<团队名>.cloudflareaccess.com */
+  ACCESS_TEAM_DOMAIN: string;
+  /** Access 应用的 Application Audience (AUD) Tag */
+  ACCESS_AUD: string;
   GITHUB_OWNER?: string;
   GITHUB_REPO?: string;
   GITHUB_REF?: string;
@@ -66,7 +71,13 @@ function safeEqual(left: string, right: string): boolean {
   return difference === 0;
 }
 
-function requireAdmin(request: Request, env: Env): void {
+/**
+ * `/api/ingest` 的共享密钥校验。
+ *
+ * 这条路径只服务 iOS/macOS 快捷指令 —— 快捷指令做不了交互式登录，
+ * Access 对它无能为力，所以继续用 Bearer 密钥。浏览器后台走 requireAccess。
+ */
+function requireIngestSecret(request: Request, env: Env): void {
   if (!env.INGEST_WEBHOOK_SECRET) {
     throw new ApiError('Cloudflare Worker 缺少 INGEST_WEBHOOK_SECRET', 503);
   }
@@ -75,6 +86,120 @@ function requireAdmin(request: Request, env: Env): void {
   const suppliedSecret = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
   if (!safeEqual(suppliedSecret, env.INGEST_WEBHOOK_SECRET)) {
     throw new ApiError('访问密钥不正确', 401);
+  }
+}
+
+/* ── Cloudflare Access ──────────────────────────────────────────────────
+ * 浏览器后台（/api/admin/*）由 Cloudflare Access 登录。Access 会在边缘就
+ * 拦掉未登录的请求，但 Worker 仍然自己验一遍签名：光靠边缘拦截的话，
+ * 绕过自定义域名直接打 *.workers.dev 就没人管了。
+ */
+
+interface AccessClaims {
+  aud?: string[] | string;
+  exp?: number;
+  email?: string;
+}
+
+function decodeBase64Url(value: string): Uint8Array {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/');
+  const binary = atob(padded + '='.repeat((4 - (padded.length % 4)) % 4));
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+/**
+ * JWKS 缓存。放模块级是有意的：Access 的公钥对所有请求都一样，不是请求态，
+ * 跨请求复用不会串数据。（要避免的是把某个请求的数据存进全局。）
+ */
+let accessKeyCache: { at: number; keys: CryptoKey[] } | null = null;
+
+async function accessKeys(env: Env): Promise<CryptoKey[]> {
+  // 证书会轮换，缓存一小时足够，也免得每个请求都去取一次
+  if (accessKeyCache && Date.now() - accessKeyCache.at < 3_600_000) return accessKeyCache.keys;
+
+  const teamDomain = env.ACCESS_TEAM_DOMAIN.replace(/\/$/, '');
+  const response = await fetch(`${teamDomain}/cdn-cgi/access/certs`);
+  if (!response.ok) {
+    // 没这条日志的话，团队域名填错了只会看到"未登录"，无从查起
+    console.error(JSON.stringify({ event: 'access_certs_failed', status: response.status, teamDomain }));
+    throw new ApiError('无法读取 Cloudflare Access 的验证证书', 502);
+  }
+
+  const body = await response.json() as { keys?: JsonWebKey[] };
+  const keys = await Promise.all(
+    (body.keys ?? []).map((jwk) => crypto.subtle.importKey(
+      'jwk',
+      jwk,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['verify'],
+    )),
+  );
+  accessKeyCache = { at: Date.now(), keys };
+  return keys;
+}
+
+function readAccessToken(request: Request): string {
+  const header = request.headers.get('cf-access-jwt-assertion');
+  if (header) return header;
+  const cookie = request.headers.get('cookie') ?? '';
+  return /(?:^|;\s*)CF_Authorization=([^;]+)/.exec(cookie)?.[1] ?? '';
+}
+
+async function verifyAccess(request: Request, env: Env): Promise<boolean> {
+  if (
+    !env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD
+    || env.ACCESS_TEAM_DOMAIN.includes('REPLACE-ME') || env.ACCESS_AUD.includes('REPLACE-ME')
+  ) {
+    console.error(JSON.stringify({ event: 'access_not_configured' }));
+    throw new ApiError('Cloudflare Worker 还没有配置 ACCESS_TEAM_DOMAIN 和 ACCESS_AUD', 503);
+  }
+
+  const token = readAccessToken(request);
+  if (!token) return false;
+
+  const [header, payload, signature] = token.split('.');
+  if (!header || !payload || !signature) return false;
+
+  const signed = new TextEncoder().encode(`${header}.${payload}`);
+  let signatureBytes: Uint8Array;
+  try {
+    signatureBytes = decodeBase64Url(signature);
+  } catch {
+    return false;
+  }
+
+  let verified = false;
+  for (const key of await accessKeys(env)) {
+    const matches = await crypto.subtle.verify(
+      'RSASSA-PKCS1-v1_5',
+      key,
+      signatureBytes as BufferSource,
+      signed as BufferSource,
+    );
+    if (matches) {
+      verified = true;
+      break;
+    }
+  }
+  if (!verified) return false;
+
+  let claims: AccessClaims;
+  try {
+    claims = JSON.parse(new TextDecoder().decode(decodeBase64Url(payload))) as AccessClaims;
+  } catch {
+    return false;
+  }
+
+  // Access 一定会签 exp，缺了就当作不可信，不要"没写就放行"
+  if (typeof claims.exp !== 'number' || claims.exp * 1000 < Date.now()) return false;
+  const audience = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+  return audience.includes(env.ACCESS_AUD);
+}
+
+async function requireAccess(request: Request, env: Env): Promise<void> {
+  if (!await verifyAccess(request, env)) {
+    throw new ApiError('请先通过 Cloudflare Access 登录', 401);
   }
 }
 
@@ -600,12 +725,26 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
 
   if (url.pathname === '/api/ingest') {
     if (request.method !== 'POST') throw new ApiError('不支持这种请求方式', 405);
-    requireAdmin(request, env);
+    requireIngestSecret(request, env);
     return dispatchIngest(await readJson<IngestRequest>(request), env);
   }
 
   if (url.pathname.startsWith('/api/admin/')) {
-    requireAdmin(request, env);
+    // 未登录也要能回答"你没登录"，否则管理页只能拿到一个裸 401，
+    // 分不清是没登录还是 Access 没配好。这一条刻意排在 requireAccess 前面。
+    if (url.pathname === '/api/admin/session') {
+      if (request.method !== 'GET') throw new ApiError('不支持这种请求方式', 405);
+      return json({ authenticated: await verifyAccess(request, env) });
+    }
+
+    await requireAccess(request, env);
+
+    // 管理台自己的收录入口。和 /api/ingest 做同一件事，但认的是 Access 会话，
+    // 这样浏览器端不必再持有 INGEST_WEBHOOK_SECRET。
+    if (url.pathname === '/api/admin/ingest') {
+      if (request.method !== 'POST') throw new ApiError('不支持这种请求方式', 405);
+      return dispatchIngest(await readJson<IngestRequest>(request), env);
+    }
 
     if (url.pathname === '/api/admin/artworks') {
       if (request.method !== 'GET') throw new ApiError('不支持这种请求方式', 405);

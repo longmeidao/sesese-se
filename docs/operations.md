@@ -12,6 +12,7 @@
 8. 运行 `Migrate existing media to R2`。该工作流会强制重建已有响应式图片，以便压缩参数升级后真正替换旧文件。
 9. 运行 `Deploy to Cloudflare Workers`。
 10. 在 Workers 设置中连接 `sesese.se` 和 `www.sesese.se` 自定义域名。
+11. 建立后台的 Cloudflare Access 应用，并把 `ACCESS_TEAM_DOMAIN` 与 `ACCESS_AUD` 填进 `wrangler.jsonc`，见[身份验证：Cloudflare Access](#身份验证cloudflare-access)。没做这一步时管理台会失败关闭。
 
 ## 添加 Pixiv 作品
 
@@ -73,7 +74,7 @@ curl --request POST https://sesese.se/api/ingest \
 
 ## 更新与删除
 
-- 管理入口：部署后访问 `https://sesese.se/admin/`，输入 Worker 的 `INGEST_WEBHOOK_SECRET`。验证通过前，页面不会读取藏品资料，也不会显示管理功能。默认只在当前标签页保留登录状态；勾选“保持登录”后，关闭浏览器再打开也能直接进入。
+- 管理入口：部署后访问 `https://sesese.se/admin/`，由 Cloudflare Access 验证身份（配置见下节）。页面本身不再保存任何密钥；验证通过前，不会读取藏品资料，也不会显示管理功能。「退出管理」会跳到 `/cdn-cgi/access/logout` 结束 Access 会话。
 - 更新元数据：在管理台填写需要手动修改的内容；空白内容也可作为明确的修改结果。勾选“使用原站内容”会删除对应的手动修改。重新抓取只更新来源数据，不会覆盖手动修改。保存会立即提交到 GitHub，并自动触发 `Deploy to Cloudflare Workers`，通常约半分钟完成；管理台会一直显示发布状态，直到上线或失败。
 - 重新抓图：运行采集工作流并打开 `force`；由于对象 URL 可能已缓存，生产环境应在上传后清除对应路径缓存。
 - 更换多图作品的展示页：重新运行采集工作流并填写新的 `display_image`；元数据中只保留新选中的页。
@@ -82,12 +83,41 @@ curl --request POST https://sesese.se/api/ingest \
 
 ## 管理台部署后设置
 
-管理 API 继续复用 Worker 中已有的 `GITHUB_TOKEN` 和 `INGEST_WEBHOOK_SECRET`，不需要新建 Secret。`GITHUB_TOKEN` 需要目标仓库的 Actions 写入和 Contents 读写权限。
+### 身份验证：Cloudflare Access
+
+浏览器后台（`/admin/` 与 `/api/admin/*`）的登录由 Cloudflare Access 负责，页面上不再有访问密钥输入框。
+
+1. 在 Cloudflare Zero Trust → Access → Applications 创建 **Self-hosted** 应用；
+2. Application domain 填 `sesese.se`，并添加两个 path：`admin` 与 `api/admin`；
+3. Policy 选 Allow，条件用 Emails，只填写自己的邮箱；登录方式用 One-time PIN 即可，不必接第三方 IdP；
+4. 回到应用 Overview，复制 **Application Audience (AUD) Tag**；
+5. 把 AUD 和团队域名填进 `wrangler.jsonc` 的 `vars`，然后重新部署：
+
+```jsonc
+"ACCESS_TEAM_DOMAIN": "https://<你的团队名>.cloudflareaccess.com",
+"ACCESS_AUD": "<刚复制的 AUD>"
+```
+
+这两个值保持 `REPLACE-ME` 时，Worker 会拒绝所有 `/api/admin/*` 请求并返回 503，管理页会直接显示「还没有配置 ACCESS_TEAM_DOMAIN 和 ACCESS_AUD」——失败关闭，不会误放行。
+
+> Worker 自己会再验一遍 JWT 签名、`aud` 和 `exp`。只靠 Access 在边缘拦截是不够的：
+> Access 绑在 zone（`sesese.se`）上，绕过自定义域名直接打 `*.workers.dev` 就没人管了。
+>
+> 同理，**登录流程在 `*.workers.dev` 上测不出来**——那边拿不到 Access Cookie，
+> `/api/admin/session` 永远是 `{"authenticated":false}`。在那里只能验证「未登录时是否失败关闭」。
+
+排查用 `npx wrangler tail`：团队域名或 AUD 填错时，Worker 会打一条 `access_not_configured` 或 `access_certs_failed` 日志。
+
+### Secrets
+
+管理 API 继续复用 Worker 中已有的 `GITHUB_TOKEN`，不需要为它新建 Secret。`GITHUB_TOKEN` 需要目标仓库的 Actions 写入和 Contents 读写权限。
+
+`INGEST_WEBHOOK_SECRET` 现在**只**给 `/api/ingest` 用，也就是 iOS/macOS 快捷指令——快捷指令做不了交互式登录，Access 对它无能为力，所以保留共享密钥。管理台自己走 `/api/admin/ingest`，认的是 Access 会话。
 
 如果管理页提示缺少 Secret，请打开 Cloudflare Dashboard → Workers & Pages → `sesese-se` → Settings → Variables and Secrets，确认 Production 环境中存在以下两个变量，并且类型必须选择 **Secret**，不能选择普通文本变量：
 
-- `INGEST_WEBHOOK_SECRET`：管理页登录使用的访问密钥；
-- `GITHUB_TOKEN`：管理台读取、修改仓库和启动 Actions 使用的 GitHub token。
+- `GITHUB_TOKEN`：管理台读取、修改仓库和启动 Actions 使用的 GitHub token；
+- `INGEST_WEBHOOK_SECRET`：快捷指令调用 `/api/ingest` 使用的共享密钥。
 
 也可以在已经设置好 `CLOUDFLARE_API_TOKEN` 的终端中执行：
 
@@ -100,15 +130,11 @@ npx wrangler secret put GITHUB_TOKEN
 
 `wrangler.jsonc` 已把这两个名称声明为必需 Secret：缺少任意一个时，后续部署会直接失败，不再发布一个无法登录管理台的新版本。配置同时启用了 `keep_vars`，避免仓库部署覆盖临时保存在 Cloudflare 控制台中的普通变量；敏感值仍必须使用 Secret。
 
-建议再给管理页面增加一层 Cloudflare Access：
+### 回滚
 
-1. 在 Cloudflare Zero Trust → Access controls → Applications 创建 Self-hosted 应用；
-2. 添加两个 public hostname path：`sesese.se/admin/*` 与 `sesese.se/api/admin/*`；
-3. Allow policy 只填写自己的邮箱或 Cloudflare 账号；
-4. `/api/ingest` 仍保留现有 Bearer Secret，供 iOS/macOS 快捷指令使用；
-5. Access 负责挡住管理页面，Worker 的 Bearer Secret 继续负责所有写操作。
+Access 把自己挡在外面时，不影响内容本身：元数据是 git 里的 JSON，直接 commit 就能改。要退回旧的密钥登录，`git revert` 这次改动并重新部署即可——`INGEST_WEBHOOK_SECRET` 一直没有删除，快捷指令和旧版管理页都还能用它。
 
-本地 `astro dev` 只预览静态管理界面，不运行 Worker API；需要联调接口时先执行 `npm run build`，再使用 `wrangler dev`。
+本地 `astro dev` 只预览静态管理界面，不运行 Worker API；需要联调接口时先执行 `npm run build`，再使用 `wrangler dev`。`astro dev` 下管理页会显示「无法确认登录状态（404）」，属正常现象。
 
 ## 备份
 

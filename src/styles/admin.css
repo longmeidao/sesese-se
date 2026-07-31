@@ -68,18 +68,16 @@ body:has(.admin-page) {
   margin-top: 2rem;
 }
 
-.admin-login__form small {
-  margin-top: -0.45rem;
-  color: #a09a90;
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-
 .admin-login__form output {
   min-height: 1.2rem;
   color: #e0aca1;
   font-size: 0.75rem;
   line-height: 1.5;
+}
+
+/* 确认登录状态时还不算出错，别用警示色 */
+.admin-login__form output[data-state="busy"] {
+  color: #a09a90;
 }
 
 .admin-shell {
@@ -383,7 +381,6 @@ body:has(.admin-page) {
 .admin-shell input,
 .admin-shell textarea,
 .admin-shell select,
-.admin-login input,
 .admin-dialog input,
 .admin-dialog textarea {
   width: 100%;
@@ -399,7 +396,6 @@ body:has(.admin-page) {
 
 .admin-shell input:not([type="checkbox"]):not([type="hidden"]),
 .admin-shell select,
-.admin-login input:not([type="checkbox"]),
 .admin-dialog input:not([type="checkbox"]):not([type="hidden"]) {
   box-sizing: border-box;
   height: 2.75rem;
@@ -409,7 +405,6 @@ body:has(.admin-page) {
 .admin-shell input:focus,
 .admin-shell textarea:focus,
 .admin-shell select:focus,
-.admin-login input:focus,
 .admin-dialog input:focus,
 .admin-dialog textarea:focus {
   border-color: rgba(213, 168, 103, 0.66);
@@ -419,7 +414,6 @@ body:has(.admin-page) {
 .admin-shell input:hover,
 .admin-shell textarea:hover,
 .admin-shell select:hover,
-.admin-login input:hover,
 .admin-dialog input:hover,
 .admin-dialog textarea:hover {
   border-color: rgba(239, 234, 223, 0.28);

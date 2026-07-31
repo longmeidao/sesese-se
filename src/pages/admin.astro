@@ -15,24 +15,15 @@ import '../styles/admin.css';
         <a href="/" class="admin-header__back">← 返回展厅</a>
         <p class="admin-kicker">PRIVATE COLLECTION DESK</p>
         <h1 id="admin-login-title">藏品管理</h1>
-        <p class="admin-login__intro">这是私人管理入口。验证通过后，才会读取藏品资料并显示管理功能。</p>
+        <p class="admin-login__intro">这是私人管理入口，身份由 Cloudflare Access 验证。验证通过后，才会读取藏品资料并显示管理功能。</p>
 
-        <form id="admin-login-form" class="admin-login__form">
-          <label class="admin-field">
-            <span>访问密钥</span>
-            <input id="admin-secret" name="secret" type="password" autocomplete="current-password" required />
-          </label>
-          <label class="admin-checkbox">
-            <input id="keep-signed-in" type="checkbox" />
-            <span>保持登录</span>
-          </label>
-          <small>勾选后，访问密钥会明文保存在这台设备的浏览器里，直到你点「退出管理」。共用设备请不要勾选。不勾选时，关闭当前标签页即失效。</small>
-          <button type="submit" class="admin-button admin-button--primary">
+        <div class="admin-login__form">
+          <output id="login-status" aria-live="polite" data-state="busy">正在确认登录状态…</output>
+          <button id="admin-login-retry" type="button" class="admin-button admin-button--primary" hidden>
             <span class="admin-button__icon" aria-hidden="true">→</span>
-            <span>进入管理台</span>
+            <span>重新登录</span>
           </button>
-          <output id="login-status" aria-live="polite"></output>
-        </form>
+        </div>
       </div>
     </section>
 
@@ -290,17 +281,12 @@ import '../styles/admin.css';
       url: string;
     };
 
-    const sessionKey = 'sesese-admin-secret';
-    const persistentKey = 'sesese-admin-secret-remembered';
+    /** Access 的登出端点，同域即可，会清掉这个应用的 CF_Authorization */
+    const accessLogoutUrl = '/cdn-cgi/access/logout';
     const login = document.querySelector<HTMLElement>('#admin-login')!;
     const app = document.querySelector<HTMLElement>('#admin-app')!;
-    const loginForm = document.querySelector<HTMLFormElement>('#admin-login-form')!;
-    const secretInput = document.querySelector<HTMLInputElement>('#admin-secret')!;
-    const keepSignedIn = document.querySelector<HTMLInputElement>('#keep-signed-in')!;
     const loginStatus = document.querySelector<HTMLOutputElement>('#login-status')!;
-    const loginButton = loginForm.querySelector<HTMLButtonElement>('button[type="submit"]')!;
-    const loginButtonIcon = loginButton.querySelector<HTMLElement>('.admin-button__icon')!;
-    const loginButtonLabel = loginButton.querySelector<HTMLElement>('span:last-child')!;
+    const loginRetryButton = document.querySelector<HTMLButtonElement>('#admin-login-retry')!;
     const refreshRunsButton = document.querySelector<HTMLButtonElement>('#refresh-runs')!;
     const runsList = document.querySelector<HTMLOListElement>('#admin-runs-list')!;
     const artworkGrid = document.querySelector<HTMLElement>('#admin-artwork-grid')!;
@@ -308,7 +294,6 @@ import '../styles/admin.css';
     const editForm = document.querySelector<HTMLFormElement>('#edit-artwork-form')!;
     const toast = document.querySelector<HTMLDivElement>('#admin-toast')!;
 
-    let secret = '';
     let artworks: AdminArtwork[] = [];
     let artworkById = new Map<string, AdminArtwork>();
     let selectedStatus = 'all';
@@ -324,23 +309,25 @@ import '../styles/admin.css';
       }
     }
 
-    async function requestApi(secretValue: string, path: string, init: RequestInit = {}) {
+    /** 身份靠 Access 的 CF_Authorization Cookie，页面本身不再持有任何密钥。 */
+    async function api(path: string, init: RequestInit = {}) {
       const response = await fetch(path, {
         ...init,
+        credentials: 'same-origin',
         headers: {
-          authorization: `Bearer ${secretValue}`,
           ...(init.body ? { 'content-type': 'application/json' } : {}),
           ...init.headers,
         },
       });
       const body = await response.json().catch(() => ({})) as { error?: string; detail?: unknown };
+      if (response.status === 401) {
+        // Access 会话过期了。留在原地重试没有意义，要重新走一次登录跳转。
+        const message = '登录状态已失效，请重新登录。';
+        showLogin(message);
+        throw new Error(message);
+      }
       if (!response.ok) throw new Error(body.error || `请求失败（${response.status}）`);
       return body as Record<string, unknown>;
-    }
-
-    function api(path: string, init: RequestInit = {}) {
-      if (!secret) throw new Error('登录状态已失效，请重新进入管理台。');
-      return requestApi(secret, path, init);
     }
 
     function wait(milliseconds: number) {
@@ -468,31 +455,19 @@ import '../styles/admin.css';
       reportDeploymentSettled('发布所需时间比平时更长，请稍后刷新展厅。', true);
     }
 
-    function setLoginBusy(busy: boolean, message = '') {
-      secretInput.disabled = busy;
-      keepSignedIn.disabled = busy;
-      loginButton.disabled = busy;
-      loginButton.classList.toggle('is-loading', busy);
-      loginButtonIcon.textContent = busy ? '↻' : '→';
-      loginButtonLabel.textContent = busy ? '正在验证…' : '进入管理台';
+    function setLoginMessage(message: string, state: 'busy' | 'error' = 'error') {
       loginStatus.textContent = message;
+      loginStatus.dataset.state = state;
     }
 
-    function saveLogin(secretValue: string) {
-      sessionStorage.removeItem(sessionKey);
-      localStorage.removeItem(persistentKey);
-      if (keepSignedIn.checked) localStorage.setItem(persistentKey, secretValue);
-      else sessionStorage.setItem(sessionKey, secretValue);
-    }
-
-    function clearLogin() {
-      secret = '';
+    /** 退回登录面板。重试就是重新加载页面 —— Access 会在页面请求上拦截并跳登录页。 */
+    function showLogin(message: string) {
       artworks = [];
       artworkById.clear();
-      sessionStorage.removeItem(sessionKey);
-      localStorage.removeItem(persistentKey);
-      secretInput.value = '';
-      keepSignedIn.checked = false;
+      app.hidden = true;
+      login.hidden = false;
+      setLoginMessage(message);
+      loginRetryButton.hidden = false;
     }
 
     function formatRunState(status: string, conclusion?: string | null) {
@@ -657,40 +632,41 @@ import '../styles/admin.css';
       renderRuns((result.runs ?? []) as AdminRun[]);
     }
 
-    async function enterAdmin(secretValue: string) {
-      setLoginBusy(true, '正在确认访问权限…');
+    async function checkSession(): Promise<boolean> {
+      const response = await fetch('/api/admin/session', { credentials: 'same-origin' });
+      const body = await response.json().catch(() => ({})) as { authenticated?: boolean; error?: string };
+      // 503/502 是 Access 没配好或证书取不到，和"没登录"不是一回事，要如实报出来
+      if (!response.ok) throw new Error(body.error || `无法确认登录状态（${response.status}）`);
+      return Boolean(body.authenticated);
+    }
+
+    async function enterAdmin() {
+      setLoginMessage('正在确认登录状态…', 'busy');
+      loginRetryButton.hidden = true;
       try {
+        if (!await checkSession()) {
+          showLogin('还没有通过 Cloudflare Access 验证。');
+          return;
+        }
         const [artworkResult, runResult] = await Promise.all([
-          requestApi(secretValue, '/api/admin/artworks'),
-          requestApi(secretValue, '/api/admin/runs'),
+          api('/api/admin/artworks'),
+          api('/api/admin/runs'),
         ]);
-        secret = secretValue;
         artworks = (artworkResult.artworks ?? []) as AdminArtwork[];
         artworkById = new Map(artworks.map((artwork) => [artwork.id, artwork]));
-        saveLogin(secretValue);
         renderArtworks();
         renderRuns((runResult.runs ?? []) as AdminRun[]);
         login.hidden = true;
         app.hidden = false;
-        setLoginBusy(false);
       } catch (error) {
-        setLoginBusy(false, error instanceof Error ? error.message : '无法进入管理台');
-        secretInput.focus();
+        showLogin(error instanceof Error ? error.message : '无法进入管理台');
       }
     }
 
-    loginForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const candidate = secretInput.value.trim();
-      if (candidate) enterAdmin(candidate);
-    });
+    loginRetryButton.addEventListener('click', () => window.location.reload());
 
     document.querySelector('#admin-logout')?.addEventListener('click', () => {
-      clearLogin();
-      app.hidden = true;
-      login.hidden = false;
-      setLoginBusy(false);
-      secretInput.focus();
+      window.location.href = accessLogoutUrl;
     });
 
     refreshRunsButton.addEventListener('click', async () => {
@@ -720,7 +696,7 @@ import '../styles/admin.css';
       payload.display_image = Number(payload.display_image || 1);
       output.textContent = '正在提交…';
       try {
-        await api('/api/ingest', { method: 'POST', body: JSON.stringify(payload) });
+        await api('/api/admin/ingest', { method: 'POST', body: JSON.stringify(payload) });
         output.textContent = '已提交。采集完成后，网站会自动更新。';
         form.reset();
         const displayInput = form.elements.namedItem('display_image') as HTMLInputElement | null;
@@ -942,15 +918,10 @@ import '../styles/admin.css';
       showToast('样式预览模式：数据是假的，任何操作都不会生效。', false, false);
     }
 
-    const storedSecret = sessionStorage.getItem(sessionKey) || localStorage.getItem(persistentKey) || '';
     if (import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')) {
       startStylePreview();
-    } else if (storedSecret) {
-      secretInput.value = storedSecret;
-      keepSignedIn.checked = Boolean(localStorage.getItem(persistentKey));
-      enterAdmin(storedSecret);
     } else {
-      secretInput.focus();
+      enterAdmin();
     }
   </script>
 </Layout>
