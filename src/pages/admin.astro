@@ -918,6 +918,12 @@ import '../styles/admin.css';
       showToast('样式预览模式：数据是假的，任何操作都不会生效。', false, false);
     }
 
+    // 旧版管理台把访问密钥明文写在这两个键里。改用 Access 后不再写入，但
+    // 已经存过的浏览器不会自己清掉 —— 密钥现在只剩快捷指令一个用途，更不该
+    // 留在浏览器可读的地方。顺手抹掉，将来可以连同这段一起删。
+    localStorage.removeItem('sesese-admin-secret-remembered');
+    sessionStorage.removeItem('sesese-admin-secret');
+
     if (import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview')) {
       startStylePreview();
     } else {
