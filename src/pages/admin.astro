@@ -10,7 +10,16 @@ import '../styles/admin.css';
   robots="noindex, nofollow, noarchive"
 >
   <main id="main-content" class="admin-page">
-    <section id="admin-login" class="admin-login" aria-labelledby="admin-login-title">
+    {/* 载入态。登录面板不能当载入态用 —— 它写着「私人管理入口」，
+        登录成功后仍要停留到藏品拉完，看起来就像被拒绝了。 */}
+    <section id="admin-loading" class="admin-login" aria-live="polite">
+      <div class="admin-login__panel admin-login__panel--quiet">
+        <p class="admin-kicker">PRIVATE COLLECTION DESK</p>
+        <p class="admin-login__intro">正在载入管理台…</p>
+      </div>
+    </section>
+
+    <section id="admin-login" class="admin-login" aria-labelledby="admin-login-title" hidden>
       <div class="admin-login__panel">
         <a href="/" class="admin-header__back">← 返回展厅</a>
         <p class="admin-kicker">PRIVATE COLLECTION DESK</p>
@@ -18,7 +27,7 @@ import '../styles/admin.css';
         <p class="admin-login__intro">这是私人管理入口，身份由 Cloudflare Access 验证。验证通过后，才会读取藏品资料并显示管理功能。</p>
 
         <div class="admin-login__form">
-          <output id="login-status" aria-live="polite" data-state="busy">正在确认登录状态…</output>
+          <output id="login-status" aria-live="polite" data-state="busy"></output>
           <button id="admin-login-retry" type="button" class="admin-button admin-button--primary" hidden>
             <span class="admin-button__icon" aria-hidden="true">→</span>
             <span>重新登录</span>
@@ -284,6 +293,7 @@ import '../styles/admin.css';
     /** Access 的登出端点，同域即可，会清掉这个应用的 CF_Authorization */
     const accessLogoutUrl = '/cdn-cgi/access/logout';
     const login = document.querySelector<HTMLElement>('#admin-login')!;
+    const loading = document.querySelector<HTMLElement>('#admin-loading')!;
     const app = document.querySelector<HTMLElement>('#admin-app')!;
     const loginStatus = document.querySelector<HTMLOutputElement>('#login-status')!;
     const loginRetryButton = document.querySelector<HTMLButtonElement>('#admin-login-retry')!;
@@ -309,12 +319,22 @@ import '../styles/admin.css';
       }
     }
 
-    /** 身份靠 Access 的 CF_Authorization Cookie，页面本身不再持有任何密钥。 */
+    /**
+     * 身份靠 Access 的 CF_Authorization Cookie，页面本身不再持有任何密钥。
+     *
+     * `x-requested-with` 不是装饰：会话过期时 Access 默认回 302 跳登录页，
+     * fetch 会跟着跳到 cloudflareaccess.com，跨域拿不到响应，只抛一个
+     * 语焉不详的网络错误 —— 下面那段 401 处理根本不会触发。带上这个头，
+     * Access 改回 401，前端才能准确说出「登录状态已失效」。
+     */
+    const adminHeaders = { 'x-requested-with': 'XMLHttpRequest' };
+
     async function api(path: string, init: RequestInit = {}) {
       const response = await fetch(path, {
         ...init,
         credentials: 'same-origin',
         headers: {
+          ...adminHeaders,
           ...(init.body ? { 'content-type': 'application/json' } : {}),
           ...init.headers,
         },
@@ -464,6 +484,7 @@ import '../styles/admin.css';
     function showLogin(message: string) {
       artworks = [];
       artworkById.clear();
+      loading.hidden = true;
       app.hidden = true;
       login.hidden = false;
       setLoginMessage(message);
@@ -633,7 +654,12 @@ import '../styles/admin.css';
     }
 
     async function checkSession(): Promise<boolean> {
-      const response = await fetch('/api/admin/session', { credentials: 'same-origin' });
+      const response = await fetch('/api/admin/session', {
+        credentials: 'same-origin',
+        headers: adminHeaders,
+      });
+      // 401 来自 Access 而不是 Worker：会话过期，当作未登录处理即可
+      if (response.status === 401) return false;
       const body = await response.json().catch(() => ({})) as { authenticated?: boolean; error?: string };
       // 503/502 是 Access 没配好或证书取不到，和"没登录"不是一回事，要如实报出来
       if (!response.ok) throw new Error(body.error || `无法确认登录状态（${response.status}）`);
@@ -641,7 +667,8 @@ import '../styles/admin.css';
     }
 
     async function enterAdmin() {
-      setLoginMessage('正在确认登录状态…', 'busy');
+      loading.hidden = false;
+      login.hidden = true;
       loginRetryButton.hidden = true;
       try {
         if (!await checkSession()) {
@@ -656,6 +683,7 @@ import '../styles/admin.css';
         artworkById = new Map(artworks.map((artwork) => [artwork.id, artwork]));
         renderArtworks();
         renderRuns((runResult.runs ?? []) as AdminRun[]);
+        loading.hidden = true;
         login.hidden = true;
         app.hidden = false;
       } catch (error) {
@@ -913,6 +941,7 @@ import '../styles/admin.css';
         { id: 2, status: 'in_progress', conclusion: null, title: '采集 x/1889302…', url: '#', created_at: '2026-07-29T02:10:04.000Z' },
         { id: 3, status: 'completed', conclusion: 'failure', title: '采集 pixiv/128700071', url: '#', created_at: '2026-07-28T23:47:12.000Z' },
       ]);
+      loading.hidden = true;
       login.hidden = true;
       app.hidden = false;
       showToast('样式预览模式：数据是假的，任何操作都不会生效。', false, false);

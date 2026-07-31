@@ -46,6 +46,15 @@ body:has(.admin-page) {
   animation: admin-rise 520ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }
 
+/* 载入态：借用登录面板的居中布局，但去掉边框和投影 —— 它不是一道门，
+   不该看起来像一道门。 */
+.admin-login__panel--quiet {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+
 .admin-login h1 {
   margin: 0;
   font-family: "Songti SC", "Noto Serif CJK SC", Georgia, serif;
