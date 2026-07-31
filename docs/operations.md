@@ -71,7 +71,12 @@
 
 1. 在 Cloudflare Zero Trust → Access → Applications 创建 **Self-hosted** 应用；
 2. Application domain 填 `sesese.se`，并添加两个 path：`admin` 与 `api/admin`；
-3. Policy 选 Allow，条件用 Emails，只填写自己的邮箱；登录方式用 One-time PIN 即可，不必接第三方 IdP；
+3. Policy 选 Allow，条件用 Emails，只填写自己的邮箱；登录方式用 **Cloudflare**（2026-05 起是新建 Zero Trust 组织的默认 IdP，取代 One-time PIN）—— 直接用 Cloudflare 账号登录，有账号自身的 MFA 兜底，比 OTP 更省事也更安全，不必接第三方 IdP；
+   > 首次用 Cloudflare IdP 登录时，中途会闪过一个 `dash.cloudflare.com` 的页面，写着
+   > **“Unknown app wants to access your account”** 并让你选账号，然后才跳回目标页。
+   > 这是 Cloudflare IdP 的授权同意步骤，**属正常**，不是配置错误、也不是钓鱼。
+   > 「Unknown app」是因为这个 OAuth 客户端在 Cloudflare 侧没有可展示的名称。
+   > 只在自己发起登录时才批准它 —— 这个界面的形状和钓鱼攻击一模一样。
 4. 回到应用 Overview，复制 **Application Audience (AUD) Tag**；
 5. 把 AUD 和团队域名填进 `wrangler.jsonc` 的 `vars`，然后重新部署：
 
