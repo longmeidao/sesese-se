@@ -71,13 +71,13 @@ GitHub 建议仓库理想情况下小于 1 GB，并明确建议把生成文件�
 
 当作品数达到数千、每次构建明显变慢，或需要复杂查询、用户收藏与多人审计时，再迁移到 D1。当前低频管理操作继续写入 Git；届时统一 `Artwork` 模型可以直接映射表结构，R2 对象键无需改变。
 
-`/api/ingest` 是快捷采集入口。它验证共享链接和 webhook secret，再调用 GitHub workflow dispatch；抓取、Pillow 压缩、R2 上传和 Git 提交仍在 Actions 中完成。这样手机不保存 GitHub token，普通页面也不消耗 Worker 动态请求或 CPU 配额。部署工作流监听采集工作流成功完成事件，不依赖机器人提交再次触发 `push`，因此从快捷指令到静态站更新是闭环的。
+`/api/admin/ingest` 是采集入口。它校验链接后调用 GitHub workflow dispatch；抓取、Pillow 压缩、R2 上传和 Git 提交仍在 Actions 中完成。这样 GitHub token 只留在 Worker 里，普通页面也不消耗 Worker 动态请求或 CPU 配额。部署工作流监听采集工作流成功完成事件，不依赖机器人提交再次触发 `push`，因此从提交链接到静态站更新是闭环的。
 
 `/admin/` 是静态生成的私人管理界面，`/api/admin/*` 是同一个 Worker 上的薄管理 API。管理 API 使用 GitHub Contents API 串行修改作品 JSON，Git 历史仍是元数据的唯一事实来源；没有为少量管理操作引入 D1。添加与重新抓取仍调度 Actions，Worker 不承担图片解码。
 
 后台身份由 Cloudflare Access 验证，浏览器端不再持有任何密钥。Worker 自己校验 Access 签发的 JWT（RS256 签名、`aud`、`exp`），而不是只依赖边缘拦截——Access 绑在 zone 上，绕过自定义域名直接打 `*.workers.dev` 就没有拦截。JWKS 缓存在模块级变量里：公钥对所有请求都一样，不是请求态，跨请求复用不会串数据。
 
-`/api/ingest` 是唯一仍用共享密钥的入口，因为快捷指令做不了交互式登录。两套凭据因此各管一段：Access 管人（浏览器精挑细选），Bearer 密钥管机器（快捷指令随手分享）。
+Access 是**唯一**的鉴权方式。曾经并存过一个用共享密钥的 `/api/ingest`，供 iOS/macOS 快捷指令随手分享用；实际没有用起来，已连同密钥删除。所有收录都从管理台进入，代价是不能再"随手分享"，换来的是 Worker 不再持有任何长期有效的凭据 —— 对一个精挑细选、低频更新的站点，这笔交换是划算的。
 
 人工编辑写入 `overrides`，来源抓取结果继续保留在顶层字段。展示层以 `overrides` 为优先，重新抓取器则保留整个覆盖对象，因此更新图片、作者资料或来源标签不会冲掉人工标题、简介和标签。`hidden` 与 `deleted` 都不会进入公开页面；后者记录 `deleted_at`，定时清理工作流在 30 天后删除 R2 变体和作品 JSON，同时保留永久序号注册表。
 
@@ -85,7 +85,7 @@ GitHub 建议仓库理想情况下小于 1 GB，并明确建议把生成文件�
 
 采集属于低频、批处理、需要较多 CPU 和外网等待的任务。GitHub 公共仓库的标准托管 runner 免费，能够直接运行 Python/Pillow、使用仓库 Secrets，并在完成后原子提交元数据。Workers Free 的动态请求有 10ms CPU 限制，不适合解码和生成多档大图；把图片处理塞进访问链路也会增加超时与失败恢复难度。
 
-这不意味着每次必须打开 GitHub 网页：`/api/ingest` 接受 Pixiv/X 分享链接并触发同一个工作流，macOS/iOS 快捷指令只是这个入口的客户端。以后若采集量大到 Actions 排队成为瓶颈，可以把相同的 adapter/metadata 协议搬到专门队列或容器任务，无需改前端。
+这不意味着每次必须打开 GitHub 网页：管理台的 `/api/admin/ingest` 接受 Pixiv/X 链接并触发同一个工作流。以后若采集量大到 Actions 排队成为瓶颈，可以把相同的 adapter/metadata 协议搬到专门队列或容器任务，无需改前端。
 
 参考：[GitHub Actions 计费](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions/about-billing-for-github-actions)、[Workers 限额](https://developers.cloudflare.com/workers/platform/limits/)。
 

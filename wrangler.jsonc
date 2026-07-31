@@ -6,10 +6,17 @@
   "keep_vars": true,
   "secrets": {
     "required": [
-      "GITHUB_TOKEN",
-      "INGEST_WEBHOOK_SECRET"
+      "GITHUB_TOKEN"
     ]
   },
+
+  // 没有这个，Worker 的运行时日志根本不留存，出事只能靠 `wrangler tail` 实时守着。
+  // 采样率 1 = 全量：这个 Worker 只处理 /api/*，量很小，不必抽样。
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
   "routes": [
     {
       "pattern": "sesese.se",

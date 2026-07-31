@@ -8,7 +8,7 @@
 - 图片存放在对象存储中，默认方案是 Cloudflare R2；仓库只提交 JSON 元数据。
 - GitHub Actions 抓取、压缩、上传图片并提交元数据。
 - Cloudflare Workers Static Assets 分发静态构建产物；仅 `/api/*` 调用动态 Worker。
-- 后台 `/admin/` 由 Cloudflare Access 登录，Worker 自己校验 Access JWT；`/api/ingest` 保留共享密钥供快捷指令使用。
+- 后台 `/admin/` 由 Cloudflare Access 登录，Worker 自己校验 Access JWT；这是唯一的鉴权方式，没有长期有效的共享密钥。
 - OSS 不在默认链路中，只保留为付费灾备或中国大陆加速的最后选项。
 
 完整取舍见 [架构说明](docs/architecture.md)，日常操作见 [运维手册](docs/operations.md)。
@@ -39,7 +39,7 @@ npm run build
 
 工作流只下载选中的一张，按最长边 640/960/1600/2400px 生成 WebP、上传对象存储，并在 `src/content/artworks` 写入统一元数据。展示层不依赖来源站点；新增自动适配器时，只需扩展 `scripts/ingest.py`。
 
-部署 `/api/ingest` 后，macOS 与 iOS 可通过系统“快捷指令”的分享表单直接提交 Pixiv/X 链接，无需进入仓库。配置步骤见 [运维手册](docs/operations.md#从-macos--ios-快捷指令添加)。
+日常收录直接在 `/admin/` 的管理台粘贴链接，无需进入仓库。步骤见 [运维手册](docs/operations.md#从管理台添加)。
 
 ## 所需配置
 
@@ -55,7 +55,6 @@ GitHub Secrets：
 Cloudflare Worker Secrets：
 
 - `GITHUB_TOKEN`（仅限本仓库，Actions read/write）
-- `INGEST_WEBHOOK_SECRET`（自行生成的长随机值，只用于 `/api/ingest` 快捷指令）
 
 Cloudflare Worker 变量（`wrangler.jsonc` 的 `vars`，值来自 Zero Trust 里的 Access 应用，见[运维手册](docs/operations.md#身份验证cloudflare-access)）：
 

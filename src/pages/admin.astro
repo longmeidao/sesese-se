@@ -919,8 +919,8 @@ import '../styles/admin.css';
     }
 
     // 旧版管理台把访问密钥明文写在这两个键里。改用 Access 后不再写入，但
-    // 已经存过的浏览器不会自己清掉 —— 密钥现在只剩快捷指令一个用途，更不该
-    // 留在浏览器可读的地方。顺手抹掉，将来可以连同这段一起删。
+    // 已经存过的浏览器不会自己清掉。那个密钥现在已经作废，留着也只是垃圾。
+    // 顺手抹掉，将来可以连同这段一起删。
     localStorage.removeItem('sesese-admin-secret-remembered');
     sessionStorage.removeItem('sesese-admin-secret');
 

@@ -1,8 +1,6 @@
 interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> };
   GITHUB_TOKEN: string;
-  /** 只给快捷指令用的共享密钥，见 requireIngestSecret */
-  INGEST_WEBHOOK_SECRET: string;
   /** 形如 https://<团队名>.cloudflareaccess.com */
   ACCESS_TEAM_DOMAIN: string;
   /** Access 应用的 Application Audience (AUD) Tag */
@@ -58,41 +56,10 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function safeEqual(left: string, right: string): boolean {
-  const leftBytes = new TextEncoder().encode(left);
-  const rightBytes = new TextEncoder().encode(right);
-  let difference = leftBytes.length ^ rightBytes.length;
-  const length = Math.max(leftBytes.length, rightBytes.length);
-
-  for (let index = 0; index < length; index += 1) {
-    difference |= (leftBytes[index] ?? 0) ^ (rightBytes[index] ?? 0);
-  }
-
-  return difference === 0;
-}
-
-/**
- * `/api/ingest` 的共享密钥校验。
- *
- * 这条路径只服务 iOS/macOS 快捷指令 —— 快捷指令做不了交互式登录，
- * Access 对它无能为力，所以继续用 Bearer 密钥。浏览器后台走 requireAccess。
- */
-function requireIngestSecret(request: Request, env: Env): void {
-  if (!env.INGEST_WEBHOOK_SECRET) {
-    throw new ApiError('Cloudflare Worker 缺少 INGEST_WEBHOOK_SECRET', 503);
-  }
-
-  const authorization = request.headers.get('authorization') ?? '';
-  const suppliedSecret = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-  if (!safeEqual(suppliedSecret, env.INGEST_WEBHOOK_SECRET)) {
-    throw new ApiError('访问密钥不正确', 401);
-  }
-}
-
 /* ── Cloudflare Access ──────────────────────────────────────────────────
- * 浏览器后台（/api/admin/*）由 Cloudflare Access 登录。Access 会在边缘就
- * 拦掉未登录的请求，但 Worker 仍然自己验一遍签名：光靠边缘拦截的话，
- * 绕过自定义域名直接打 *.workers.dev 就没人管了。
+ * 后台（/api/admin/*）由 Cloudflare Access 登录，这是 Worker 唯一的鉴权方式。
+ * Access 会在边缘就拦掉未登录的请求，但 Worker 仍然自己验一遍签名：光靠
+ * 边缘拦截的话，绕过自定义域名直接打 *.workers.dev 就没人管了。
  */
 
 interface AccessClaims {
@@ -723,12 +690,6 @@ async function deploymentStatus(commitSha: string, env: Env): Promise<Response> 
 async function handleApi(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
 
-  if (url.pathname === '/api/ingest') {
-    if (request.method !== 'POST') throw new ApiError('不支持这种请求方式', 405);
-    requireIngestSecret(request, env);
-    return dispatchIngest(await readJson<IngestRequest>(request), env);
-  }
-
   if (url.pathname.startsWith('/api/admin/')) {
     // 未登录也要能回答"你没登录"，否则管理页只能拿到一个裸 401，
     // 分不清是没登录还是 Access 没配好。这一条刻意排在 requireAccess 前面。
@@ -739,8 +700,7 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
 
     await requireAccess(request, env);
 
-    // 管理台自己的收录入口。和 /api/ingest 做同一件事，但认的是 Access 会话，
-    // 这样浏览器端不必再持有 INGEST_WEBHOOK_SECRET。
+    // 收录入口。调 GitHub workflow dispatch，抓取和上传都在 Actions 里完成。
     if (url.pathname === '/api/admin/ingest') {
       if (request.method !== 'POST') throw new ApiError('不支持这种请求方式', 405);
       return dispatchIngest(await readJson<IngestRequest>(request), env);

@@ -8,7 +8,7 @@
 4. 在 Cloudflare Cache Rules 中为 `media.sesese.se/*` 启用缓存，并开启 Smart Tiered Cache。
 5. 创建 Workers API Token，只授予部署 `sesese-se` Worker 所需权限。
 6. 在 GitHub 添加 README 中列出的 Secrets 与 Variables；`X_BEARER_TOKEN` 不填即使用免费的 FxTwitter 兜底。
-7. 在 Cloudflare 的 `sesese-se` Worker 中添加 `GITHUB_TOKEN` 和 `INGEST_WEBHOOK_SECRET` 两个加密 Secret。它们是 Worker 运行时变量，不是 GitHub Actions Secret，也不要只设置在 Preview 环境。
+7. 在 Cloudflare 的 `sesese-se` Worker 中添加 `GITHUB_TOKEN` 加密 Secret。它是 Worker 运行时变量，不是 GitHub Actions Secret，也不要只设置在 Preview 环境。
 8. 运行 `Migrate existing media to R2`。该工作流会强制重建已有响应式图片，以便压缩参数升级后真正替换旧文件。
 9. 运行 `Deploy to Cloudflare Workers`。
 10. 在 Workers 设置中连接 `sesese.se` 和 `www.sesese.se` 自定义域名。
@@ -48,29 +48,11 @@
 
 通用入口不抓取页面 HTML，避免把站点反爬规则和易变 DOM 耦合进核心采集器。高频使用某来源后，再为它增加专用 API 适配器。
 
-## 从 macOS / iOS 快捷指令添加
+## 从管理台添加
 
-动态 Worker 只是一个很薄的受保护入口：它不抓图、不处理图片，只校验链接并触发 GitHub Actions。GitHub token 留在 Worker 中，手机和电脑只保存可随时轮换的 webhook secret。
+日常收录都从 `https://sesese.se/admin/` 的「收录新作品」进行，它调用 `/api/admin/ingest`，身份由 Cloudflare Access 验证。Worker 只是一个很薄的入口：不抓图、不处理图片，只校验链接并触发 GitHub Actions，GitHub token 始终留在 Worker 里。响应 `202 accepted` 只表示工作流已排队，进度看管理台的「最近采集」或仓库 Actions 页。
 
-在“快捷指令”中新建一个接收分享表单中“URL”的指令：
-
-1. 添加“从输入中获取 URL”；
-2. 可选添加“询问输入”，问题设为“第几张？”，默认值为 `1`；
-3. 添加“获取 URL 内容”，URL 为 `https://sesese.se/api/ingest`，方法为 `POST`；
-4. 请求头添加 `Authorization: Bearer <INGEST_WEBHOOK_SECRET>`；
-5. 请求正文选择 JSON，加入 `url: 快捷指令输入` 和 `display_image: 第 2 步的数字`；
-6. 添加“显示结果”。
-
-如果不询问页码，省略 `display_image` 即默认第 1 张。之后在 Pixiv 或 X 的分享菜单中选择该快捷指令即可；响应为 `202 accepted` 只表示工作流已排队，最终结果在仓库 Actions 页面查看。
-
-也可以从 macOS 终端直接提交：
-
-```bash
-curl --request POST https://sesese.se/api/ingest \
-  --header 'Authorization: Bearer YOUR_WEBHOOK_SECRET' \
-  --header 'Content-Type: application/json' \
-  --data '{"url":"https://x.com/user/status/123","display_image":2}'
-```
+> 曾经还有一个 `/api/ingest`，用共享密钥供 iOS/macOS 快捷指令调用。实际没有用起来，已经连同 `INGEST_WEBHOOK_SECRET` 一并删除 —— 少一个长期有效的明文凭据，就少一条要看管的路。要恢复的话，`dispatchIngest()` 还在，加一条不走 Access 的路由即可。
 
 ## 更新与删除
 
@@ -106,33 +88,29 @@ curl --request POST https://sesese.se/api/ingest \
 > 同理，**登录流程在 `*.workers.dev` 上测不出来**——那边拿不到 Access Cookie，
 > `/api/admin/session` 永远是 `{"authenticated":false}`。在那里只能验证「未登录时是否失败关闭」。
 
-排查用 `npx wrangler tail`：团队域名或 AUD 填错时，Worker 会打一条 `access_not_configured` 或 `access_certs_failed` 日志。
+### 日志
+
+`wrangler.jsonc` 里 `observability.enabled` 为 true、采样率 1（全量）。Worker 只处理 `/api/*`，量很小，不必抽样。日志在 Cloudflare Dashboard → Workers & Pages → `sesese-se` → Logs 里回溯，也可以 `npx wrangler tail` 实时看。
+
+关掉它的代价是运行时日志**根本不留存**，事后完全无法回溯——出过一次这样的情况，所以不要为省配额关掉。团队域名或 AUD 填错时，Worker 会打 `access_not_configured` 或 `access_certs_failed`，就靠这里看。
 
 ### Secrets
 
-管理 API 继续复用 Worker 中已有的 `GITHUB_TOKEN`，不需要为它新建 Secret。`GITHUB_TOKEN` 需要目标仓库的 Actions 写入和 Contents 读写权限。
+Worker 只需要一个 Secret：`GITHUB_TOKEN`，用于读写仓库和启动 Actions，需要目标仓库的 Actions 写入和 Contents 读写权限。Access 不需要 Secret —— `ACCESS_AUD` 只是应用标识，真正的凭据是 Access 每次签发的短期 JWT，Worker 从不持有长期密钥。
 
-`INGEST_WEBHOOK_SECRET` 现在**只**给 `/api/ingest` 用，也就是 iOS/macOS 快捷指令——快捷指令做不了交互式登录，Access 对它无能为力，所以保留共享密钥。管理台自己走 `/api/admin/ingest`，认的是 Access 会话。
-
-如果管理页提示缺少 Secret，请打开 Cloudflare Dashboard → Workers & Pages → `sesese-se` → Settings → Variables and Secrets，确认 Production 环境中存在以下两个变量，并且类型必须选择 **Secret**，不能选择普通文本变量：
-
-- `GITHUB_TOKEN`：管理台读取、修改仓库和启动 Actions 使用的 GitHub token；
-- `INGEST_WEBHOOK_SECRET`：快捷指令调用 `/api/ingest` 使用的共享密钥。
-
-也可以在已经设置好 `CLOUDFLARE_API_TOKEN` 的终端中执行：
+如果管理页提示缺少 Secret，请打开 Cloudflare Dashboard → Workers & Pages → `sesese-se` → Settings → Variables and Secrets，确认 Production 环境中存在 `GITHUB_TOKEN`，并且类型必须选择 **Secret**，不能选择普通文本变量。也可以在已经设置好 `CLOUDFLARE_API_TOKEN` 的终端中执行：
 
 ```bash
-npx wrangler secret put INGEST_WEBHOOK_SECRET
 npx wrangler secret put GITHUB_TOKEN
 ```
 
-修改 Secret 后不必重新构建网站；刷新管理页即可。接口现在会明确指出缺少哪一个变量。
+修改 Secret 后不必重新构建网站；刷新管理页即可。接口会明确指出缺少哪一个变量。
 
-`wrangler.jsonc` 已把这两个名称声明为必需 Secret：缺少任意一个时，后续部署会直接失败，不再发布一个无法登录管理台的新版本。配置同时启用了 `keep_vars`，避免仓库部署覆盖临时保存在 Cloudflare 控制台中的普通变量；敏感值仍必须使用 Secret。
+`wrangler.jsonc` 已把它声明为必需 Secret：缺少时后续部署会直接失败，不再发布一个无法工作的新版本。配置同时启用了 `keep_vars`，避免仓库部署覆盖临时保存在 Cloudflare 控制台中的普通变量；敏感值仍必须使用 Secret。
 
 ### 回滚
 
-Access 把自己挡在外面时，不影响内容本身：元数据是 git 里的 JSON，直接 commit 就能改。要退回旧的密钥登录，`git revert` 这次改动并重新部署即可——`INGEST_WEBHOOK_SECRET` 一直没有删除，快捷指令和旧版管理页都还能用它。
+Access 把自己挡在外面时，不影响内容本身：元数据是 git 里的 JSON，直接 commit 就能改。真要退回密钥登录，得 `git revert` 到引入 Access 之前，并重新 `wrangler secret put INGEST_WEBHOOK_SECRET`（原来的已删除，需要生成新值）。
 
 本地 `astro dev` 只预览静态管理界面，不运行 Worker API；需要联调接口时先执行 `npm run build`，再使用 `wrangler dev`。`astro dev` 下管理页会显示「无法确认登录状态（404）」，属正常现象。
 
