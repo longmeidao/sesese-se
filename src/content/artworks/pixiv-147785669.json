@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "id": "pixiv-147785669",
+  "sequence": 8,
+  "content_hash": "sha256:abf257485e9b3e04d3e214ff732fd553176f25afa3c90671cfda3de701fbbd90",
+  "display_image_index": 1,
+  "source": {
+    "type": "pixiv",
+    "id": "147785669",
+    "url": "https://www.pixiv.net/artworks/147785669"
+  },
+  "title": "SAMPLE",
+  "description": "",
+  "published_at": "2026-07-30T00:24:58+09:00",
+  "collected_at": "2026-07-31T16:13:55.970690+00:00",
+  "tags": [
+    "裸足"
+  ],
+  "author": {
+    "id": "19770237",
+    "name": "LCLS",
+    "handle": "2447273293",
+    "url": "https://www.pixiv.net/users/19770237"
+  },
+  "media": [
+    {
+      "index": 1,
+      "width": 1694,
+      "height": 2400,
+      "alt": "SAMPLE",
+      "content_hash": "sha256:8a39c74e9dfb0087cd2160cab75c042592e1cc7331c8505ae1ed8541e013227e",
+      "variants": [
+        {
+          "key": "media/pixiv/147785669/1/452w.webp",
+          "format": "webp",
+          "width": 452,
+          "height": 640,
+          "bytes": 43186
+        },
+        {
+          "key": "media/pixiv/147785669/1/678w.webp",
+          "format": "webp",
+          "width": 678,
+          "height": 960,
+          "bytes": 75930
+        },
+        {
+          "key": "media/pixiv/147785669/1/1130w.webp",
+          "format": "webp",
+          "width": 1130,
+          "height": 1600,
+          "bytes": 154366
+        },
+        {
+          "key": "media/pixiv/147785669/1/original.webp",
+          "format": "webp",
+          "width": 1694,
+          "height": 2400,
+          "bytes": 315516
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "views": 3703,
+    "bookmarks": 843
+  }
+}
