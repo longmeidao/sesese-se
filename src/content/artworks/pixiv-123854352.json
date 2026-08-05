@@ -38,40 +38,75 @@
       "height": 1350,
       "alt": "レゾナンス:無限号列車",
       "content_hash": "sha256:988a561f007d905b87903b5531023850194542d0c3f84aa37fabe870e795bcc2",
+      "source": {
+        "key": "media/pixiv/123854352/1/source.jpg",
+        "format": "jpg",
+        "width": 2560,
+        "height": 1440,
+        "bytes": 2215541
+      },
       "variants": [
+        {
+          "key": "media/pixiv/123854352/1/640w.avif",
+          "format": "avif",
+          "width": 640,
+          "height": 360,
+          "bytes": 41034
+        },
         {
           "key": "media/pixiv/123854352/1/640w.webp",
           "format": "webp",
           "width": 640,
           "height": 360,
-          "bytes": 45516
+          "bytes": 53994
+        },
+        {
+          "key": "media/pixiv/123854352/1/960w.avif",
+          "format": "avif",
+          "width": 960,
+          "height": 540,
+          "bytes": 71675
         },
         {
           "key": "media/pixiv/123854352/1/960w.webp",
           "format": "webp",
           "width": 960,
           "height": 540,
-          "bytes": 80408
+          "bytes": 94740
+        },
+        {
+          "key": "media/pixiv/123854352/1/1600w.avif",
+          "format": "avif",
+          "width": 1600,
+          "height": 900,
+          "bytes": 140496
         },
         {
           "key": "media/pixiv/123854352/1/1600w.webp",
           "format": "webp",
           "width": 1600,
           "height": 900,
-          "bytes": 156616
+          "bytes": 190596
+        },
+        {
+          "key": "media/pixiv/123854352/1/original.avif",
+          "format": "avif",
+          "width": 2400,
+          "height": 1350,
+          "bytes": 231796
         },
         {
           "key": "media/pixiv/123854352/1/original.webp",
           "format": "webp",
           "width": 2400,
           "height": 1350,
-          "bytes": 260074
+          "bytes": 316574
         }
       ]
     }
   ],
   "metrics": {
-    "views": 154697,
-    "bookmarks": 18565
+    "views": 155269,
+    "bookmarks": 18599
   }
 }

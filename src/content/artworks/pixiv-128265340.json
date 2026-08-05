@@ -2,6 +2,11 @@
   "schema_version": 2,
   "id": "pixiv-128265340",
   "sequence": 2,
+  "status": "deleted",
+  "deleted_at": "2026-07-23T14:36:24.044Z",
+  "overrides": {
+    "title": "ホワイトデーに遅れたお詫びに（キサキ・ヒナ）"
+  },
   "content_hash": "sha256:09af4cee97ea9092ab26949218de9ce53c448da58f0242e01b756b4d9fd715cd",
   "display_image_index": 1,
   "source": {
@@ -34,38 +39,61 @@
       "height": 1177,
       "alt": "ホワイトデーに遅れたお詫びに（キサキ・ヒナ）＜全5枚＞",
       "content_hash": "sha256:95bc1cb220167600387f3c5cedc3470b0b7a92d99a8acf80d2688ae695a487b8",
+      "source": {
+        "key": "media/pixiv/128265340/1/source.jpg",
+        "format": "jpg",
+        "width": 832,
+        "height": 1177,
+        "bytes": 824262
+      },
       "variants": [
+        {
+          "key": "media/pixiv/128265340/1/452w.avif",
+          "format": "avif",
+          "width": 452,
+          "height": 640,
+          "bytes": 34098
+        },
         {
           "key": "media/pixiv/128265340/1/452w.webp",
           "format": "webp",
           "width": 452,
           "height": 640,
-          "bytes": 35912
+          "bytes": 42936
+        },
+        {
+          "key": "media/pixiv/128265340/1/679w.avif",
+          "format": "avif",
+          "width": 679,
+          "height": 960,
+          "bytes": 57194
         },
         {
           "key": "media/pixiv/128265340/1/679w.webp",
           "format": "webp",
           "width": 679,
           "height": 960,
-          "bytes": 60738
+          "bytes": 74120
+        },
+        {
+          "key": "media/pixiv/128265340/1/original.avif",
+          "format": "avif",
+          "width": 832,
+          "height": 1177,
+          "bytes": 75055
         },
         {
           "key": "media/pixiv/128265340/1/original.webp",
           "format": "webp",
           "width": 832,
           "height": 1177,
-          "bytes": 79960
+          "bytes": 94988
         }
       ]
     }
   ],
   "metrics": {
-    "views": 139649,
-    "bookmarks": 21719
-  },
-  "overrides": {
-    "title": "ホワイトデーに遅れたお詫びに（キサキ・ヒナ）"
-  },
-  "status": "deleted",
-  "deleted_at": "2026-07-23T14:36:24.044Z"
+    "views": 140448,
+    "bookmarks": 21787
+  }
 }

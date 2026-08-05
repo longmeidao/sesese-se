@@ -29,13 +29,34 @@
       "height": 2400,
       "alt": "SAMPLE",
       "content_hash": "sha256:8a39c74e9dfb0087cd2160cab75c042592e1cc7331c8505ae1ed8541e013227e",
+      "source": {
+        "key": "media/pixiv/147785669/1/source.png",
+        "format": "png",
+        "width": 2428,
+        "height": 3439,
+        "bytes": 12737403
+      },
       "variants": [
+        {
+          "key": "media/pixiv/147785669/1/452w.avif",
+          "format": "avif",
+          "width": 452,
+          "height": 640,
+          "bytes": 35745
+        },
         {
           "key": "media/pixiv/147785669/1/452w.webp",
           "format": "webp",
           "width": 452,
           "height": 640,
           "bytes": 43186
+        },
+        {
+          "key": "media/pixiv/147785669/1/678w.avif",
+          "format": "avif",
+          "width": 678,
+          "height": 960,
+          "bytes": 58704
         },
         {
           "key": "media/pixiv/147785669/1/678w.webp",
@@ -45,11 +66,25 @@
           "bytes": 75930
         },
         {
+          "key": "media/pixiv/147785669/1/1130w.avif",
+          "format": "avif",
+          "width": 1130,
+          "height": 1600,
+          "bytes": 121321
+        },
+        {
           "key": "media/pixiv/147785669/1/1130w.webp",
           "format": "webp",
           "width": 1130,
           "height": 1600,
           "bytes": 154366
+        },
+        {
+          "key": "media/pixiv/147785669/1/original.avif",
+          "format": "avif",
+          "width": 1694,
+          "height": 2400,
+          "bytes": 255016
         },
         {
           "key": "media/pixiv/147785669/1/original.webp",
@@ -62,7 +97,7 @@
     }
   ],
   "metrics": {
-    "views": 3703,
-    "bookmarks": 843
+    "views": 5636,
+    "bookmarks": 1078
   }
 }

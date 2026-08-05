@@ -34,40 +34,75 @@
       "height": 2300,
       "alt": "Castorice",
       "content_hash": "sha256:b3ecbbab20fcee4e101cdb82e499751bc4514ea03b07004d4002e116ce975d34",
+      "source": {
+        "key": "media/pixiv/128255980/1/source.png",
+        "format": "png",
+        "width": 1448,
+        "height": 2300,
+        "bytes": 5442398
+      },
       "variants": [
+        {
+          "key": "media/pixiv/128255980/1/403w.avif",
+          "format": "avif",
+          "width": 403,
+          "height": 640,
+          "bytes": 58652
+        },
         {
           "key": "media/pixiv/128255980/1/403w.webp",
           "format": "webp",
           "width": 403,
           "height": 640,
-          "bytes": 54162
+          "bytes": 67196
+        },
+        {
+          "key": "media/pixiv/128255980/1/604w.avif",
+          "format": "avif",
+          "width": 604,
+          "height": 960,
+          "bytes": 122905
         },
         {
           "key": "media/pixiv/128255980/1/604w.webp",
           "format": "webp",
           "width": 604,
           "height": 960,
-          "bytes": 114146
+          "bytes": 141754
+        },
+        {
+          "key": "media/pixiv/128255980/1/1007w.avif",
+          "format": "avif",
+          "width": 1007,
+          "height": 1600,
+          "bytes": 324538
         },
         {
           "key": "media/pixiv/128255980/1/1007w.webp",
           "format": "webp",
           "width": 1007,
           "height": 1600,
-          "bytes": 295366
+          "bytes": 368700
+        },
+        {
+          "key": "media/pixiv/128255980/1/original.avif",
+          "format": "avif",
+          "width": 1448,
+          "height": 2300,
+          "bytes": 602467
         },
         {
           "key": "media/pixiv/128255980/1/original.webp",
           "format": "webp",
           "width": 1448,
           "height": 2300,
-          "bytes": 568134
+          "bytes": 695490
         }
       ]
     }
   ],
   "metrics": {
-    "views": 104025,
-    "bookmarks": 18340
+    "views": 104445,
+    "bookmarks": 18364
   }
 }

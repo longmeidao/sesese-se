@@ -36,40 +36,75 @@
       "height": 2400,
       "alt": "Switch",
       "content_hash": "sha256:72b41ef31c9b2122a76135b7bb692fdd606fa179342a0d3d2542f159e168ff21",
+      "source": {
+        "key": "media/pixiv/128409880/1/source.jpg",
+        "format": "jpg",
+        "width": 4058,
+        "height": 5554,
+        "bytes": 5987836
+      },
       "variants": [
+        {
+          "key": "media/pixiv/128409880/1/468w.avif",
+          "format": "avif",
+          "width": 468,
+          "height": 640,
+          "bytes": 26485
+        },
         {
           "key": "media/pixiv/128409880/1/468w.webp",
           "format": "webp",
           "width": 468,
           "height": 640,
-          "bytes": 27714
+          "bytes": 32730
+        },
+        {
+          "key": "media/pixiv/128409880/1/701w.avif",
+          "format": "avif",
+          "width": 701,
+          "height": 960,
+          "bytes": 46344
         },
         {
           "key": "media/pixiv/128409880/1/701w.webp",
           "format": "webp",
           "width": 701,
           "height": 960,
-          "bytes": 49846
+          "bytes": 59700
+        },
+        {
+          "key": "media/pixiv/128409880/1/1169w.avif",
+          "format": "avif",
+          "width": 1169,
+          "height": 1600,
+          "bytes": 94246
         },
         {
           "key": "media/pixiv/128409880/1/1169w.webp",
           "format": "webp",
           "width": 1169,
           "height": 1600,
-          "bytes": 102970
+          "bytes": 122442
+        },
+        {
+          "key": "media/pixiv/128409880/1/original.avif",
+          "format": "avif",
+          "width": 1754,
+          "height": 2400,
+          "bytes": 166571
         },
         {
           "key": "media/pixiv/128409880/1/original.webp",
           "format": "webp",
           "width": 1754,
           "height": 2400,
-          "bytes": 178894
+          "bytes": 216918
         }
       ]
     }
   ],
   "metrics": {
-    "views": 83450,
-    "bookmarks": 12954
+    "views": 83795,
+    "bookmarks": 12973
   }
 }

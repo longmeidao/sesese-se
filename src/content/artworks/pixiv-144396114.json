@@ -38,13 +38,34 @@
       "height": 2400,
       "alt": "人間、あなたは何が好きなの？",
       "content_hash": "sha256:5a532cac8903d99742cfd2af326e07ea41a3fb12034125be6d23fdf3145400d2",
+      "source": {
+        "key": "media/pixiv/144396114/1/source.jpg",
+        "format": "jpg",
+        "width": 2315,
+        "height": 3274,
+        "bytes": 3974756
+      },
       "variants": [
+        {
+          "key": "media/pixiv/144396114/1/453w.avif",
+          "format": "avif",
+          "width": 453,
+          "height": 640,
+          "bytes": 35166
+        },
         {
           "key": "media/pixiv/144396114/1/453w.webp",
           "format": "webp",
           "width": 453,
           "height": 640,
           "bytes": 41468
+        },
+        {
+          "key": "media/pixiv/144396114/1/679w.avif",
+          "format": "avif",
+          "width": 679,
+          "height": 960,
+          "bytes": 62033
         },
         {
           "key": "media/pixiv/144396114/1/679w.webp",
@@ -54,11 +75,25 @@
           "bytes": 74496
         },
         {
+          "key": "media/pixiv/144396114/1/1131w.avif",
+          "format": "avif",
+          "width": 1131,
+          "height": 1600,
+          "bytes": 125032
+        },
+        {
           "key": "media/pixiv/144396114/1/1131w.webp",
           "format": "webp",
           "width": 1131,
           "height": 1600,
           "bytes": 153584
+        },
+        {
+          "key": "media/pixiv/144396114/1/original.avif",
+          "format": "avif",
+          "width": 1697,
+          "height": 2400,
+          "bytes": 215291
         },
         {
           "key": "media/pixiv/144396114/1/original.webp",
@@ -71,7 +106,7 @@
     }
   ],
   "metrics": {
-    "views": 15373,
-    "bookmarks": 3923
+    "views": 16083,
+    "bookmarks": 4066
   }
 }
