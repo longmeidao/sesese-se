@@ -16,7 +16,6 @@ import json
 import os
 import re
 import sys
-import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,11 +24,18 @@ from typing import Iterable
 from urllib.parse import urlparse
 
 import requests
+from ingest_contract import (
+    normalize_author_name,
+    parse_csv,
+    parse_x_status,
+    safe_identifier,
+    target_dimensions,
+    x_title,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT_DIR = ROOT / "src" / "content" / "artworks"
 SEQUENCE_REGISTRY_PATH = ROOT / "src" / "content" / "artwork-sequences.json"
-VARIANT_WIDTHS = (640, 960, 1600, 2400)
 MAX_DOWNLOAD_BYTES = 100 * 1024 * 1024
 
 
@@ -58,62 +64,6 @@ class FetchedArtwork:
     bookmarks: int | None = None
     display_image_index: int = 1
 
-
-def parse_csv(value: str) -> list[str]:
-    return [item.strip() for item in value.split(",") if item.strip()]
-
-
-def safe_identifier(value: str) -> str:
-    cleaned = re.sub(r"[^a-zA-Z0-9._-]+", "-", value).strip("-.")
-    if not cleaned:
-        raise ValueError("Artwork ID must contain at least one safe character")
-    return cleaned[:160]
-
-
-def normalize_author_name(value: str) -> str:
-    """Remove clearly temporary event/status suffixes without using names for identity.
-
-    The unmodified value is always retained as author.name_raw. The stable provider
-    user ID, never this display value, is the identity key.
-    """
-    name = " ".join(unicodedata.normalize("NFKC", value).split()).strip()
-    temporary = re.compile(
-        r"(?:C\d{2,3}|コミケ|コミティア|COMITIA|例大祭|新刊|委託|通販|"
-        r"お仕事募集中|依頼募集中|Skeb|[0-1]?\d/[0-3]?\d|"
-        r"(?:東|西|南|北)[1-8]?[A-Za-zあ-んア-ン]-?\d{1,2}[ab]?)",
-        re.IGNORECASE,
-    )
-    # Remove a trailing bracket only when it contains a known temporary marker.
-    name = re.sub(
-        r"\s*[\(（\[【][^\)）\]】]*(?:C\d{2,3}|コミケ|コミティア|COMITIA|例大祭|新刊|委託|通販|募集中|Skeb|\d{1,2}/\d{1,2})[^\)）\]】]*[\)）\]】]\s*$",
-        "",
-        name,
-        flags=re.IGNORECASE,
-    ).strip()
-    # Remove a separator suffix only when the suffix itself looks temporary.
-    parts = re.split(r"\s*(?:@|＠|\||｜)\s*", name, maxsplit=1)
-    if len(parts) == 2 and temporary.search(parts[1]):
-        name = parts[0].strip()
-    return name or value.strip()
-
-
-def parse_x_status(value: str, source_url: str = "") -> tuple[str, str]:
-    candidate = value if "/status/" in value else source_url
-    match = re.search(r"(?:https?://)?(?:www\.)?(?:x|twitter)\.com/([^/]+)/status/(\d+)", candidate)
-    if match:
-        handle, status_id = match.groups()
-        return status_id, f"https://x.com/{handle}/status/{status_id}"
-    if value.isdigit():
-        return value, source_url or f"https://x.com/i/status/{value}"
-    raise ValueError("X input must be a complete x.com status URL or numeric status ID")
-
-
-def x_title(text: str, author_name: str, status_id: str) -> str:
-    first_line = next((line.strip() for line in text.splitlines() if line.strip()), "")
-    cleaned = re.sub(r"https?://\S+", "", first_line)
-    cleaned = re.sub(r"(?:^|\s)#[\w\u0080-\uffff]+", " ", cleaned)
-    cleaned = " ".join(cleaned.split()).strip(" -—·")
-    return cleaned[:120] or f"{author_name} · X {status_id}"
 
 
 def fetch_x_official(status_id: str, status_url: str, token: str) -> FetchedArtwork:
@@ -351,20 +301,6 @@ class R2Storage:
             CacheControl="public, max-age=31536000, immutable",
         )
         print(f"uploaded r2://{self.bucket}/{key} ({len(payload)} bytes)")
-
-
-def target_dimensions(width: int, height: int) -> list[tuple[int, int]]:
-    longest = max(width, height)
-    largest = min(longest, VARIANT_WIDTHS[-1])
-    edges = [candidate for candidate in VARIANT_WIDTHS if candidate < largest]
-    edges.append(largest)
-    dimensions: list[tuple[int, int]] = []
-    for edge in sorted(set(edges)):
-        if width >= height:
-            dimensions.append((edge, max(1, round(height * edge / width))))
-        else:
-            dimensions.append((max(1, round(width * edge / height)), edge))
-    return dimensions
 
 
 def encode_variants(raw: bytes, source_type: str, source_id: str, page: int) -> tuple[int, int, str, list[dict], list[tuple[str, bytes]]]:

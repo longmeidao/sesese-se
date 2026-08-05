@@ -1,0 +1,18 @@
+.astro/
+.claude/
+.git/
+.wrangler/
+dist/
+history/
+node_modules/
+src/content/artworks/
+# Existing files outside this refactor's formatting boundary.
+.github/workflows/deploy.yml
+astro.config.mjs
+docs/architecture.md
+src/env.d.ts
+src/lib/media.ts
+src/pages/rss.xml.ts
+src/pages/sitemap.xml.ts
+src/styles/global.css
+src/types/artwork.ts

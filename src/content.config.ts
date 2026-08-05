@@ -1,62 +1,80 @@
-import { defineCollection, z } from 'astro:content';
-import { glob } from 'astro/loaders';
+import { defineCollection } from "astro:content";
+import { z } from "astro/zod";
+import { glob } from "astro/loaders";
 
 const variantSchema = z.object({
   key: z.string(),
-  format: z.enum(['webp', 'avif', 'jpeg']),
+  format: z.enum(["webp", "avif", "jpeg"]),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   bytes: z.number().int().nonnegative().optional(),
 });
 
-const artworkSchema = z.object({
-  schema_version: z.literal(2),
-  id: z.string(),
-  sequence: z.number().int().positive(),
-  status: z.enum(['active', 'hidden', 'deleted']).default('active'),
-  deleted_at: z.string().optional(),
-  overrides: z.object({
-    title: z.string().optional(),
-    description: z.string().optional(),
-    tags: z.array(z.string()).optional(),
-    author_name: z.string().optional(),
-  }).optional(),
-  content_hash: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
-  display_image_index: z.number().int().positive().default(1),
-  source: z.object({
-    type: z.enum(['pixiv', 'danbooru', 'x', 'other']),
+const artworkSchema = z
+  .object({
+    schema_version: z.literal(2),
     id: z.string(),
-    url: z.string().url(),
-  }),
-  title: z.string(),
-  description: z.string(),
-  published_at: z.string(),
-  collected_at: z.string(),
-  tags: z.array(z.string()),
-  author: z.object({
-    id: z.string(),
-    name: z.string(),
-    name_raw: z.string().optional(),
-    handle: z.string().optional(),
-    canonical_id: z.string().optional(),
-    url: z.string().url(),
-  }),
-  media: z.array(z.object({
-    index: z.number().int().positive(),
-    width: z.number().int().positive(),
-    height: z.number().int().positive(),
-    alt: z.string().optional(),
-    content_hash: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
-    variants: z.array(variantSchema).min(1),
-  })).min(1),
-  metrics: z.object({
-    views: z.number().int().nonnegative().optional(),
-    bookmarks: z.number().int().nonnegative().optional(),
-  }).optional(),
-}).refine(
-  (artwork) => artwork.media.some((item) => item.index === artwork.display_image_index),
-  { message: 'display_image_index must refer to an item in media' },
-);
+    sequence: z.number().int().positive(),
+    status: z.enum(["active", "hidden", "deleted"]).default("active"),
+    deleted_at: z.string().optional(),
+    overrides: z
+      .object({
+        title: z.string().optional(),
+        description: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+        author_name: z.string().optional(),
+      })
+      .optional(),
+    content_hash: z
+      .string()
+      .regex(/^sha256:[a-f0-9]{64}$/)
+      .optional(),
+    display_image_index: z.number().int().positive().default(1),
+    source: z.object({
+      type: z.enum(["pixiv", "danbooru", "x", "other"]),
+      id: z.string(),
+      url: z.url(),
+    }),
+    title: z.string(),
+    description: z.string(),
+    published_at: z.string(),
+    collected_at: z.string(),
+    tags: z.array(z.string()),
+    author: z.object({
+      id: z.string(),
+      name: z.string(),
+      name_raw: z.string().optional(),
+      handle: z.string().optional(),
+      canonical_id: z.string().optional(),
+      url: z.url(),
+    }),
+    media: z
+      .array(
+        z.object({
+          index: z.number().int().positive(),
+          width: z.number().int().positive(),
+          height: z.number().int().positive(),
+          alt: z.string().optional(),
+          content_hash: z
+            .string()
+            .regex(/^sha256:[a-f0-9]{64}$/)
+            .optional(),
+          variants: z.array(variantSchema).min(1),
+        }),
+      )
+      .min(1),
+    metrics: z
+      .object({
+        views: z.number().int().nonnegative().optional(),
+        bookmarks: z.number().int().nonnegative().optional(),
+      })
+      .optional(),
+  })
+  .refine(
+    (artwork) =>
+      artwork.media.some((item) => item.index === artwork.display_image_index),
+    { message: "display_image_index must refer to an item in media" },
+  );
 
 const legacyPixivSchema = z.object({
   id: z.number(),
@@ -78,7 +96,7 @@ const legacyPixivSchema = z.object({
 });
 
 const artworks = defineCollection({
-  loader: glob({ pattern: '**/*.json', base: './src/content/artworks' }),
+  loader: glob({ pattern: "**/*.json", base: "./src/content/artworks" }),
   schema: z.union([artworkSchema, legacyPixivSchema]),
 });
 
