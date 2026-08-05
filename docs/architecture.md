@@ -32,13 +32,13 @@ GitHub 建议仓库理想情况下小于 1 GB，并明确建议把生成文件�
 
 ## 静态托管对比
 
-| 方案 | 免费额度与约束 | 访问路径 | 结论 |
-| --- | --- | --- | --- |
-| Cloudflare Workers Static Assets | 静态资源请求免费且不限量；单文件 25 MiB；免费账户每个版本 20,000 个静态文件 | Cloudflare 全球边缘节点；普通页面不执行 Worker | **首选**。Cloudflare 已建议新静态项目使用 Workers Static Assets |
-| Cloudflare Pages | 每月 500 次构建；20,000 文件；单文件 25 MiB | 同属 Cloudflare 边缘网络 | 可用，但新能力重点已转向 Workers；不再作为新项目首选 |
-| GitHub Pages | 发布站点最大 1 GB；软性 100 GB/月带宽 | GitHub Pages CDN | 最简单的灾备托管；不适合图片本体，也缺少对象存储的一体化缓存控制 |
-| Vercel Hobby | 100 GB Fast Data Transfer；100 次部署/日；限个人、非商业用途 | Vercel Edge Network | 性能可用，但用途条款和静态传输配额不如 Cloudflare 适合长期公开站点 |
-| Netlify Free | 每月 300 credits；生产部署 15 credits/次、带宽 20 credits/GB、请求 2 credits/万次 | Netlify CDN | 小站可用，但部署、流量和请求共享额度，流量增长时更容易整站暂停 |
+| 方案                             | 免费额度与约束                                                                    | 访问路径                                       | 结论                                                               |
+| -------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------ |
+| Cloudflare Workers Static Assets | 静态资源请求免费且不限量；单文件 25 MiB；免费账户每个版本 20,000 个静态文件       | Cloudflare 全球边缘节点；普通页面不执行 Worker | **首选**。Cloudflare 已建议新静态项目使用 Workers Static Assets    |
+| Cloudflare Pages                 | 每月 500 次构建；20,000 文件；单文件 25 MiB                                       | 同属 Cloudflare 边缘网络                       | 可用，但新能力重点已转向 Workers；不再作为新项目首选               |
+| GitHub Pages                     | 发布站点最大 1 GB；软性 100 GB/月带宽                                             | GitHub Pages CDN                               | 最简单的灾备托管；不适合图片本体，也缺少对象存储的一体化缓存控制   |
+| Vercel Hobby                     | 100 GB Fast Data Transfer；100 次部署/日；限个人、非商业用途                      | Vercel Edge Network                            | 性能可用，但用途条款和静态传输配额不如 Cloudflare 适合长期公开站点 |
+| Netlify Free                     | 每月 300 credits；生产部署 15 credits/次、带宽 20 credits/GB、请求 2 credits/万次 | Netlify CDN                                    | 小站可用，但部署、流量和请求共享额度，流量增长时更容易整站暂停     |
 
 参考：[Workers Static Assets 费用](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/)、[Workers 限额](https://developers.cloudflare.com/workers/platform/limits/)、[Pages 限额](https://developers.cloudflare.com/pages/platform/limits/)、[GitHub Pages 限额](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)、[Vercel Hobby](https://vercel.com/docs/plans/hobby)、[Netlify 定价](https://www.netlify.com/pricing/)。
 
@@ -50,13 +50,13 @@ GitHub 建议仓库理想情况下小于 1 GB，并明确建议把生成文件�
 
 ## 图片存储对比
 
-| 方案 | 免费容量 | 免费流量/请求 | 结论 |
-| --- | ---: | --- | --- |
-| Cloudflare R2 Standard | 10 GB/月 | 公网流出免费；每月 100 万 Class A、1,000 万 Class B | **首选**。免费额度、流量和 Cloudflare 缓存组合最好 |
-| Backblaze B2 | 前 10 GB 免费 | 免费流出约为平均存储量的 3 倍，超出后按量付费；事务大多免费 | 最佳跨厂商备份候选，也可在 R2 不合适时作为主存储 |
-| GitHub LFS | 10 GB 存储、10 GB/月带宽 | 超额需付费，且 Pages 不能直接使用 | 适合协作大文件，不适合公开图片热链路 |
-| Supabase Storage Free | 1 GB | 5 GB cached egress；免费项目闲置会暂停 | 容量偏小，且本项目不需要数据库/Auth，不值得引入整个平台 |
-| OSS | 通常按存储、请求和公网流量计费 | 取决于账户与地域 | 仅作付费灾备或中国大陆媒体镜像 |
+| 方案                   |                       免费容量 | 免费流量/请求                                               | 结论                                                    |
+| ---------------------- | -----------------------------: | ----------------------------------------------------------- | ------------------------------------------------------- |
+| Cloudflare R2 Standard |                       10 GB/月 | 公网流出免费；每月 100 万 Class A、1,000 万 Class B         | **首选**。免费额度、流量和 Cloudflare 缓存组合最好      |
+| Backblaze B2           |                  前 10 GB 免费 | 免费流出约为平均存储量的 3 倍，超出后按量付费；事务大多免费 | 最佳跨厂商备份候选，也可在 R2 不合适时作为主存储        |
+| GitHub LFS             |       10 GB 存储、10 GB/月带宽 | 超额需付费，且 Pages 不能直接使用                           | 适合协作大文件，不适合公开图片热链路                    |
+| Supabase Storage Free  |                           1 GB | 5 GB cached egress；免费项目闲置会暂停                      | 容量偏小，且本项目不需要数据库/Auth，不值得引入整个平台 |
+| OSS                    | 通常按存储、请求和公网流量计费 | 取决于账户与地域                                            | 仅作付费灾备或中国大陆媒体镜像                          |
 
 参考：[R2 定价](https://developers.cloudflare.com/r2/pricing/)、[R2 公共桶与自定义域名](https://developers.cloudflare.com/r2/buckets/public-buckets/)、[B2 定价](https://www.backblaze.com/cloud-storage/pricing)、[Supabase 定价](https://supabase.com/pricing)。
 

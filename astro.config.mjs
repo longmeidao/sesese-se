@@ -1,10 +1,10 @@
-import { defineConfig } from 'astro/config';
+import { defineConfig } from "astro/config";
 
 export default defineConfig({
-  site: 'https://sesese.se',
-  output: 'static',
+  site: "https://sesese.se",
+  output: "static",
   prefetch: {
     prefetchAll: false,
-    defaultStrategy: 'viewport',
+    defaultStrategy: "viewport",
   },
 });

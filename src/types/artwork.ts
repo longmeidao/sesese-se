@@ -1,5 +1,5 @@
-export type ArtworkSource = 'pixiv' | 'danbooru' | 'x' | 'other';
-export type ArtworkStatus = 'active' | 'hidden' | 'deleted';
+export type ArtworkSource = "pixiv" | "danbooru" | "x" | "other";
+export type ArtworkStatus = "active" | "hidden" | "deleted";
 
 export interface ArtworkOverrides {
   title?: string;
@@ -10,7 +10,7 @@ export interface ArtworkOverrides {
 
 export interface MediaVariant {
   key: string;
-  format: 'webp' | 'avif' | 'jpeg';
+  format: "webp" | "avif" | "jpeg";
   width: number;
   height: number;
   bytes?: number;
