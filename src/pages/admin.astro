@@ -14,7 +14,6 @@ import '../styles/admin.css';
         登录成功后仍要停留到藏品拉完，看起来就像被拒绝了。 */}
     <section id="admin-loading" class="admin-login" aria-live="polite">
       <div class="admin-login__panel admin-login__panel--quiet">
-        <p class="admin-kicker">PRIVATE COLLECTION DESK</p>
         <p class="admin-login__intro">正在载入管理台…</p>
       </div>
     </section>
@@ -22,7 +21,6 @@ import '../styles/admin.css';
     <section id="admin-login" class="admin-login" aria-labelledby="admin-login-title" hidden>
       <div class="admin-login__panel">
         <a href="/" class="admin-header__back">← 返回展厅</a>
-        <p class="admin-kicker">PRIVATE COLLECTION DESK</p>
         <h1 id="admin-login-title">藏品管理</h1>
         <p class="admin-login__intro">这是私人管理入口，身份由 Cloudflare Access 验证。验证通过后，才会读取藏品资料并显示管理功能。</p>
 
@@ -40,7 +38,6 @@ import '../styles/admin.css';
       <header class="admin-header">
         <div>
           <a href="/" class="admin-header__back">← 返回展厅</a>
-          <p class="admin-kicker">PRIVATE COLLECTION DESK</p>
           <h1>藏品管理</h1>
         </div>
         <div class="admin-header__side">
@@ -56,7 +53,6 @@ import '../styles/admin.css';
           <div class="admin-ingest__main">
             <div class="admin-panel__heading">
               <div>
-                <p class="admin-panel__eyebrow">添加</p>
                 <h2 id="admin-ingest-title">收录新作品</h2>
               </div>
               <a href="https://github.com/longmeidao/sesese-se/actions/workflows/ingest-artwork.yml" target="_blank" rel="noopener noreferrer">
@@ -134,7 +130,6 @@ import '../styles/admin.css';
         <aside class="admin-panel admin-runs" aria-labelledby="admin-runs-title">
           <div class="admin-panel__heading">
             <div>
-              <p class="admin-panel__eyebrow">任务</p>
               <h2 id="admin-runs-title">最近采集</h2>
             </div>
             <button
@@ -156,7 +151,6 @@ import '../styles/admin.css';
       <section class="admin-collection" aria-labelledby="admin-collection-title">
         <div class="admin-collection__heading">
           <div>
-            <p class="admin-panel__eyebrow">馆藏</p>
             <h2 id="admin-collection-title">管理作品</h2>
           </div>
           <div class="admin-filters">
@@ -181,7 +175,6 @@ import '../styles/admin.css';
         <form id="edit-artwork-form" method="dialog">
           <div class="admin-dialog__heading">
           <div>
-            <p class="admin-panel__eyebrow">手动修改</p>
             <h2 id="edit-artwork-title">编辑藏品</h2>
             <p class="admin-dialog__hint">保存后会自动发布，通常半分钟左右可以在展厅看到。</p>
           </div>
@@ -235,7 +228,6 @@ import '../styles/admin.css';
         <form id="admin-confirm-form" method="dialog">
           <div class="admin-dialog__heading">
             <div>
-              <p class="admin-panel__eyebrow" id="admin-confirm-eyebrow">确认</p>
               <h2 id="admin-confirm-title">确认操作</h2>
               <p class="admin-dialog__hint" id="admin-confirm-message"></p>
             </div>
@@ -356,7 +348,6 @@ import '../styles/admin.css';
 
     const confirmDialog = document.querySelector<HTMLDialogElement>('#admin-confirm-dialog')!;
     const confirmTitle = document.querySelector<HTMLElement>('#admin-confirm-title')!;
-    const confirmEyebrow = document.querySelector<HTMLElement>('#admin-confirm-eyebrow')!;
     const confirmMessage = document.querySelector<HTMLElement>('#admin-confirm-message')!;
     const confirmField = document.querySelector<HTMLElement>('#admin-confirm-field')!;
     const confirmInput = document.querySelector<HTMLInputElement>('#admin-confirm-input')!;
@@ -365,7 +356,6 @@ import '../styles/admin.css';
     const closeConfirmButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-close-confirm]')];
 
     type ConfirmOptions = {
-      eyebrow?: string;
       title: string;
       message: string;
       acceptLabel?: string;
@@ -376,7 +366,6 @@ import '../styles/admin.css';
     /** 站内确认框，替代 window.confirm / window.prompt。
      *  无数字输入时返回 true/false；有数字输入时返回该数字或 null。 */
     function askConfirm(options: ConfirmOptions): Promise<boolean | number | null> {
-      confirmEyebrow.textContent = options.eyebrow ?? '确认';
       confirmTitle.textContent = options.title;
       confirmMessage.textContent = options.message;
       confirmError.textContent = '';
@@ -554,10 +543,9 @@ import '../styles/admin.css';
       return button;
     }
 
-    function renderArtworkCard(artwork: AdminArtwork, index: number) {
+    function renderArtworkCard(artwork: AdminArtwork) {
       const card = document.createElement('article');
       card.className = 'admin-artwork';
-      card.style.setProperty('--admin-card-index', String(Math.min(index, 12)));
       card.dataset.artworkId = artwork.id;
       card.dataset.status = artwork.status;
       card.dataset.search = `${artwork.sequence} ${artwork.effective.title} ${artwork.effective.author_name} ${artwork.effective.tags.join(' ')}`.toLowerCase();
@@ -713,7 +701,7 @@ import '../styles/admin.css';
 
     document.querySelector<HTMLFormElement>('#ingest-form')?.addEventListener('submit', async (event) => {
       event.preventDefault();
-      const form = event.currentTarget;
+      const form = event.currentTarget as HTMLFormElement;
       const output = document.querySelector<HTMLOutputElement>('#ingest-status')!;
       const formData = new FormData(form);
       const payload = Object.fromEntries(
@@ -833,7 +821,6 @@ import '../styles/admin.css';
 
       if (button.dataset.action === 'reingest') {
         const displayImage = await askConfirm({
-          eyebrow: '重新抓取',
           title: `重新抓取 No. ${String(artwork.sequence).padStart(3, '0')}`,
           message: '会重新从原站获取这件藏品的图片与信息。',
           acceptLabel: '开始抓取',
@@ -865,10 +852,10 @@ import '../styles/admin.css';
       if (!nextStatus) return;
       const label = `No. ${String(artwork.sequence).padStart(3, '0')}`;
       const copy = nextStatus === 'deleted'
-        ? { eyebrow: '移入回收站', title: `把 ${label} 移入回收站`, message: '藏品会从展厅下架，30 天内仍可恢复。', acceptLabel: '移入回收站', danger: true }
+        ? { title: `把 ${label} 移入回收站`, message: '藏品会从展厅下架，30 天内仍可恢复。', acceptLabel: '移入回收站', danger: true }
         : nextStatus === 'hidden'
-          ? { eyebrow: '隐藏', title: `隐藏 ${label}`, message: '藏品会暂时从展厅下架，随时可以恢复展出。', acceptLabel: '隐藏' }
-          : { eyebrow: '恢复', title: `恢复 ${label}`, message: '藏品会重新出现在展厅中。', acceptLabel: '恢复展出' };
+          ? { title: `隐藏 ${label}`, message: '藏品会暂时从展厅下架，随时可以恢复展出。', acceptLabel: '隐藏' }
+          : { title: `恢复 ${label}`, message: '藏品会重新出现在展厅中。', acceptLabel: '恢复展出' };
       if (!(await askConfirm(copy))) return;
       card.classList.add('admin-artwork--pending');
       button.disabled = true;
