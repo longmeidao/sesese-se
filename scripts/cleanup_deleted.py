@@ -43,10 +43,18 @@ def expired_artworks(retention_days: int) -> list[tuple[Path, dict]]:
 
 
 def media_keys(artwork: dict) -> list[str]:
+    """Every R2 object an artwork owns: the archived source plus each variant.
+
+    Missing the source here would leave the largest object of all behind as an
+    orphan that nothing references and nothing will ever clean up.
+    """
     keys: list[str] = []
     for media in artwork.get("media", []):
-        for variant in media.get("variants", []):
-            key = variant.get("key")
+        entries = [media.get("source"), *media.get("variants", [])]
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            key = entry.get("key")
             if isinstance(key, str) and key and key not in keys:
                 keys.append(key)
     return keys

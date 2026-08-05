@@ -7,6 +7,26 @@ import unicodedata
 
 VARIANT_WIDTHS = (640, 960, 1600, 2400)
 
+# 原图按下载到的字节原样留存，所以扩展名和 Content-Type 必须跟着来源格式走，
+# 不能一律当成 PNG。键是 Pillow 报告的格式名。
+SOURCE_FORMATS = {
+    "PNG": ("png", "image/png"),
+    "JPEG": ("jpg", "image/jpeg"),
+    "WEBP": ("webp", "image/webp"),
+    "GIF": ("gif", "image/gif"),
+    "AVIF": ("avif", "image/avif"),
+}
+
+
+def source_descriptor(pillow_format: str | None) -> tuple[str, str]:
+    """Map a Pillow format name to the archival file extension and Content-Type."""
+    if not pillow_format:
+        raise ValueError("Could not determine the source image format")
+    try:
+        return SOURCE_FORMATS[pillow_format.upper()]
+    except KeyError:
+        raise ValueError(f"Unsupported source image format: {pillow_format}") from None
+
 
 def parse_csv(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]

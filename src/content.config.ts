@@ -10,6 +10,16 @@ const variantSchema = z.object({
   bytes: z.number().int().nonnegative().optional(),
 });
 
+// 采集时原样留存的来源文件。只作存档，不参与 srcset —— 展示一律走 variants。
+// 早于原图留存的藏品没有这个字段，所以是 optional。
+const sourceSchema = z.object({
+  key: z.string(),
+  format: z.enum(["png", "jpg", "webp", "gif", "avif"]),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  bytes: z.number().int().nonnegative(),
+});
+
 const artworkSchema = z
   .object({
     schema_version: z.literal(2),
@@ -59,6 +69,7 @@ const artworkSchema = z
             .string()
             .regex(/^sha256:[a-f0-9]{64}$/)
             .optional(),
+          source: sourceSchema.optional(),
           variants: z.array(variantSchema).min(1),
         }),
       )

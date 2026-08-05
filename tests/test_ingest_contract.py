@@ -8,6 +8,7 @@ from ingest_contract import (  # noqa: E402
     normalize_author_name,
     parse_x_status,
     safe_identifier,
+    source_descriptor,
     target_dimensions,
     x_title,
 )
@@ -29,6 +30,14 @@ class IngestContractTest(unittest.TestCase):
     def test_sanitizes_identifier_and_title(self):
         self.assertEqual(safe_identifier("artist / 123"), "artist-123")
         self.assertEqual(x_title("#art https://example.com", "作者", "123"), "作者 · X 123")
+
+    def test_maps_source_format_to_extension_and_type(self):
+        self.assertEqual(source_descriptor("PNG"), ("png", "image/png"))
+        self.assertEqual(source_descriptor("JPEG"), ("jpg", "image/jpeg"))
+        with self.assertRaises(ValueError):
+            source_descriptor(None)
+        with self.assertRaises(ValueError):
+            source_descriptor("BMP")
 
 
 if __name__ == "__main__":

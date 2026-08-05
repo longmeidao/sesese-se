@@ -16,12 +16,22 @@ export interface MediaVariant {
   bytes?: number;
 }
 
+/** 原样留存的来源文件。只作存档与将来重编码的输入，不参与展示。 */
+export interface MediaSource {
+  key: string;
+  format: "png" | "jpg" | "webp" | "gif" | "avif";
+  width: number;
+  height: number;
+  bytes: number;
+}
+
 export interface ArtworkMedia {
   index: number;
   width: number;
   height: number;
   alt?: string;
   content_hash?: string;
+  source?: MediaSource;
   variants: MediaVariant[];
 }
 
