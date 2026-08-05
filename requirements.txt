@@ -1,4 +1,4 @@
-boto3==1.43.53
+boto3==1.43.62
 Pillow==12.3.0
 pixivpy3==3.7.5
 requests==2.34.2
