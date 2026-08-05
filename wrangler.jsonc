@@ -4,24 +4,33 @@
   "compatibility_date": "2026-07-22",
   "main": "./src/worker.ts",
   "keep_vars": true,
-  "secrets": {
-    "required": [
-      "GITHUB_TOKEN"
-    ]
-  },
-
-  // 没有这个，Worker 的运行时日志根本不留存，出事只能靠 `wrangler tail` 实时守着。
-  // 采样率 1 = 全量：这个 Worker 只处理 /api/*，量很小，不必抽样。
+  // 与 Cloudflare 控制台上的现有设置保持一致，否则每次 deploy 都会把它们重置。
+  // logs.enabled / traces.enabled 是各自独立的开关，顶层 enabled 目前只影响日志，
+  // 所以这里的含义是：Workers Logs 开启并落盘，自动追踪关闭。
   "observability": {
-    "enabled": true,
-    "head_sampling_rate": 1
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true,
+    },
+    "traces": {
+      "enabled": false,
+      "persist": true,
+      "head_sampling_rate": 1,
+    },
+  },
+  "secrets": {
+    "required": ["GITHUB_TOKEN"],
   },
 
   "routes": [
     {
       "pattern": "sesese.se",
-      "custom_domain": true
-    }
+      "custom_domain": true,
+    },
   ],
   "vars": {
     "GITHUB_OWNER": "longmeidao",
@@ -32,13 +41,13 @@
     // 这两个值来自 Zero Trust 里的 Self-hosted 应用，填法见 docs/operations.md。
     // AUD 是应用标识不是密钥，可以进仓库；真正的凭据是 Access 签发的 JWT。
     "ACCESS_TEAM_DOMAIN": "https://longmeidao.cloudflareaccess.com",
-    "ACCESS_AUD": "dba8bbdd332ba46c9a71800ad58e89c631b8633d0951215f4cc03d0df27adde2"
+    "ACCESS_AUD": "dba8bbdd332ba46c9a71800ad58e89c631b8633d0951215f4cc03d0df27adde2",
   },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"],
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "404-page"
-  }
+    "not_found_handling": "404-page",
+  },
 }
