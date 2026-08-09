@@ -31,6 +31,10 @@
       "pattern": "sesese.se",
       "custom_domain": true,
     },
+    {
+      "pattern": "www.sesese.se",
+      "custom_domain": true,
+    },
   ],
   "vars": {
     "GITHUB_OWNER": "longmeidao",
